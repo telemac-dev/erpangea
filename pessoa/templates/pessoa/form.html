@@ -1,0 +1,63 @@
+{% extends 'principal/base.html' %}
+{% block content %}
+<h1>Formulário de Nova Pessoa</h1>
+<div class="top-buffer">
+    <form action="" method="post">
+        <table>
+        {% csrf_token %}
+        {{ form.as_table }}
+        </table>
+        
+        {{ form_telefone.management_form }}
+
+        {% for ft in form_telefone %}
+        
+        <div class="inlineformTelefone">
+            <hr>
+            <table>
+            {{ ft.as_table }}
+            </table>
+        </div>
+
+        {% endfor %}
+        
+        {{ form_endereco.management_form }}
+
+        {% for fe in form_endereco %}
+        
+        <div class="inlineformEndereco">
+            <hr>
+            <table>
+                {{ fe.as_table }}
+            </table>
+        </div>
+
+        {% endfor %}
+        <div class="row">
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a class="btn btn-danger" href={% url 'pessoa.index' %}>Cancelar</a>
+        </div>
+    </form>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script type="text/javascript">
+    $(function() {
+        $('.inlineformTelefone').formset({
+            prefix: '{{ form_telefone.prefix }}',
+            addText: '<i class="fas fa-plus"></i>',
+            deleteText: '<i class="fas fa-trash"></i>',
+        });
+    })
+    $(function() {
+        $('.inlineformEndereco').formset({
+            prefix: '{{ form_telefone.prefix }}',
+            addText: '<i class="fas fa-house-user"></i>',
+            deleteText: '<i class="fas fa-trash"></i>',
+        });
+    })
+</script>
+{% endblock scripts %}
+
