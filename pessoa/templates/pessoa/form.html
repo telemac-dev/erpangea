@@ -1,12 +1,11 @@
 {% extends 'principal/base.html' %}
+{% load crispy_forms_tags %} ## Carregando a biblioteca
 {% block content %}
 <h1>Formulário de Nova Pessoa</h1>
 <div class="top-buffer">
-    <form action="" method="post">
-        <table>
+    <form action="." method="post">
         {% csrf_token %}
-        {{ form.as_table }}
-        </table>
+        {{ form.nome | as_crispy_field }}
         
         {{ form_telefone.management_form }}
 
@@ -14,9 +13,7 @@
         
         <div class="inlineformTelefone">
             <hr>
-            <table>
-            {{ ft.as_table }}
-            </table>
+            {{ ft | crispy }}
         </div>
 
         {% endfor %}
@@ -27,9 +24,7 @@
         
         <div class="inlineformEndereco">
             <hr>
-            <table>
-                {{ fe.as_table }}
-            </table>
+            {{ fe | crispy }}
         </div>
 
         {% endfor %}
