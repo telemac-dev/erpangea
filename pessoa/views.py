@@ -16,6 +16,9 @@ class ListaPessoaView(ListView):
 def inserir(request):
     if request.method == "GET":
         form = PessoaForm()
+        tp = 1
+        form.fields.get('nome').label = "Pessoa Física" if tp==1 else "Pessoa Juridica"
+        print(form.fields.get('nome').label)
         form_endereco_factory = inlineformset_factory(Pessoa, Endereco, form=EnderecoForm, extra=1)
         form_telefone_factory = inlineformset_factory(Pessoa, Telefone, form=TelefoneForm, extra=1)
         form_telefone = form_telefone_factory()

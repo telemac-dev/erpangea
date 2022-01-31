@@ -6,7 +6,7 @@
     <form action="." method="post">
         {% csrf_token %}
         {{ form.nome | as_crispy_field }}
-        
+
         {{ form_telefone.management_form }}
 
         {% for ft in form_telefone %}
