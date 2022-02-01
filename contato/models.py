@@ -45,7 +45,7 @@ class Contato(CarimboTempoUsuarioMixin):
     inscricao_federal = models.CharField(max_length=14, blank=True, null=True, unique=True) # CPF (PF), CNPJ (PJ)
     carga = models.CharField(max_length=50, blank=True)
     telefone = models.CharField(max_length=20, blank=True)
-    Mobile = models.CharField(max_length=20, blank=True)
+    mobile = models.CharField(max_length=20, blank=True)
     email = models.EmailField(max_length=100, blank=True)
     site_web = models.CharField(max_length=100, blank=True)
     marcador = models.ManyToManyField(Marcador)
