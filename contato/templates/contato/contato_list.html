@@ -1,22 +1,16 @@
 {% extends 'principal/base.html' %}
+
 {% block content %}
-<h1>Lidta de Contatos</h1>
 
-<ul>
-    {% for contato in contatos %}
-    <li>{{ contato.nome }}  {{ contato.telefone }}  {{ contato.email }}</li>
-    {% endfor %}
-    
-</ul>
+<h1>Lista de Contatos</h1>
 
-{% endblock content %}
 <!-- DataTales Example -->
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">DataTables Example</h6>
     </div>
     <div class="card-body">
-        <a href={% url 'contato.novo' %} class="btn btn-primary btn-icon-split">
+        <a href="{% url 'contato.novo' %}" class="btn btn-primary btn-icon-split">
             <span class="icon text-white-50">
                 <i class="fas fa-flag"></i>
             </span>
@@ -31,7 +25,7 @@
                         <th>Nome</th>
                         <th>E-mail</th>
                         <th>Telefone</th>
-                        <th>Cidade</th>
+                        <th>Mobile</th>
                     </tr>
                 </thead>
                 <tfoot>
@@ -39,16 +33,19 @@
                         <th>Nome</th>
                         <th>E-mail</th>
                         <th>Telefone</th>
-                        <th>Cidade</th>
+                        <th>Mobile</th>
                     </tr>
                 </tfoot>
                 <tbody>
                     {% for contato in contatos %}
                     <tr>
-                        <td><a href={% url 'contato.editar' pessoa.pk %}>{{ pessoa.nome }}</a></td>
+                        <td><a href="{% url 'contato.editar' contato.pk %}">{{ contato.nome }}</a></td>
                         <td>{{ contato.email }}</td>
-                        <td>{{ contato.email }}</td>
-                        <td>{{ contato.email }}</td>
+                        <td>{{ contato.telefone }}</td>
+                        <td>{{ contato.mobile }}</td>
+                        <td><a href="{% url 'contato.remover' contato.pk %}" class="dropdown-item text-danger"
+                            data-toggle="modal" data-target="#delete-item-modal" id="delete-item"><i
+                                class="fas fa-trash"></i></a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -57,4 +54,32 @@
     </div>
 </div>
 
+<!-- Modal de confirmação de excusclusão -->
+<div class="modal fade" id="delete-item-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <p>Tem certeza de que deseja remover {{ contato.nome }}?</p>
+            </div>
+            <div class="justify-content-between mb-2 mr-2 text-right">
+                <form method="post" id="item-delete-form">
+                    <button type="button" class="btn btn-secondary mr-1" data-dismiss="modal">Cancelar</button>
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" id="confirm-delete-item-button">Remover</button>
+                </form>
+            </div>
+        </div>
+    </div>
+  </div>
+
 {% endblock content %}
+
+
+{% block scripts %}
+<script type="text/javascript">
+
+    $(document).on('click', '#delete-item', () => {
+        document.getElementById("item-delete-form").action = document.querySelector('#delete-item').href
+    });
+</script>
+{% endblock scripts %}

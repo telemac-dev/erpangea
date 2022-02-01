@@ -60,5 +60,5 @@ class Contato(CarimboTempoUsuarioMixin):
  
     # metodo que envia o usuário na url após sucesso ao salvar o formulário 
     # def get_absolute_url(self):
-    #     return reverse("Contato_detail", kwargs={"pk": self.pk})
+    #     return reverse("contato.editar", kwargs={"pk": self.pk})
 
