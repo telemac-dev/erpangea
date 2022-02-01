@@ -1,0 +1,14 @@
+{% extends 'principal/base.html' %}
+{% block content %}
+
+<h1>Remover um contato</h1>
+
+<form action="" method="post">
+    {% csrf_token %}
+    <p>Tem certeza de que deseja remover {{ contato.nome }}?</p>
+    <a href="{% url 'contato.index' %}"><input class="btn btn-outline-secondary" type="button"
+            value="Cancelar"></input></a>
+    <input class="btn btn-danger" type="submit" value="Confirmar">
+</form>
+
+{% endblock content %}
