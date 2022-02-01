@@ -52,32 +52,8 @@
     </div>
 </div>
 
-<!-- Modal de confirmação de excusclusão -->
-<div class="modal fade" id="delete-item-modal">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-body">
-                <p>Tem certeza de que deseja remover {{ contato.nome }}?</p>
-            </div>
-            <div class="justify-content-between mb-2 mr-2 text-right">
-                <form method="post" id="item-delete-form">
-                    <button type="button" class="btn btn-secondary mr-1" data-dismiss="modal">Cancelar</button>
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger" id="confirm-delete-item-button">Remover</button>
-                </form>
-            </div>
-        </div>
-    </div>
-  </div>
-
 {% endblock content %}
 
-
 {% block scripts %}
-<script type="text/javascript">
-
-    $(document).on('click', '#delete-item', () => {
-        document.getElementById("item-delete-form").action = document.querySelector('#delete-item').href
-    });
-</script>
+<script></script>
 {% endblock scripts %}
