@@ -1,28 +1,14 @@
 {% extends 'principal/base.html' %}
 {% block content %}
 
+<h1>Remover um contato</h1>
 
 <form action="" method="post">
     {% csrf_token %}
     <p>Tem certeza de que deseja remover {{ contato.nome }}?</p>
-    <input type="submit" value="Salvar">
+    <a href="{% url 'contato.index' %}"><input class="btn btn-outline-secondary" type="button"
+            value="Cancelar"></input></a>
+    <input class="btn btn-danger" type="submit" value="Confirmar">
 </form>
 
 {% endblock content %}
-
-{% block scripts %}
-<script type="text/javascript">
-    $(document).on('click', '.confirm-delete', function () {
-        $("#confirmDeleteModal").attr("caller-id", $(this).attr("id"));
-    });
-
-    $(document).on('click', '#confirmDeleteButtonModal', function () {
-        var caller = $("#confirmDeleteButtonModal").closest(".modal").attr("caller-id");
-        window.location = $("#".concat(caller)).attr("href");
-    });
-
-    $(document).on('click', '#delete-item', () => {
-        document.getElementById("item-delete-form").action = document.querySelector('#delete-item').href
-    });
-</script>
-{% endblock scripts %}
