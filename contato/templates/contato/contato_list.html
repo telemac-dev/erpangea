@@ -43,9 +43,7 @@
                         <td>{{ contato.email }}</td>
                         <td>{{ contato.telefone }}</td>
                         <td>{{ contato.mobile }}</td>
-                        <td><a href="{% url 'contato.remover' contato.pk %}" class="dropdown-item text-danger"
-                            data-toggle="modal" data-target="#delete-item-modal" id="delete-item"><i
-                                class="fas fa-trash"></i></a></td>
+                        <td><a href="{% url 'contato.remover' contato.pk %}"><i class="fas fa-trash"></i></a></td>
                     </tr>
                     {% endfor %}
                 </tbody>

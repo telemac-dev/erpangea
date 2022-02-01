@@ -28,5 +28,5 @@ class ContatoUpdateView(UpdateView):
 
 class ContatoDeleteView(DeleteView):
     model = Contato
-    success_url = reverse_lazy("contato.index")
-    
+    #success_url = reverse_lazy("contato.index")
+    success_url = "/contatos/"
