@@ -48,7 +48,7 @@ class Contato(CarimboTempoUsuarioMixin):
     mobile = models.CharField(max_length=20, blank=True)
     email = models.EmailField(max_length=100, blank=True)
     site_web = models.CharField(max_length=100, blank=True)
-    marcador = models.ManyToManyField(Marcador)
+    marcador = models.ManyToManyField(Marcador, blank=True)
     
     class Meta:
         ordering = ['nome']
@@ -61,4 +61,18 @@ class Contato(CarimboTempoUsuarioMixin):
     # metodo que envia o usuário na url após sucesso ao salvar o formulário 
     # def get_absolute_url(self):
     #     return reverse("contato.editar", kwargs={"pk": self.pk})
+
+
+class Endereco(models.Model):
+    contato = models.ForeignKey(Contato)
+    cep = models.CharField(max_length=8)
+    logradouro = models.CharField(max_length=80)
+    numero = models.CharField(max_length=50)
+    complemento = models.CharField(max_length=1000, blank=True, null=True)
+    bairro = models.CharField(max_length=255)
+    cidade = models.CharField(max_length=255)
+    uf = models.CharField(max_length=2)
+
+    def __str__(self):
+        return self.cep
 

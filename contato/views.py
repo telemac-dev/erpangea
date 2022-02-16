@@ -14,7 +14,7 @@ class ContatoListView(ListView):
 
 class ContatoCreateView(CreateView):
     model = Contato
-    fields = '__all__'
+    fields = ['tipo_contato', 'nome', 'apelido', 'inscricao_federal', 'carga', 'telefone', 'mobile', 'email', 'site_web', 'marcador']
     template_name = "contato/contato_create.html"
     success_url = "/contatos/"
     
