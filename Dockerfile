@@ -32,6 +32,7 @@ RUN apk add --no-cache netcat-openbsd && \
     /venv/bin/pip install -r /djangoapp/requirements.txt && \
     adduser -D -u 1000 -s /bin/sh duser && \
     mkdir -p /data/web/static /data/web/media && \
+    chmod -R +x /scripts
     
 # Adiciona a pasta scripts e venv/bin 
 # no $PATH do container.

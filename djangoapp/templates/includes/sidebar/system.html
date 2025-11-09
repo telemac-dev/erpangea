@@ -1,0 +1,22 @@
+<!-- Settings Section -->
+{% if user.is_staff %}
+<div class="menu-section">
+    <div class="menu-section-title">Sistema</div>
+    
+    <div class="menu-item">
+        <a href="#" class="menu-link">
+            <i class="bi bi-gear menu-icon"></i>
+            <span class="menu-text">Configurações</span>
+        </a>
+    </div>
+    
+    {% if user.is_superuser %}
+    <div class="menu-item">
+        <a href="{% url 'admin:index' %}" class="menu-link">
+            <i class="bi bi-shield-lock menu-icon"></i>
+            <span class="menu-text">Administração</span>
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endif %}

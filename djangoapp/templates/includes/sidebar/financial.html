@@ -1,0 +1,27 @@
+<!-- Financial Section -->
+{% if perms.financial.view_transaction %}
+<div class="menu-section">
+    <div class="menu-section-title">Financeiro</div>
+    
+    <div class="menu-item">
+        <a href="#" class="menu-link">
+            <i class="bi bi-cash-coin menu-icon"></i>
+            <span class="menu-text">Financeiro</span>
+        </a>
+    </div>
+    
+    <div class="menu-item">
+        <a href="#" class="menu-link">
+            <i class="bi bi-arrow-down-circle menu-icon"></i>
+            <span class="menu-text">Contas a Receber</span>
+        </a>
+    </div>
+    
+    <div class="menu-item">
+        <a href="#" class="menu-link">
+            <i class="bi bi-arrow-up-circle menu-icon"></i>
+            <span class="menu-text">Contas a Pagar</span>
+        </a>
+    </div>
+</div>
+{% endif %}

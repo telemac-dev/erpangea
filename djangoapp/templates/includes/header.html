@@ -1,0 +1,20 @@
+<!-- Header -->
+<header class="main-header">
+    <div class="header-left">
+        <button class="menu-toggle" id="menuToggle">
+            <i class="bi bi-list"></i>
+        </button>
+        <a href="{% url 'dashboard' %}" class="logo-container">
+            <div class="logo-icon">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+            </div>
+            <span>ERP System</span>
+        </a>
+    </div>
+
+    <div class="header-right">
+        {% include "includes/header/search.html" %}
+        {% include "includes/header/notifications.html" %}
+        {% include "includes/header/user_menu.html" %}
+    </div>
+</header>

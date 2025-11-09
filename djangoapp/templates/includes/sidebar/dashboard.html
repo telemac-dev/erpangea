@@ -1,0 +1,10 @@
+<!-- Dashboard Section -->
+<div class="menu-section">
+    <div class="menu-section-title">Principal</div>
+    <div class="menu-item">
+        <a href="{% url 'dashboard' %}" class="menu-link {% if request.path == '/dashboard/' %}active{% endif %}">
+            <i class="bi bi-speedometer2 menu-icon"></i>
+            <span class="menu-text">Dashboard</span>
+        </a>
+    </div>
+</div>
