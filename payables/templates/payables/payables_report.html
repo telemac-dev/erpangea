@@ -51,7 +51,7 @@
                     <tbody class="divide-y divide-gray-200">
                         {% for item in supplier_summary %}
                         <tr class="hover:bg-gray-50/50">
-                            <td class="px-4 py-3 font-medium text-gray-900">{{ item.supplier__name }}</td>
+                            <td class="px-4 py-3 font-medium text-gray-900">{{ item.supplier__nome_razao_social }}</td>
                             <td class="px-4 py-3 text-center">{{ item.count }}</td>
                             <td class="px-4 py-3 text-right font-bold text-gray-900">R$ {{ item.total_amount|currency_br }}</td>
                             <td class="px-4 py-3 text-right font-semibold text-green-700">R$ {{ item.total_paid|currency_br }}</td>

@@ -146,7 +146,7 @@ def payables_report(request):
     """Relatório gerencial de contas a pagar por fornecedor e categoria."""
     today = timezone.now().date()
     
-    supplier_summary = PayableBill.objects.values('supplier__name').annotate(
+    supplier_summary = PayableBill.objects.values('supplier__nome_razao_social').annotate(
         total_amount=Sum('amount'),
         total_paid=Sum('amount_paid'),
         total_open=Sum('amount', filter=Q(status=BillStatusChoices.EM_ABERTO)),

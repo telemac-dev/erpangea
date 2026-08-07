@@ -6,29 +6,33 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 
-from .models import Contact, Interaction, ContactRole, PersonTypeChoices
+from .models import Contato, Interaction, TipoContato, TipoPessoaChoices
 from .forms import ContactForm, InteractionForm
 from .utils import validate_cpf, validate_cnpj, format_cpf, format_cnpj, format_cep
+from .services import soft_delete_contact
 
 @login_required
 def contact_list(request):
     query = request.GET.get('q', '')
     role_filter = request.GET.get('role', '')
 
-    contacts = Contact.objects.prefetch_related('roles').all()
+    contacts = Contato.objects.filter(deleted_at__isnull=True)
 
     if query:
         contacts = contacts.filter(
-            Q(name__icontains=query) |
-            Q(trade_name__icontains=query) |
-            Q(document__icontains=query) |
-            Q(email__icontains=query)
-        )
+            Q(nome_razao_social__icontains=query) |
+            Q(nome_fantasia__icontains=query) |
+            Q(pessoa_fisica__cpf__icontains=query) |
+            Q(pessoa_juridica__cnpj__icontains=query) |
+            Q(emails__email__icontains=query) |
+            Q(telefones__numero__icontains=query) |
+            Q(enderecos__endereco__municipio__icontains=query)
+        ).distinct()
 
     if role_filter:
-        contacts = contacts.filter(roles__name=role_filter)
+        contacts = contacts.filter(papeis_rel__tipo_contato__codigo=role_filter, papeis_rel__ativo=True)
 
-    roles = ContactRole.objects.all()
+    roles = TipoContato.objects.all()
 
     context = {
         'contacts': contacts,
@@ -43,8 +47,12 @@ def contact_create(request):
     if request.method == 'POST':
         form = ContactForm(request.POST)
         if form.is_valid():
-            contact = form.save()
-            messages.success(request, f'Contato "{contact.name}" criado com sucesso!')
+            contact = form.save(commit=False)
+            contact.created_by = request.user
+            contact.updated_by = request.user
+            contact.save()
+            form.save(commit=True)
+            messages.success(request, f'Contato "{contact.nome_razao_social}" criado com sucesso!')
             return redirect('contact_detail', pk=contact.pk)
         else:
             messages.error(request, 'Erro ao salvar contato. Verifique os dados.')
@@ -55,7 +63,11 @@ def contact_create(request):
 
 @login_required
 def contact_detail(request, pk):
-    contact = get_object_or_404(Contact.objects.prefetch_related('roles', 'interactions__user'), pk=pk)
+    contact = get_object_or_404(
+        Contato.objects.filter(deleted_at__isnull=True)
+        .prefetch_related('interactions__user', 'papeis_rel__tipo_contato', 'enderecos__endereco', 'telefones', 'emails'), 
+        pk=pk
+    )
 
     if request.method == 'POST':
         interaction_form = InteractionForm(request.POST)
@@ -80,27 +92,30 @@ def contact_detail(request, pk):
 
 @login_required
 def contact_edit(request, pk):
-    contact = get_object_or_404(Contact, pk=pk)
+    contact = get_object_or_404(Contato, pk=pk)
 
     if request.method == 'POST':
         form = ContactForm(request.POST, instance=contact)
         if form.is_valid():
-            contact = form.save()
-            messages.success(request, f'Contato "{contact.name}" atualizado com sucesso!')
+            contact = form.save(commit=False)
+            contact.updated_by = request.user
+            contact.save()
+            form.save(commit=True)
+            messages.success(request, f'Contato "{contact.nome_razao_social}" atualizado com sucesso!')
             return redirect('contact_detail', pk=contact.pk)
         else:
             messages.error(request, 'Erro ao atualizar contato.')
     else:
         form = ContactForm(instance=contact)
 
-    return render(request, 'contacts/contact_form.html', {'form': form, 'contact': contact, 'title': f'Editar {contact.name}'})
+    return render(request, 'contacts/contact_form.html', {'form': form, 'contact': contact, 'title': f'Editar {contact.nome_razao_social}'})
 
 @login_required
 def contact_delete(request, pk):
-    contact = get_object_or_404(Contact, pk=pk)
+    contact = get_object_or_404(Contato, pk=pk)
     if request.method == 'POST':
-        name = contact.name
-        contact.delete()
+        name = contact.nome_razao_social
+        soft_delete_contact(contact, user=request.user)
         messages.success(request, f'Contato "{name}" removido com sucesso.')
         return redirect('contact_list')
 
@@ -110,20 +125,20 @@ def contact_delete(request, pk):
 def format_document_hx(request):
     """HTMX endpoint para formatação e validação dinâmica de CPF/CNPJ no evento on-blur."""
     document_raw = request.POST.get('document', '')
-    person_type = request.POST.get('person_type', PersonTypeChoices.PJ)
+    person_type = request.POST.get('person_type', TipoPessoaChoices.JURIDICA)
 
     digits = re.sub(r'\D', '', str(document_raw))
     formatted_value = document_raw
     error_msg = None
 
     if digits:
-        if person_type == PersonTypeChoices.PF:
+        if person_type == TipoPessoaChoices.FISICA or person_type == 'PF':
             if not validate_cpf(digits):
                 error_msg = 'CPF inválido. Informe um número de CPF válido com 11 dígitos (ex: 123.456.789-00).'
                 formatted_value = digits
             else:
                 formatted_value = format_cpf(digits)
-        elif person_type == PersonTypeChoices.PJ:
+        elif person_type == TipoPessoaChoices.JURIDICA or person_type == 'PJ':
             if not validate_cnpj(digits):
                 error_msg = 'CNPJ inválido. Informe um número de CNPJ válido com 14 dígitos (ex: 12.345.678/0001-12).'
                 formatted_value = digits
