@@ -1,0 +1,219 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ project.code }} - {{ project.name }} | MeuERP{% endblock %}
+{% block header_title %}Painel do Projeto {{ project.code }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Top Navigation -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <a href="{% url 'project_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para projetos
+        </a>
+
+        <a href="{% url 'project_edit' project.pk %}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors self-start sm:self-auto">
+            Editar Projeto
+        </a>
+    </div>
+
+    <!-- Project Header Card -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 pb-6">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl font-black text-indigo-600">{{ project.code }}</span>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ project.name }}</h1>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Cliente: <strong class="text-gray-800">{{ project.client.name }}</strong></p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                {% if project.is_delayed %}
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
+                        Atrasado
+                    </span>
+                {% endif %}
+                <span class="px-3.5 py-1 rounded-full text-xs font-bold
+                    {% if project.status == 'CONCLUIDO' %}bg-green-100 text-green-800
+                    {% elif project.status == 'EM_ANDAMENTO' %}bg-blue-100 text-blue-800
+                    {% else %}bg-amber-100 text-amber-800{% endif %}">
+                    {{ project.get_status_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs">
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Tipo de Serviço</span>
+                <span class="font-bold text-gray-800 text-sm">{{ project.get_service_type_display }}</span>
+            </div>
+
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Início & Conclusão</span>
+                <span class="font-bold text-gray-800 text-sm">{{ project.start_date|date:"d/m/Y" }} até {{ project.expected_completion_date|date:"d/m/Y" }}</span>
+            </div>
+
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Resp. Técnico (RT)</span>
+                <span class="font-bold text-gray-800 text-sm">{{ project.technical_responsible.username|default:"Não definido" }}</span>
+            </div>
+
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Gerente do Projeto</span>
+                <span class="font-bold text-gray-800 text-sm">{{ project.manager.username|default:"Não definido" }}</span>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-100">
+            <span class="text-xs text-gray-400 uppercase font-semibold block">Descrição</span>
+            <p class="text-sm text-gray-700 mt-1 whitespace-pre-line">{{ project.description }}</p>
+        </div>
+    </div>
+
+    <!-- Tasks & Deliveries Tabs Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Tasks Column -->
+        <div class="lg:col-span-2 space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-gray-900">Tarefas & Etapas Operacionais</h2>
+                <span class="text-xs font-medium text-gray-500 bg-gray-200 px-2.5 py-0.5 rounded-full">{{ tasks.count }} tarefas</span>
+            </div>
+
+            <div class="space-y-3">
+                {% for task in tasks %}
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-gray-900 text-sm">{{ task.name }}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold
+                                {% if task.status == 'CONCLUIDA' %}bg-green-100 text-green-800
+                                {% elif task.status == 'EM_ANDAMENTO' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </div>
+                        {% if task.description %}
+                            <p class="text-xs text-gray-500">{{ task.description }}</p>
+                        {% endif %}
+                        <div class="flex items-center gap-4 text-[11px] text-gray-400">
+                            <span>Resp: <strong class="text-gray-600">{{ task.assigned_to.username|default:"Não atribuído" }}</strong></span>
+                            {% if task.due_date %}
+                                <span>Prazo: <strong class="text-gray-600">{{ task.due_date|date:"d/m/Y" }}</strong></span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Quick Status Update Form -->
+                    <form method="post" action="{% url 'task_update_status' task.pk %}" class="flex items-center gap-1.5 self-end sm:self-center">
+                        {% csrf_token %}
+                        <select name="status" onchange="this.form.submit()" class="text-xs bg-gray-50 border border-gray-300 rounded px-2 py-1 focus:outline-none">
+                            <option value="PENDENTE" {% if task.status == 'PENDENTE' %}selected{% endif %}>Pendente</option>
+                            <option value="EM_ANDAMENTO" {% if task.status == 'EM_ANDAMENTO' %}selected{% endif %}>Em Andamento</option>
+                            <option value="EM_REVISAO" {% if task.status == 'EM_REVISAO' %}selected{% endif %}>Em Revisão</option>
+                            <option value="CONCLUIDA" {% if task.status == 'CONCLUIDA' %}selected{% endif %}>Concluída</option>
+                        </select>
+                    </form>
+                </div>
+                {% empty %}
+                <div class="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+                    <p class="text-sm">Nenhuma tarefa criada para este projeto.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Add Task Form -->
+            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4 mt-6">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Adicionar Nova Tarefa</h3>
+                <form method="post" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action_task" value="1">
+                    <div>
+                        <input type="text" name="{{ task_form.name.html_name }}" required placeholder="Ex: Desenho de Armações de Pilar em CAD"
+                               class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <select name="{{ task_form.assigned_to.html_name }}" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                                {% for val, label in task_form.fields.assigned_to.choices %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <input type="date" name="{{ task_form.due_date.html_name }}" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-lg shadow-sm">
+                        + Adicionar Tarefa
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Deliveries Column -->
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-gray-900">Entregas de Etapas</h2>
+                <span class="text-xs font-medium text-gray-500 bg-gray-200 px-2.5 py-0.5 rounded-full">{{ deliveries.count }}</span>
+            </div>
+
+            <div class="space-y-3">
+                {% for delivery in deliveries %}
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-2">
+                    <div class="flex justify-between items-start">
+                        <h4 class="font-bold text-gray-900 text-sm">{{ delivery.title }}</h4>
+                        <span class="text-[10px] px-2 py-0.5 rounded font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            {{ delivery.get_status_display }}
+                        </span>
+                    </div>
+                    {% if delivery.description %}
+                        <p class="text-xs text-gray-600">{{ delivery.description }}</p>
+                    {% endif %}
+                    <div class="text-[11px] text-gray-400 pt-2 border-t border-gray-100 flex justify-between">
+                        <span>Data: <strong>{{ delivery.delivery_date|date:"d/m/Y" }}</strong></span>
+                        <span>Por: <strong>{{ delivery.delivered_by.username|default:"-" }}</strong></span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-white rounded-xl border border-gray-200 p-6 text-center text-gray-500 text-xs">
+                    Nenhuma entrega de etapa registrada ainda.
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Add Delivery Form -->
+            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Registrar Nova Entrega</h3>
+                <form method="post" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action_delivery" value="1">
+                    <div>
+                        <input type="text" name="{{ delivery_form.title.html_name }}" required placeholder="Ex: Entrega R00 - Projeto de Fundação"
+                               class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <textarea name="{{ delivery_form.description.html_name }}" rows="2" placeholder="Descrição dos relatórios/pranchas..."
+                                  class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none"></textarea>
+                    </div>
+                    <div>
+                        <input type="date" name="{{ delivery_form.delivery_date.html_name }}" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-lg shadow-sm">
+                        + Registrar Entrega
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

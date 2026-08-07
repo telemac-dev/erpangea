@@ -1,0 +1,142 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ title }} | MeuERP{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <a href="{% url 'project_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para projetos
+        </a>
+    </div>
+
+    <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+                <label for="{{ form.code.id_for_label }}" class="block text-sm font-medium text-gray-700">Código do Projeto *</label>
+                <input type="text" name="{{ form.code.html_name }}" id="{{ form.code.id_for_label }}"
+                       value="{{ form.code.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">Nome do Projeto *</label>
+                <input type="text" name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}"
+                       value="{{ form.name.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-medium" placeholder="Ex: Projeto Geotécnico e Contenção Residencial">
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.client.id_for_label }}" class="block text-sm font-medium text-gray-700">Cliente *</label>
+                <select name="{{ form.client.html_name }}" id="{{ form.client.id_for_label }}" required
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.client.choices %}
+                    <option value="{{ choice_val }}" {% if form.client.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.service_type.id_for_label }}" class="block text-sm font-medium text-gray-700">Tipo de Serviço</label>
+                <select name="{{ form.service_type.html_name }}" id="{{ form.service_type.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for st_val, st_label in form.fields.service_type.choices %}
+                    <option value="{{ st_val }}" {% if form.service_type.value == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="{{ form.contract.id_for_label }}" class="block text-sm font-medium text-gray-700">Contrato de Origem (Opcional)</label>
+                <select name="{{ form.contract.html_name }}" id="{{ form.contract.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.contract.choices %}
+                    <option value="{{ choice_val }}" {% if form.contract.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">Descrição do Projeto *</label>
+                <textarea name="{{ form.description.html_name }}" id="{{ form.description.id_for_label }}" rows="3" required
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+            <!-- Endereço da Obra -->
+            <div class="sm:col-span-2">
+                <label for="{{ form.site_address.id_for_label }}" class="block text-sm font-medium text-gray-700">Endereço da Obra</label>
+                <input type="text" name="{{ form.site_address.html_name }}" id="{{ form.site_address.id_for_label }}"
+                       value="{{ form.site_address.value|default:'' }}"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700">Município</label>
+                <input type="text" name="{{ form.city.html_name }}" id="{{ form.city.id_for_label }}"
+                       value="{{ form.city.value|default:'' }}"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <!-- Prazos -->
+            <div>
+                <label for="{{ form.start_date.id_for_label }}" class="block text-sm font-medium text-gray-700">Data de Início *</label>
+                <input type="date" name="{{ form.start_date.html_name }}" id="{{ form.start_date.id_for_label }}"
+                       value="{{ form.start_date.value|date:'Y-m-d'|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.expected_completion_date.id_for_label }}" class="block text-sm font-medium text-gray-700">Data Prevista de Conclusão *</label>
+                <input type="date" name="{{ form.expected_completion_date.html_name }}" id="{{ form.expected_completion_date.id_for_label }}"
+                       value="{{ form.expected_completion_date.value|date:'Y-m-d'|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">Status</label>
+                <select name="{{ form.status.html_name }}" id="{{ form.status.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-semibold">
+                    {% for st_val, st_label in form.fields.status.choices %}
+                    <option value="{{ st_val }}" {% if form.status.value == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Responsáveis -->
+            <div>
+                <label for="{{ form.technical_responsible.id_for_label }}" class="block text-sm font-medium text-gray-700">Responsável Técnico (RT)</label>
+                <select name="{{ form.technical_responsible.html_name }}" id="{{ form.technical_responsible.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.technical_responsible.choices %}
+                    <option value="{{ choice_val }}" {% if form.technical_responsible.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.manager.id_for_label }}" class="block text-sm font-medium text-gray-700">Gerente de Projeto</label>
+                <select name="{{ form.manager.html_name }}" id="{{ form.manager.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.manager.choices %}
+                    <option value="{{ choice_val }}" {% if form.manager.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
+
+        <div class="border-t border-gray-200 pt-6 flex justify-end gap-3">
+            <a href="{% url 'project_list' %}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</a>
+            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Salvar Projeto</button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}

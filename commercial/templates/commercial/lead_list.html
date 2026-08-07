@@ -1,0 +1,124 @@
+{% extends 'base_app.html' %}
+{% load formatters %}
+{% block title %}Leads & Oportunidades | MeuERP{% endblock %}
+{% block header_title %}Pipeline Comercial — Oportunidades{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Subnav Tabs -->
+    <div class="flex border-b border-gray-200 gap-4">
+        <a href="{% url 'proposal_list' %}" class="pb-3 text-sm font-medium text-gray-500 hover:text-gray-900">
+            Propostas Técnicas
+        </a>
+        <a href="{% url 'lead_list' %}" class="pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600">
+            Leads / Pipeline
+        </a>
+        <a href="{% url 'contract_list' %}" class="pb-3 text-sm font-medium text-gray-500 hover:text-gray-900">
+            Contratos
+        </a>
+    </div>
+
+    <!-- Header Actions & Search -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+        <form method="get" class="flex flex-1 flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <input type="text" name="q" value="{{ query }}" placeholder="Buscar lead..."
+                       class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+
+            <select name="stage" class="bg-gray-50 border border-gray-300 rounded-lg text-sm px-3 py-2 focus:outline-none">
+                <option value="">Todos os Estágios</option>
+                {% for st_val, st_label in stages %}
+                <option value="{{ st_val }}" {% if stage_filter == st_val %}selected{% endif %}>{{ st_label }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm font-medium transition-colors">
+                Filtrar
+            </button>
+        </form>
+
+        <a href="{% url 'lead_create' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            <span>Novo Lead</span>
+        </a>
+    </div>
+
+    <!-- Leads Table -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-600">
+                <thead class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-3">Contato / Cliente</th>
+                        <th class="px-6 py-3">Serviço de Interesse</th>
+                        <th class="px-6 py-3">Valor Estimado</th>
+                        <th class="px-6 py-3">Probabilidade</th>
+                        <th class="px-6 py-3">Estágio</th>
+                        <th class="px-6 py-3">Responsável</th>
+                        <th class="px-6 py-3 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for lead in leads %}
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="px-6 py-4 font-medium text-gray-900">
+                            {{ lead.contact.name }}
+                            {% if lead.source %}
+                                <p class="text-xs text-gray-400 font-normal">Origem: {{ lead.source }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                                {{ lead.get_service_of_interest_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-bold text-gray-900">
+                            {% if lead.estimated_value %}R$ {{ lead.estimated_value|currency_br }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                <div class="bg-indigo-600 h-2 rounded-full" style="width: {{ lead.probability }}%"></div>
+                            </div>
+                            <span class="text-xs text-gray-500 mt-1 block">{{ lead.probability }}%</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                {% if lead.stage == 'CONVERTIDO' %}bg-green-50 text-green-700
+                                {% elif lead.stage == 'PERDIDO' %}bg-red-50 text-red-700
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ lead.get_stage_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-xs font-medium text-gray-700">
+                            {{ lead.assigned_to.username|default:"Não atribuído" }}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'lead_edit' lead.pk %}" class="text-indigo-600 hover:text-indigo-900 font-medium">Editar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                            <p class="text-base font-semibold text-gray-900">Nenhum lead encontrado</p>
+                            <div class="mt-4">
+                                <a href="{% url 'lead_create' %}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg shadow-sm">
+                                    + Cadastrar Lead
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

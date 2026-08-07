@@ -1,0 +1,12 @@
+[project]
+name = "erpangea"
+version = "0.1.0"
+description = "ERPangea - Sistema de Gestão Integrada para a Pangea Engenharia desenvolvido por Harold Gautschi"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "cookiecutter>=2.7.1",
+    "django>=6.1",
+    "django-tailwind>=4.5.0",
+    "python-decouple>=3.8",
+]

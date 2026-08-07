@@ -1,0 +1,90 @@
+{% extends 'base_app.html' %}
+{% load formatters %}
+{% block title %}Medição {{ measurement.number }} | MeuERP{% endblock %}
+{% block header_title %}Detalhes da Medição de Obra{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <a href="{% url 'measurement_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para medições
+        </a>
+
+        <div class="flex items-center gap-3">
+            {% if measurement.status != 'APROVADA' %}
+            <form method="post" action="{% url 'measurement_approve' measurement.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>Aprovar Medição</span>
+                </button>
+            </form>
+            {% endif %}
+
+            <a href="{% url 'measurement_edit' measurement.pk %}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
+                Editar Medição
+            </a>
+        </div>
+    </div>
+
+    <!-- Master Measurement Card -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 pb-6">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-3xl font-black text-gray-900">{{ measurement.number }}</h1>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold
+                        {% if measurement.status == 'APROVADA' %}bg-green-100 text-green-800
+                        {% elif measurement.status == 'AGUARDANDO_APROVACAO' %}bg-blue-100 text-blue-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ measurement.get_status_display }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Projeto: <strong class="text-indigo-600">{{ measurement.project.code }}</strong> - {{ measurement.project.name }}</p>
+                <p class="text-xs text-gray-400">Cliente: {{ measurement.project.client.name }}</p>
+            </div>
+
+            <div class="text-right">
+                <span class="text-xs text-gray-400 uppercase font-semibold block">Valor Medido</span>
+                <span class="text-3xl font-black text-gray-900">R$ {{ measurement.measured_value|currency_br }}</span>
+                <span class="text-xs text-indigo-700 font-bold block mt-0.5">{{ measurement.percentage_completed }}% de avanço</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Período de Referência</span>
+                <span class="font-bold text-gray-800 text-sm">{{ measurement.period_start|date:"d/m/Y" }} até {{ measurement.period_end|date:"d/m/Y" }}</span>
+            </div>
+
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Medido por</span>
+                <span class="font-bold text-gray-800 text-sm">{{ measurement.measured_by.username|default:"Não informado" }}</span>
+                <span class="text-gray-500 block">{{ measurement.measurement_date|date:"d/m/Y" }}</span>
+            </div>
+
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Aprovação</span>
+                <span class="font-bold text-gray-800 text-sm">{{ measurement.approved_by.username|default:"Aguardando aprovação" }}</span>
+                {% if measurement.approval_date %}
+                <span class="text-gray-500 block">{{ measurement.approval_date|date:"d/m/Y H:i" }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-100">
+            <span class="text-xs text-gray-400 uppercase font-semibold block">Descrição dos Serviços Executados</span>
+            <p class="text-sm text-gray-700 mt-2 whitespace-pre-line leading-relaxed">{{ measurement.description }}</p>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

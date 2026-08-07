@@ -1,0 +1,94 @@
+{% extends 'base_app.html' %}
+{% load formatters %}
+
+{% block title %}Relatório de Contas a Pagar | MeuERP{% endblock %}
+{% block header_title %}Relatório Financeiro de Contas a Pagar & Compliance{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <a href="{% url 'bill_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para contas a pagar
+        </a>
+
+        <button onclick="window.print()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+            </svg>
+            <span>Imprimir / Gerar PDF</span>
+        </button>
+    </div>
+
+    <!-- Report Container -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-10 space-y-8">
+        
+        <div class="border-b border-gray-200 pb-6 flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Relatório Consolidado de Contas a Pagar</h1>
+                <p class="text-sm text-gray-500 mt-1">Escritório de Engenharia Civil — MeuERP</p>
+            </div>
+            <span class="text-xs text-gray-400">Emissão em: {{ today|date:"d/m/Y" }}</span>
+        </div>
+
+        <!-- Summary by Supplier Table -->
+        <div class="space-y-3">
+            <h2 class="text-base font-bold text-gray-900">1. Posição Financeira por Fornecedor / Favorecido</h2>
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <table class="w-full text-left text-sm text-gray-600">
+                    <thead class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
+                        <tr>
+                            <th class="px-4 py-3">Fornecedor</th>
+                            <th class="px-4 py-3 text-center">Qtde Contas</th>
+                            <th class="px-4 py-3 text-right">Total Faturado</th>
+                            <th class="px-4 py-3 text-right">Total Pago</th>
+                            <th class="px-4 py-3 text-right">Saldo Em Aberto</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for item in supplier_summary %}
+                        <tr class="hover:bg-gray-50/50">
+                            <td class="px-4 py-3 font-medium text-gray-900">{{ item.supplier__name }}</td>
+                            <td class="px-4 py-3 text-center">{{ item.count }}</td>
+                            <td class="px-4 py-3 text-right font-bold text-gray-900">R$ {{ item.total_amount|currency_br }}</td>
+                            <td class="px-4 py-3 text-right font-semibold text-green-700">R$ {{ item.total_paid|currency_br }}</td>
+                            <td class="px-4 py-3 text-right font-bold text-indigo-700">R$ {{ item.total_open|currency_br }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-6 text-center text-gray-500">Nenhuma conta cadastrada.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary by Category -->
+        <div class="space-y-3 pt-4">
+            <h2 class="text-base font-bold text-gray-900">2. Apropriação de Despesas por Categoria de Engenharia</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% for item in category_summary %}
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-gray-500 block">Categoria</span>
+                        <span class="font-bold text-gray-900 text-sm">
+                            {% for cat_key, cat_val in categories_dict.items %}
+                                {% if cat_key == item.category %}{{ cat_val }}{% endif %}
+                            {% endfor %}
+                        </span>
+                        <span class="text-xs text-gray-400 block mt-0.5">{{ item.count }} documentos</span>
+                    </div>
+                    <span class="text-lg font-black text-slate-900">R$ {{ item.total_amount|currency_br }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

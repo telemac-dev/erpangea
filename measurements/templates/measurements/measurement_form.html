@@ -1,0 +1,110 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ title }} | MeuERP{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <a href="{% url 'measurement_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para medições
+        </a>
+    </div>
+
+    <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            
+            <div>
+                <label for="{{ form.number.id_for_label }}" class="block text-sm font-medium text-gray-700">Número da Medição *</label>
+                <input type="text" name="{{ form.number.html_name }}" id="{{ form.number.id_for_label }}"
+                       value="{{ form.number.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.project.id_for_label }}" class="block text-sm font-medium text-gray-700">Projeto *</label>
+                <select name="{{ form.project.html_name }}" id="{{ form.project.id_for_label }}" required
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.project.choices %}
+                    <option value="{{ choice_val }}" {% if form.project.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="{{ form.contract.id_for_label }}" class="block text-sm font-medium text-gray-700">Contrato de Origem (Opcional)</label>
+                <select name="{{ form.contract.html_name }}" id="{{ form.contract.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.contract.choices %}
+                    <option value="{{ choice_val }}" {% if form.contract.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.measurement_date.id_for_label }}" class="block text-sm font-medium text-gray-700">Data da Medição *</label>
+                <input type="date" name="{{ form.measurement_date.html_name }}" id="{{ form.measurement_date.id_for_label }}"
+                       value="{{ form.measurement_date.value|date:'Y-m-d'|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.period_start.id_for_label }}" class="block text-sm font-medium text-gray-700">Período Referência - Início *</label>
+                <input type="date" name="{{ form.period_start.html_name }}" id="{{ form.period_start.id_for_label }}"
+                       value="{{ form.period_start.value|date:'Y-m-d'|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.period_end.id_for_label }}" class="block text-sm font-medium text-gray-700">Período Referência - Fim *</label>
+                <input type="date" name="{{ form.period_end.html_name }}" id="{{ form.period_end.id_for_label }}"
+                       value="{{ form.period_end.value|date:'Y-m-d'|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.measured_value.id_for_label }}" class="block text-sm font-medium text-gray-700">Valor Medido (R$) *</label>
+                <input type="number" step="0.01" name="{{ form.measured_value.html_name }}" id="{{ form.measured_value.id_for_label }}"
+                       value="{{ form.measured_value.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
+            </div>
+
+            <div>
+                <label for="{{ form.percentage_completed.id_for_label }}" class="block text-sm font-medium text-gray-700">% Concluído da Etapa</label>
+                <input type="number" step="0.01" name="{{ form.percentage_completed.html_name }}" id="{{ form.percentage_completed.id_for_label }}"
+                       value="{{ form.percentage_completed.value|default:100.00 }}"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">Status</label>
+                <select name="{{ form.status.html_name }}" id="{{ form.status.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-semibold">
+                    {% for st_val, st_label in form.fields.status.choices %}
+                    <option value="{{ st_val }}" {% if form.status.value == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">Descrição dos Serviços Medidos *</label>
+                <textarea name="{{ form.description.html_name }}" id="{{ form.description.id_for_label }}" rows="4" required
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Detalhamento das quantidades e etapas executadas no período..."></textarea>
+            </div>
+
+        </div>
+
+        <div class="border-t border-gray-200 pt-6 flex justify-end gap-3">
+            <a href="{% url 'measurement_list' %}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</a>
+            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Salvar Medição</button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}

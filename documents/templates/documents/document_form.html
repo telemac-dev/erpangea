@@ -1,0 +1,98 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ title }} | MeuERP{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <a href="{% url 'document_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para documentos
+        </a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            
+            <div class="sm:col-span-2">
+                <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700">Título do Documento *</label>
+                <input type="text" name="{{ form.title.html_name }}" id="{{ form.title.id_for_label }}"
+                       value="{{ form.title.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-medium" placeholder="Ex: Memorial Descritivo de Fundação Profunda">
+            </div>
+
+            <div>
+                <label for="{{ form.revision.id_for_label }}" class="block text-sm font-medium text-gray-700">Código da Revisão</label>
+                <input type="text" name="{{ form.revision.html_name }}" id="{{ form.revision.id_for_label }}"
+                       value="{{ form.revision.value|default:'R00' }}" required placeholder="Ex: R00, R01"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
+            </div>
+
+            <div>
+                <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700">Categoria Técnica</label>
+                <select name="{{ form.category.html_name }}" id="{{ form.category.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for cat_val, cat_label in form.fields.category.choices %}
+                    <option value="{{ cat_val }}" {% if form.category.value == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.project.id_for_label }}" class="block text-sm font-medium text-gray-700">Projeto Associado (Opcional)</label>
+                <select name="{{ form.project.html_name }}" id="{{ form.project.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.project.choices %}
+                    <option value="{{ choice_val }}" {% if form.project.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="{{ form.file.id_for_label }}" class="block text-sm font-medium text-gray-700">Arquivo (PDF, CAD, ZIP, DWG, BIM...) *</label>
+                <input type="file" name="{{ form.file.html_name }}" id="{{ form.file.id_for_label }}"
+                       class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+            </div>
+
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">Status de Aprovação</label>
+                <select name="{{ form.status.html_name }}" id="{{ form.status.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-semibold">
+                    {% for st_val, st_label in form.fields.status.choices %}
+                    <option value="{{ st_val }}" {% if form.status.value == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.approved_by.id_for_label }}" class="block text-sm font-medium text-gray-700">Aprovado por</label>
+                <select name="{{ form.approved_by.html_name }}" id="{{ form.approved_by.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.approved_by.choices %}
+                    <option value="{{ choice_val }}" {% if form.approved_by.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">Observações / Histórico</label>
+                <textarea name="{{ form.notes.html_name }}" id="{{ form.notes.id_for_label }}" rows="3"
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+        </div>
+
+        <div class="border-t border-gray-200 pt-6 flex justify-end gap-3">
+            <a href="{% url 'document_list' %}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</a>
+            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Salvar Documento</button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}

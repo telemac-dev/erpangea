@@ -1,0 +1,145 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ title }} | MeuERP{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <a href="{% url 'proposal_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para propostas
+        </a>
+    </div>
+
+    <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        {% csrf_token %}
+
+        <div class="border-b border-gray-200 pb-4">
+            <h2 class="text-lg font-bold text-gray-900">Identificação & Cliente</h2>
+            <p class="text-xs text-gray-500">Defina o número, versão e cliente da proposta.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+                <label for="{{ form.number.id_for_label }}" class="block text-sm font-medium text-gray-700">Número da Proposta *</label>
+                <input type="text" name="{{ form.number.html_name }}" id="{{ form.number.id_for_label }}"
+                       value="{{ form.number.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.client.id_for_label }}" class="block text-sm font-medium text-gray-700">Cliente *</label>
+                <select name="{{ form.client.html_name }}" id="{{ form.client.id_for_label }}" required
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.client.choices %}
+                    <option value="{{ choice_val }}" {% if form.client.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Scope & Engineering Content -->
+        <div class="border-t border-b border-gray-200 py-4 my-6">
+            <h2 class="text-lg font-bold text-gray-900">Escopo Técnico de Engenharia</h2>
+            <p class="text-xs text-gray-500">Detalhamento dos serviços geotécnicos/estruturais, premissas e exclusões.</p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="{{ form.scope.id_for_label }}" class="block text-sm font-medium text-gray-700">Escopo do Projeto *</label>
+                <textarea name="{{ form.scope.html_name }}" id="{{ form.scope.id_for_label }}" rows="3" required
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Descrição completa do escopo contratado..."></textarea>
+            </div>
+
+            <div>
+                <label for="{{ form.included_services.id_for_label }}" class="block text-sm font-medium text-gray-700">Serviços Incluídos</label>
+                <textarea name="{{ form.included_services.html_name }}" id="{{ form.included_services.id_for_label }}" rows="2"
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Ex: Elaboração de plantas de fundação, memorial de cálculo..."></textarea>
+            </div>
+
+            <div>
+                <label for="{{ form.assumptions.id_for_label }}" class="block text-sm font-medium text-gray-700">Premissas Técnicas</label>
+                <textarea name="{{ form.assumptions.html_name }}" id="{{ form.assumptions.id_for_label }}" rows="2"
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Ex: Fornecimento de laudo de sondagem pelo cliente..."></textarea>
+            </div>
+
+            <div>
+                <label for="{{ form.exclusions.id_for_label }}" class="block text-sm font-medium text-gray-700">Exclusões de Escopo</label>
+                <textarea name="{{ form.exclusions.html_name }}" id="{{ form.exclusions.id_for_label }}" rows="2"
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Ex: Acompanhamento de obra, taxas de ART não inclusas..."></textarea>
+            </div>
+        </div>
+
+        <!-- Commercial Terms -->
+        <div class="border-t border-b border-gray-200 py-4 my-6">
+            <h2 class="text-lg font-bold text-gray-900">Condições Comerciais</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+                <label for="{{ form.total_value.id_for_label }}" class="block text-sm font-medium text-gray-700">Valor Total (R$) *</label>
+                <input type="number" step="0.01" name="{{ form.total_value.html_name }}" id="{{ form.total_value.id_for_label }}"
+                       value="{{ form.total_value.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
+            </div>
+
+            <div>
+                <label for="{{ form.execution_period_days.id_for_label }}" class="block text-sm font-medium text-gray-700">Prazo de Execução (Dias)</label>
+                <input type="number" name="{{ form.execution_period_days.html_name }}" id="{{ form.execution_period_days.id_for_label }}"
+                       value="{{ form.execution_period_days.value|default:30 }}"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">Status</label>
+                <select name="{{ form.status.html_name }}" id="{{ form.status.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                    {% for st_val, st_label in form.fields.status.choices %}
+                    <option value="{{ st_val }}" {% if form.status.value == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="{{ form.payment_terms.id_for_label }}" class="block text-sm font-medium text-gray-700">Condições de Pagamento</label>
+                <input type="text" name="{{ form.payment_terms.html_name }}" id="{{ form.payment_terms.id_for_label }}"
+                       value="{{ form.payment_terms.value|default:'' }}" placeholder="Ex: 50% na aprovação + 50% na entrega final"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
+        <!-- Responsáveis -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+            <div>
+                <label for="{{ form.technical_responsible.id_for_label }}" class="block text-sm font-medium text-gray-700">Responsável Técnico (RT)</label>
+                <select name="{{ form.technical_responsible.html_name }}" id="{{ form.technical_responsible.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.technical_responsible.choices %}
+                    <option value="{{ choice_val }}" {% if form.technical_responsible.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.commercial_responsible.id_for_label }}" class="block text-sm font-medium text-gray-700">Responsável Comercial</label>
+                <select name="{{ form.commercial_responsible.html_name }}" id="{{ form.commercial_responsible.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.commercial_responsible.choices %}
+                    <option value="{{ choice_val }}" {% if form.commercial_responsible.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6 flex justify-end gap-3">
+            <a href="{% url 'proposal_list' %}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</a>
+            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Salvar Proposta</button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}

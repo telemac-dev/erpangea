@@ -1,0 +1,106 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ title }} | MeuERP{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <a href="{% url 'lead_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para leads
+        </a>
+    </div>
+
+    <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            
+            <div class="sm:col-span-2">
+                <label for="{{ form.contact.id_for_label }}" class="block text-sm font-medium text-gray-700">Contato / Cliente *</label>
+                <select name="{{ form.contact.html_name }}" id="{{ form.contact.id_for_label }}" required
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.contact.choices %}
+                    <option value="{{ choice_val }}" {% if form.contact.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.service_of_interest.id_for_label }}" class="block text-sm font-medium text-gray-700">Serviço de Interesse</label>
+                <select name="{{ form.service_of_interest.html_name }}" id="{{ form.service_of_interest.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for st_val, st_label in form.fields.service_of_interest.choices %}
+                    <option value="{{ st_val }}" {% if form.service_of_interest.value == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.source.id_for_label }}" class="block text-sm font-medium text-gray-700">Origem do Lead</label>
+                <input type="text" name="{{ form.source.html_name }}" id="{{ form.source.id_for_label }}"
+                       value="{{ form.source.value|default:'' }}" placeholder="Ex: Indicação, Site, Feira..."
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">Descrição da Oportunidade *</label>
+                <textarea name="{{ form.description.html_name }}" id="{{ form.description.id_for_label }}" rows="3" required
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+            <div>
+                <label for="{{ form.estimated_value.id_for_label }}" class="block text-sm font-medium text-gray-700">Valor Estimado (R$)</label>
+                <input type="number" step="0.01" name="{{ form.estimated_value.html_name }}" id="{{ form.estimated_value.id_for_label }}"
+                       value="{{ form.estimated_value.value|default:'' }}"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.probability.id_for_label }}" class="block text-sm font-medium text-gray-700">Probabilidade de Fechamento (%)</label>
+                <input type="number" name="{{ form.probability.html_name }}" id="{{ form.probability.id_for_label }}"
+                       value="{{ form.probability.value|default:50 }}" min="0" max="100"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.stage.id_for_label }}" class="block text-sm font-medium text-gray-700">Estágio do Funil</label>
+                <select name="{{ form.stage.html_name }}" id="{{ form.stage.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for st_val, st_label in form.fields.stage.choices %}
+                    <option value="{{ st_val }}" {% if form.stage.value == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.assigned_to.id_for_label }}" class="block text-sm font-medium text-gray-700">Responsável Comercial</label>
+                <select name="{{ form.assigned_to.html_name }}" id="{{ form.assigned_to.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.assigned_to.choices %}
+                    <option value="{{ choice_val }}" {% if form.assigned_to.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.expected_closing_date.id_for_label }}" class="block text-sm font-medium text-gray-700">Previsão de Fechamento</label>
+                <input type="date" name="{{ form.expected_closing_date.html_name }}" id="{{ form.expected_closing_date.id_for_label }}"
+                       value="{{ form.expected_closing_date.value|date:'Y-m-d'|default:'' }}"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+        </div>
+
+        <div class="border-t border-gray-200 pt-6 flex justify-end gap-3">
+            <a href="{% url 'lead_list' %}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</a>
+            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Salvar Lead</button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,300 @@
+{% extends 'base_app.html' %}
+{% load formatters %}
+{% block title %}Dashboard | ERP Engenharia Civil{% endblock %}
+
+{% block header_title %}Painel de Indicadores Executivos{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Welcome Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-xl p-6 text-white shadow-md border border-slate-800">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-black tracking-tight">ERPangea — Pangea Engenharia</h1>
+                <p class="mt-1 text-slate-300 text-sm">Olá, <strong class="text-white">{{ user.username }}</strong>! Sistema de Gestão Integrada desenvolvido por <strong>Harold Gautschi</strong>.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    Geotecnia • Fundações • Estruturas
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores Comerciais -->
+    <div class="space-y-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Pipeline Comercial & Vendas</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Leads no Pipeline</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">{{ total_leads }}</h3>
+                    <p class="text-xs text-indigo-600 font-bold mt-1">R$ {{ pipeline_value|currency_br }} estimado</p>
+                </div>
+                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Propostas Ativas</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">{{ active_proposals_count }}</h3>
+                    <a href="{% url 'proposal_list' %}" class="text-xs text-indigo-600 font-medium hover:underline mt-1 block">Ver propostas &rarr;</a>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Contratos Ativos</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">{{ active_contracts_count }}</h3>
+                    <a href="{% url 'contract_list' %}" class="text-xs text-indigo-600 font-medium hover:underline mt-1 block">Ver contratos &rarr;</a>
+                </div>
+                <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Base de Contatos</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">{{ total_contacts }}</h3>
+                    <a href="{% url 'contact_list' %}" class="text-xs text-gray-500 hover:underline mt-1 block">Clientes & Parceiros &rarr;</a>
+                </div>
+                <div class="w-10 h-10 bg-gray-100 text-gray-700 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Indicadores Operacionais de Engenharia -->
+    <div class="space-y-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Operacional & Engenharia</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Projetos em Andamento</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">{{ ongoing_projects_count }}</h3>
+                    <p class="text-xs text-gray-500 mt-1">de {{ total_projects }} projetos totais</p>
+                </div>
+                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Projetos Atrasados</p>
+                    <h3 class="text-2xl font-black {% if delayed_projects_count > 0 %}text-red-600{% else %}text-gray-900{% endif %} mt-1">{{ delayed_projects_count }}</h3>
+                    <p class="text-xs text-red-600 font-medium mt-1">Atenção a prazos de entrega</p>
+                </div>
+                <div class="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Tarefas Pendentes</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">{{ pending_tasks_count }}</h3>
+                    <p class="text-xs text-gray-500 mt-1">Etapas de cálculo e CAD</p>
+                </div>
+                <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Entregas a Aprovar</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">{{ pending_deliveries_count }}</h3>
+                    <p class="text-xs text-gray-500 mt-1">Aguardando aceite do cliente</p>
+                </div>
+                <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Indicadores Financeiros -->
+    <div class="space-y-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Faturamento & Contas a Receber</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Total Recebido (Pago)</p>
+                    <h3 class="text-2xl font-black text-green-700 mt-1">R$ {{ total_invoiced|currency_br }}</h3>
+                    <a href="{% url 'invoice_list' %}" class="text-xs text-gray-500 hover:underline mt-1 block">Ver faturamento &rarr;</a>
+                </div>
+                <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">A Receber (Em Aberto)</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">R$ {{ pending_receivables|currency_br }}</h3>
+                    <p class="text-xs text-indigo-600 font-medium mt-1">Faturas emitidas</p>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Faturas em Atraso</p>
+                    <h3 class="text-2xl font-black {% if overdue_receivables > 0 %}text-red-600{% else %}text-gray-900{% endif %} mt-1">R$ {{ overdue_receivables|currency_br }}</h3>
+                    <p class="text-xs text-red-600 font-medium mt-1">Vencimento ultrapassado</p>
+                </div>
+                <div class="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Medições Aprovadas A Faturar</p>
+                    <h3 class="text-2xl font-black text-amber-700 mt-1">R$ {{ approved_unbilled_measurements|currency_br }}</h3>
+                    <a href="{% url 'measurement_list' %}" class="text-xs text-amber-700 font-medium hover:underline mt-1 block">Aguardando emissão de NF &rarr;</a>
+                </div>
+                <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    {% if user.can_access_financials %}
+    <!-- Indicadores de Contas a Pagar -->
+    <div class="space-y-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Contas a Pagar & Despesas de Fornecedores</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Contas a Pagar (Aberto)</p>
+                    <h3 class="text-2xl font-black text-gray-900 mt-1">R$ {{ payables_open|currency_br }}</h3>
+                    <a href="{% url 'bill_list' %}" class="text-xs text-indigo-600 font-medium hover:underline mt-1 block">Ver contas a pagar &rarr;</a>
+                </div>
+                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Vencimento Próximo</p>
+                    <h3 class="text-2xl font-black text-amber-700 mt-1">{{ payables_due_soon_count }} contas</h3>
+                    <a href="{% url 'bill_list' %}?due_soon=1" class="text-xs text-amber-700 font-bold hover:underline mt-1 block">Vencem em 7 dias &rarr;</a>
+                </div>
+                <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Contas Atrasadas</p>
+                    <h3 class="text-2xl font-black {% if payables_overdue > 0 %}text-red-600{% else %}text-gray-900{% endif %} mt-1">R$ {{ payables_overdue|currency_br }}</h3>
+                    <p class="text-xs text-red-600 font-medium mt-1">Necessitam quitação</p>
+                </div>
+                <div class="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500">Total Pago a Fornecedores</p>
+                    <h3 class="text-2xl font-black text-green-700 mt-1">R$ {{ payables_paid|currency_br }}</h3>
+                    <a href="{% url 'payables_report' %}" class="text-xs text-gray-500 hover:underline mt-1 block">Relatório completo &rarr;</a>
+                </div>
+                <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions Panel -->
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-base font-bold text-gray-900 mb-4">Ações Rápidas do Escritório</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <a href="{% url 'contact_create' %}" class="p-4 border border-dashed border-gray-300 rounded-lg text-left hover:border-indigo-500 hover:bg-indigo-50/50 transition-colors group block">
+                <div class="font-semibold text-sm text-gray-900 group-hover:text-indigo-600">+ Novo Contato</div>
+                <p class="text-xs text-gray-500 mt-1">Cadastrar cliente ou fornecedor</p>
+            </a>
+
+            <a href="{% url 'proposal_create' %}" class="p-4 border border-dashed border-gray-300 rounded-lg text-left hover:border-indigo-500 hover:bg-indigo-50/50 transition-colors group block">
+                <div class="font-semibold text-sm text-gray-900 group-hover:text-indigo-600">+ Nova Proposta</div>
+                <p class="text-xs text-gray-500 mt-1">Criar proposta comercial</p>
+            </a>
+
+            <a href="{% url 'project_create' %}" class="p-4 border border-dashed border-gray-300 rounded-lg text-left hover:border-indigo-500 hover:bg-indigo-50/50 transition-colors group block">
+                <div class="font-semibold text-sm text-gray-900 group-hover:text-indigo-600">+ Novo Projeto</div>
+                <p class="text-xs text-gray-500 mt-1">Cadastrar projeto de engenharia</p>
+            </a>
+
+            {% if user.can_access_financials %}
+            <a href="{% url 'bill_create' %}" class="p-4 border border-dashed border-gray-300 rounded-lg text-left hover:border-indigo-500 hover:bg-indigo-50/50 transition-colors group block">
+                <div class="font-semibold text-sm text-gray-900 group-hover:text-indigo-600">+ Nova Conta a Pagar</div>
+                <p class="text-xs text-gray-500 mt-1">Registrar despesa / nota fiscal</p>
+            </a>
+            {% else %}
+            <a href="{% url 'measurement_create' %}" class="p-4 border border-dashed border-gray-300 rounded-lg text-left hover:border-indigo-500 hover:bg-indigo-50/50 transition-colors group block">
+                <div class="font-semibold text-sm text-gray-900 group-hover:text-indigo-600">+ Nova Medição</div>
+                <p class="text-xs text-gray-500 mt-1">Registrar avanço físico da obra</p>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

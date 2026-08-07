@@ -1,0 +1,139 @@
+{% extends 'base_app.html' %}
+{% load formatters %}
+{% block title %}Proposta {{ proposal.number }} v{{ proposal.version }} | MeuERP{% endblock %}
+{% block header_title %}Detalhes da Proposta Técnica{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Top Navigation & Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <a href="{% url 'proposal_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para propostas
+        </a>
+
+        <div class="flex items-center gap-3">
+            <!-- Requisito 573: Nova versão com preservação de histórico -->
+            <a href="{% url 'proposal_create_new_version' proposal.pk %}" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+                </svg>
+                <span>Criar Nova Versão (v{{ proposal.version|add:1 }})</span>
+            </a>
+
+            <a href="{% url 'proposal_edit' proposal.pk %}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
+                Editar Proposta
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Proposal Document Card -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-10 space-y-6">
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 pb-6">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-3xl font-black text-gray-900">{{ proposal.number }}</h1>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800">
+                        Versão {{ proposal.version }}
+                    </span>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold
+                        {% if proposal.status == 'APROVADA' %}bg-green-100 text-green-800
+                        {% elif proposal.status == 'ENVIADA' %}bg-blue-100 text-blue-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ proposal.get_status_display }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Cliente: <strong class="text-gray-900">{{ proposal.client.name }}</strong></p>
+            </div>
+
+            <div class="text-right">
+                <span class="text-3xl font-black text-gray-900">R$ {{ proposal.total_value|currency_br }}</span>
+            </div>
+        </div>
+
+        <!-- Meta info -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs">
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Prazo de Execução</span>
+                <span class="font-bold text-gray-800 text-sm">{{ proposal.execution_period_days }} dias úteis</span>
+            </div>
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Validade</span>
+                <span class="font-bold text-gray-800 text-sm">{{ proposal.validity_days }} dias</span>
+            </div>
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Resp. Técnico (RT)</span>
+                <span class="font-bold text-gray-800 text-sm">{{ proposal.technical_responsible.username|default:"Não atribuído" }}</span>
+            </div>
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Resp. Comercial</span>
+                <span class="font-bold text-gray-800 text-sm">{{ proposal.commercial_responsible.username|default:"Não atribuído" }}</span>
+            </div>
+        </div>
+
+        <!-- Escopo -->
+        <div class="space-y-2">
+            <h3 class="text-sm uppercase tracking-wider font-bold text-gray-500">1. Escopo Contratado</h3>
+            <div class="p-4 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+                {{ proposal.scope }}
+            </div>
+        </div>
+
+        {% if proposal.included_services %}
+        <div class="space-y-2">
+            <h3 class="text-sm uppercase tracking-wider font-bold text-gray-500">2. Serviços Incluídos</h3>
+            <div class="p-4 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 whitespace-pre-line">
+                {{ proposal.included_services }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if proposal.assumptions %}
+        <div class="space-y-2">
+            <h3 class="text-sm uppercase tracking-wider font-bold text-gray-500">3. Premissas Técnicas</h3>
+            <div class="p-4 bg-amber-50/50 border border-amber-100 rounded-lg text-sm text-amber-900 whitespace-pre-line">
+                {{ proposal.assumptions }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if proposal.exclusions %}
+        <div class="space-y-2">
+            <h3 class="text-sm uppercase tracking-wider font-bold text-gray-500">4. Exclusões de Escopo</h3>
+            <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 whitespace-pre-line">
+                {{ proposal.exclusions }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Conditions -->
+        <div class="space-y-2 pt-4 border-t border-gray-200">
+            <h3 class="text-sm uppercase tracking-wider font-bold text-gray-500">5. Condições de Pagamento</h3>
+            <p class="text-sm text-gray-800 font-medium">{{ proposal.payment_terms|default:"Conforme contrato." }}</p>
+        </div>
+
+        <!-- Versions History Section -->
+        <div class="pt-6 border-t border-gray-200">
+            <h3 class="text-sm uppercase tracking-wider font-bold text-gray-500 mb-3">Histórico de Versões</h3>
+            <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-2">
+                <div class="flex items-center justify-between text-xs py-1">
+                    <span class="font-bold text-indigo-700">Versão Atual: v{{ proposal.version }}</span>
+                    <span class="text-gray-500">{{ proposal.created_at|date:"d/m/Y H:i" }}</span>
+                </div>
+                {% if proposal.parent_proposal %}
+                <div class="text-xs text-gray-600 pt-2 border-t border-gray-200 flex justify-between items-center">
+                    <span>Baseada na versão anterior: <strong>v{{ proposal.parent_proposal.version }}</strong></span>
+                    <a href="{% url 'proposal_detail' proposal.parent_proposal.pk %}" class="text-indigo-600 hover:underline">Ver v{{ proposal.parent_proposal.version }}</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

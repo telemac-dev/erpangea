@@ -1,0 +1,192 @@
+{% extends 'base_app.html' %}
+{% load formatters %}
+
+{% block title %}Conta {{ bill.bill_number }} | MeuERP{% endblock %}
+{% block header_title %}Detalhes da Conta a Pagar{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <a href="{% url 'bill_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para contas a pagar
+        </a>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'bill_edit' bill.pk %}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
+                Editar Conta
+            </a>
+        </div>
+    </div>
+
+    <!-- Master Payable Bill Card -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 pb-6">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-3xl font-black text-gray-900">{{ bill.bill_number }}</h1>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold
+                        {% if bill.status == 'PAGO' %}bg-green-100 text-green-800
+                        {% elif bill.is_overdue %}bg-red-100 text-red-800
+                        {% elif bill.is_due_soon %}bg-amber-100 text-amber-800
+                        {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {% if bill.is_overdue and bill.status == 'EM_ABERTO' %}Atrasado{% else %}{{ bill.get_status_display }}{% endif %}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Fornecedor / Favorecido: <strong class="text-gray-900">{{ bill.supplier.name }}</strong></p>
+                <p class="text-xs text-indigo-600 font-semibold mt-0.5">Categoria: {{ bill.get_category_display }}</p>
+            </div>
+
+            <div class="text-right">
+                <span class="text-xs text-gray-400 uppercase font-semibold block">Valor a Pagar</span>
+                <span class="text-3xl font-black text-gray-900">R$ {{ bill.amount|currency_br }}</span>
+                {% if bill.amount_paid > 0 %}
+                <span class="text-xs text-green-600 font-bold block mt-0.5">Valor Efetivamente Pago: R$ {{ bill.amount_paid|currency_br }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs">
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Data de Emissão</span>
+                <span class="font-bold text-gray-800 text-sm">{{ bill.issue_date|date:"d/m/Y" }}</span>
+            </div>
+
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Data de Vencimento</span>
+                <span class="font-bold text-sm {% if bill.is_overdue %}text-red-600{% elif bill.is_due_soon %}text-amber-600{% else %}text-gray-800{% endif %}">
+                    {{ bill.due_date|date:"d/m/Y" }}
+                    {% if bill.is_overdue %}(Atrasado){% elif bill.is_due_soon %}(Vence em breve){% endif %}
+                </span>
+            </div>
+
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Projeto Associado</span>
+                <span class="font-bold text-gray-800 text-sm">
+                    {% if bill.project %}{{ bill.project.code }} - {{ bill.project.name }}{% else %}Geral / Escritório{% endif %}
+                </span>
+            </div>
+
+            <div>
+                <span class="text-gray-400 uppercase font-semibold block">Anexo do Documento</span>
+                {% if bill.bill_file %}
+                    <a href="{{ bill.bill_file.url }}" target="_blank" class="text-indigo-600 hover:underline font-bold text-sm block mt-0.5">
+                        Baixar PDF / Documento
+                    </a>
+                {% else %}
+                    <span class="text-gray-400 text-sm block mt-0.5">Sem anexo</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if bill.notes %}
+        <div class="pt-4 border-t border-gray-100">
+            <span class="text-xs text-gray-400 uppercase font-semibold block">Observações & Histórico de Compliance</span>
+            <p class="text-sm text-gray-700 mt-1 whitespace-pre-line">{{ bill.notes }}</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Receipts & Payment Registration Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- History of Receipts Attached -->
+        <div class="lg:col-span-2 space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-gray-900">Comprovantes & Recibos de Pagamento</h2>
+                <span class="text-xs font-medium text-gray-500 bg-gray-200 px-2.5 py-0.5 rounded-full">{{ receipts.count }} recibos</span>
+            </div>
+
+            <div class="space-y-3">
+                {% for r in receipts %}
+                <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-2">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">
+                                {{ r.get_payment_method_display }}
+                            </span>
+                            <span class="text-sm font-black text-gray-900 ml-2">R$ {{ r.amount_paid|currency_br }}</span>
+                        </div>
+                        <span class="text-xs text-gray-400">Pago em: {{ r.payment_date|date:"d/m/Y" }}</span>
+                    </div>
+
+                    {% if r.notes %}
+                        <p class="text-xs text-gray-600">{{ r.notes }}</p>
+                    {% endif %}
+
+                    <div class="flex justify-between items-center text-xs text-gray-400 pt-2 border-t border-gray-100">
+                        <span>Registrado por: <strong>{{ r.registered_by.username|default:"-" }}</strong></span>
+                        {% if r.receipt_file %}
+                            <a href="{{ r.receipt_file.url }}" target="_blank" class="text-indigo-600 hover:underline font-bold">
+                                Baixar Recibo / Comprovante
+                            </a>
+                        {% else %}
+                            <span class="text-gray-400">Sem comprovante anexado</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500 text-sm">
+                    Nenhum comprovante de pagamento anexado ainda.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Form to register payment and attach receipt -->
+        {% if bill.status != 'PAGO' %}
+        <div class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-900">Registrar Pagamento & Recibo</h2>
+
+            <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4">
+                {% csrf_token %}
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase">Data do Pagamento</label>
+                    <input type="date" name="{{ receipt_form.payment_date.html_name }}" value="{{ receipt_form.payment_date.value|date:'Y-m-d' }}" required
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase">Valor Pago nesta Transação (R$)</label>
+                    <input type="number" step="0.01" name="{{ receipt_form.amount_paid.html_name }}" value="{{ receipt_form.amount_paid.value }}" required
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase">Forma de Pagamento</label>
+                    <select name="{{ receipt_form.payment_method.html_name }}" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                        {% for val, label in receipt_form.fields.payment_method.choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase">Comprovante / Recibo (PDF ou Imagem)</label>
+                    <input type="file" name="{{ receipt_form.receipt_file.html_name }}"
+                           class="mt-1 block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase">Observações</label>
+                    <textarea name="{{ receipt_form.notes.html_name }}" rows="2" placeholder="Observações do recibo ou banco..."
+                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none"></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm">
+                    Confirmar Pagamento & Salvar Recibo
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endblock %}

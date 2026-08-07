@@ -1,0 +1,113 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Gestão de Usuários | MeuERP{% endblock %}
+{% block header_title %}Administração — Níveis de Acesso & Usuários{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Actions & Search -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+        
+        <form method="get" class="flex flex-1 flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <input type="text" name="q" value="{{ query }}" placeholder="Buscar por usuário, nome ou e-mail..."
+                       class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+
+            <select name="role" class="bg-gray-50 border border-gray-300 rounded-lg text-sm px-3 py-2 focus:outline-none">
+                <option value="">Todos os Níveis de Acesso</option>
+                {% for r_val, r_label in roles %}
+                <option value="{{ r_val }}" {% if role_filter == r_val %}selected{% endif %}>{{ r_label }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm font-medium transition-colors">
+                Filtrar
+            </button>
+        </form>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-600">
+                <thead class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-3">Usuário / Nome</th>
+                        <th class="px-6 py-3">E-mail</th>
+                        <th class="px-6 py-3">Nível de Acesso (Perfil)</th>
+                        <th class="px-6 py-3">Permissões de Acesso</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for u in users %}
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="px-6 py-4 font-bold text-gray-900">
+                            {{ u.username }}
+                            {% if u.get_full_name %}
+                                <p class="text-xs text-gray-500 font-normal">{{ u.get_full_name }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-xs text-gray-700">
+                            {{ u.email|default:"Sem e-mail" }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold
+                                {% if u.role == 'ADMINISTRATOR' %}bg-purple-100 text-purple-800 border border-purple-200
+                                {% elif u.role == 'MANAGER' %}bg-indigo-100 text-indigo-800 border border-indigo-200
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ u.get_role_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-gray-500">
+                            {% if u.is_admin %}
+                                <span class="text-purple-700 font-semibold">Total (Todos os módulos + Usuários)</span>
+                            {% elif u.is_manager %}
+                                <span class="text-indigo-700 font-semibold">Projetos, Medições e Faturamento</span>
+                            {% else %}
+                                <span class="text-gray-600">Projetos atribuídos e Tarefas</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if u.is_active %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+                                    Ativo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                                    Desativado
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right space-x-2">
+                            <a href="{% url 'user_edit' u.pk %}" class="text-indigo-600 hover:text-indigo-900 font-medium">Editar Perfil</a>
+                            
+                            <form method="post" action="{% url 'user_toggle_active' u.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="text-xs font-medium {% if u.is_active %}text-red-600 hover:text-red-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                                    {% if u.is_active %}Desativar{% else %}Ativar{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            Nenhum usuário encontrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ title }} | MeuERP{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <a href="{% url 'invoice_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Voltar para faturas
+        </a>
+    </div>
+
+    <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            
+            <div>
+                <label for="{{ form.invoice_number.id_for_label }}" class="block text-sm font-medium text-gray-700">Número da NF / Fatura *</label>
+                <input type="text" name="{{ form.invoice_number.html_name }}" id="{{ form.invoice_number.id_for_label }}"
+                       value="{{ form.invoice_number.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.client.id_for_label }}" class="block text-sm font-medium text-gray-700">Cliente *</label>
+                <select name="{{ form.client.html_name }}" id="{{ form.client.id_for_label }}" required
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.client.choices %}
+                    <option value="{{ choice_val }}" {% if form.client.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.measurement.id_for_label }}" class="block text-sm font-medium text-gray-700">Medição de Origem (Opcional)</label>
+                <select name="{{ form.measurement.html_name }}" id="{{ form.measurement.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.measurement.choices %}
+                    <option value="{{ choice_val }}" {% if form.measurement.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="{{ form.contract.id_for_label }}" class="block text-sm font-medium text-gray-700">Contrato de Origem (Opcional)</label>
+                <select name="{{ form.contract.html_name }}" id="{{ form.contract.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    {% for choice_val, choice_label in form.fields.contract.choices %}
+                    <option value="{{ choice_val }}" {% if form.contract.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Datas -->
+            <div>
+                <label for="{{ form.issue_date.id_for_label }}" class="block text-sm font-medium text-gray-700">Data de Emissão *</label>
+                <input type="date" name="{{ form.issue_date.html_name }}" id="{{ form.issue_date.id_for_label }}"
+                       value="{{ form.issue_date.value|date:'Y-m-d'|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.due_date.id_for_label }}" class="block text-sm font-medium text-gray-700">Data de Vencimento *</label>
+                <input type="date" name="{{ form.due_date.html_name }}" id="{{ form.due_date.id_for_label }}"
+                       value="{{ form.due_date.value|date:'Y-m-d'|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.payment_date.id_for_label }}" class="block text-sm font-medium text-gray-700">Data do Pagamento</label>
+                <input type="date" name="{{ form.payment_date.html_name }}" id="{{ form.payment_date.id_for_label }}"
+                       value="{{ form.payment_date.value|date:'Y-m-d'|default:'' }}"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <!-- Valores -->
+            <div>
+                <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700">Valor Faturado (R$) *</label>
+                <input type="number" step="0.01" name="{{ form.amount.html_name }}" id="{{ form.amount.id_for_label }}"
+                       value="{{ form.amount.value|default:'' }}" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
+            </div>
+
+            <div>
+                <label for="{{ form.amount_paid.id_for_label }}" class="block text-sm font-medium text-gray-700">Valor Recebido (R$)</label>
+                <input type="number" step="0.01" name="{{ form.amount_paid.html_name }}" id="{{ form.amount_paid.id_for_label }}"
+                       value="{{ form.amount_paid.value|default:0.00 }}"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">Status do Pagamento</label>
+                <select name="{{ form.status.html_name }}" id="{{ form.status.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-semibold">
+                    {% for st_val, st_label in form.fields.status.choices %}
+                    <option value="{{ st_val }}" {% if form.status.value == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">Observações</label>
+                <textarea name="{{ form.notes.html_name }}" id="{{ form.notes.id_for_label }}" rows="3"
+                          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+        </div>
+
+        <div class="border-t border-gray-200 pt-6 flex justify-end gap-3">
+            <a href="{% url 'invoice_list' %}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</a>
+            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Salvar Fatura</button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
