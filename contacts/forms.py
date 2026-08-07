@@ -1,26 +1,33 @@
 import re
 from django import forms
-from .models import Contato, TipoPessoaChoices, TipoContato, PessoaFisica, PessoaJuridica, Interaction
+from .models import (
+    Contato, TipoPessoaChoices, TipoContato, PessoaFisica, PessoaJuridica,
+    ContatoComercial, RegimeTributarioChoices, IndicadorInscricaoEstadualChoices, Interaction
+)
 from .utils import validate_cpf, validate_cnpj, format_cpf, format_cnpj, format_cep
 from .services import add_endereco, add_telefone, add_email, set_contact_roles
 
 class ContactForm(forms.ModelForm):
-    # Form fields for clean representation
+    # Odoo Header Fields
     name = forms.CharField(label="Nome ou Razão Social", max_length=255)
     trade_name = forms.CharField(label="Nome Fantasia", max_length=255, required=False)
     person_type = forms.ChoiceField(
         label="Tipo de Pessoa",
         choices=[
-            (TipoPessoaChoices.JURIDICA, 'Pessoa Jurídica'),
-            (TipoPessoaChoices.FISICA, 'Pessoa Física'),
-            ('PJ', 'Pessoa Jurídica'),
-            ('PF', 'Pessoa Física'),
+            (TipoPessoaChoices.JURIDICA, 'Empresa (Pessoa Jurídica)'),
+            (TipoPessoaChoices.FISICA, 'Individual (Pessoa Física)'),
+            ('PJ', 'Empresa (Pessoa Jurídica)'),
+            ('PF', 'Individual (Pessoa Física)'),
         ],
-        initial=TipoPessoaChoices.JURIDICA
+        initial=TipoPessoaChoices.JURIDICA,
+        widget=forms.RadioSelect
     )
     document = forms.CharField(label="CPF ou CNPJ", max_length=20, required=False)
     email = forms.EmailField(label="E-mail", required=False)
-    phone = forms.CharField(label="Telefone / WhatsApp", max_length=30, required=False)
+    phone = forms.CharField(label="Telefone / Fixos", max_length=30, required=False)
+    whatsapp = forms.CharField(label="Celular / WhatsApp", max_length=30, required=False)
+    website = forms.URLField(label="Website", required=False)
+    
     zip_code = forms.CharField(label="CEP", max_length=10, required=False)
     address = forms.CharField(label="Logradouro / Número / Bairro", max_length=255, required=False)
     city = forms.CharField(label="Cidade / Município", max_length=100, required=False)
@@ -30,8 +37,28 @@ class ContactForm(forms.ModelForm):
         queryset=TipoContato.objects.all(),
         widget=forms.CheckboxSelectMultiple,
         required=False,
-        label="Funções no Sistema"
+        label="Etiquetas / Papéis do Contato"
     )
+
+    # Odoo Tab: Pessoa Física Fields
+    rg = forms.CharField(label="RG", max_length=20, required=False)
+    profissao = forms.CharField(label="Profissão", max_length=100, required=False)
+    conselho_profissional = forms.CharField(label="Conselho Profissional (ex: CREA)", max_length=50, required=False)
+    registro_profissional = forms.CharField(label="Registro Profissional", max_length=50, required=False)
+
+    # Odoo Tab: Pessoa Jurídica / Fiscal Fields
+    inscricao_estadual = forms.CharField(label="Inscrição Estadual", max_length=30, required=False)
+    inscricao_municipal = forms.CharField(label="Inscrição Municipal", max_length=30, required=False)
+    indicador_inscricao_estadual = forms.ChoiceField(label="Indicador de IE", choices=IndicadorInscricaoEstadualChoices.choices, required=False)
+    regime_tributario = forms.ChoiceField(label="Regime Tributário", choices=RegimeTributarioChoices.choices, required=False)
+
+    # Odoo Tab: Vendas & Compras / Bancário Fields
+    limite_credito = forms.DecimalField(label="Limite de Crédito (R$)", max_digits=12, decimal_places=2, required=False, initial=0.00)
+    condicao_pagamento = forms.CharField(label="Condição Padrão de Pagamento", max_length=100, required=False)
+    banco = forms.CharField(label="Banco", max_length=50, required=False)
+    agencia = forms.CharField(label="Agência", max_length=20, required=False)
+    conta = forms.CharField(label="Conta Bancária", max_length=30, required=False)
+    pix = forms.CharField(label="Chave Pix", max_length=255, required=False)
 
     class Meta:
         model = Contato
@@ -51,6 +78,31 @@ class ContactForm(forms.ModelForm):
             self.fields['city'].initial = self.instance.city
             self.fields['state'].initial = self.instance.state
             self.fields['roles'].initial = self.instance.roles
+
+            if hasattr(self.instance, 'pessoa_fisica') and self.instance.pessoa_fisica:
+                pf = self.instance.pessoa_fisica
+                self.fields['rg'].initial = pf.rg
+                self.fields['profissao'].initial = pf.profissao
+                self.fields['conselho_profissional'].initial = pf.conselho_profissional
+                self.fields['registro_profissional'].initial = pf.registro_profissional
+                self.fields['whatsapp'].initial = pf.whatsapp
+
+            if hasattr(self.instance, 'pessoa_juridica') and self.instance.pessoa_juridica:
+                pj = self.instance.pessoa_juridica
+                self.fields['inscricao_estadual'].initial = pj.inscricao_estadual
+                self.fields['inscricao_municipal'].initial = pj.inscricao_municipal
+                self.fields['indicador_inscricao_estadual'].initial = pj.indicador_inscricao_estadual
+                self.fields['regime_tributario'].initial = pj.regime_tributario
+                self.fields['website'].initial = pj.site
+
+            if hasattr(self.instance, 'dados_comerciais') and self.instance.dados_comerciais:
+                com = self.instance.dados_comerciais
+                self.fields['limite_credito'].initial = com.limite_credito
+                self.fields['condicao_pagamento'].initial = com.condicao_pagamento
+                self.fields['banco'].initial = com.banco
+                self.fields['agencia'].initial = com.agencia
+                self.fields['conta'].initial = com.conta
+                self.fields['pix'].initial = com.pix
 
     def clean(self):
         cleaned_data = super().clean()
@@ -96,7 +148,6 @@ class ContactForm(forms.ModelForm):
         if commit:
             contato.save()
             
-            # Save roles
             roles = self.cleaned_data.get('roles')
             if roles:
                 role_codes = [r.codigo for r in roles]
@@ -105,6 +156,8 @@ class ContactForm(forms.ModelForm):
             doc = self.cleaned_data.get('document')
             email = self.cleaned_data.get('email')
             phone = self.cleaned_data.get('phone')
+            whatsapp = self.cleaned_data.get('whatsapp')
+            website = self.cleaned_data.get('website')
             logradouro = self.cleaned_data.get('address')
             city = self.cleaned_data.get('city')
             state = self.cleaned_data.get('state')
@@ -119,6 +172,12 @@ class ContactForm(forms.ModelForm):
                     pf.email_pessoal = email
                 if phone:
                     pf.telefone_pessoal = phone
+                if whatsapp:
+                    pf.whatsapp = whatsapp
+                pf.rg = self.cleaned_data.get('rg', '')
+                pf.profissao = self.cleaned_data.get('profissao', '')
+                pf.conselho_profissional = self.cleaned_data.get('conselho_profissional', '')
+                pf.registro_profissional = self.cleaned_data.get('registro_profissional', '')
                 pf.save()
             else:
                 pj, _ = PessoaJuridica.objects.get_or_create(contato=contato)
@@ -134,12 +193,31 @@ class ContactForm(forms.ModelForm):
                     pj.municipio = city
                 if state:
                     pj.uf = state
+                if website:
+                    pj.site = website
+                pj.inscricao_estadual = self.cleaned_data.get('inscricao_estadual', '')
+                pj.inscricao_municipal = self.cleaned_data.get('inscricao_municipal', '')
+                pj.indicador_inscricao_estadual = self.cleaned_data.get('indicador_inscricao_estadual', IndicadorInscricaoEstadualChoices.NAO_INFORMADO)
+                pj.regime_tributario = self.cleaned_data.get('regime_tributario', RegimeTributarioChoices.NAO_INFORMADO)
                 pj.save()
+
+            # Save Commercial / Bank data
+            com, _ = ContatoComercial.objects.get_or_create(contato=contato)
+            if self.cleaned_data.get('limite_credito') is not None:
+                com.limite_credito = self.cleaned_data.get('limite_credito')
+            com.condicao_pagamento = self.cleaned_data.get('condicao_pagamento', '')
+            com.banco = self.cleaned_data.get('banco', '')
+            com.agencia = self.cleaned_data.get('agencia', '')
+            com.conta = self.cleaned_data.get('conta', '')
+            com.pix = self.cleaned_data.get('pix', '')
+            com.save()
 
             if email:
                 add_email(contato, email=email, principal=True)
             if phone:
                 add_telefone(contato, numero=phone, principal=True)
+            if whatsapp and whatsapp != phone:
+                add_telefone(contato, numero=whatsapp, tipo='WHATSAPP', whatsapp=True)
             if logradouro or city or state or cep:
                 add_endereco(contato, logradouro=logradouro or 'Endereço Principal', municipio=city or '', uf=state or '', cep=cep or '', principal=True)
 

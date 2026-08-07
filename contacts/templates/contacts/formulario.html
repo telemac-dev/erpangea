@@ -4,8 +4,9 @@
 {% block header_title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-5xl mx-auto space-y-6">
 
+    <!-- Top Action Bar -->
     <div class="flex items-center justify-between">
         <a href="{% url 'contact_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,12 +16,252 @@
         </a>
     </div>
 
-    <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
-        
-        {% include 'contacts/partials/_contato_form.html' %}
+    <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {% csrf_token %}
 
-        <div class="border-t border-gray-200 pt-6 flex justify-end gap-3">
-            <a href="{% url 'contact_list' %}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</a>
+        <!-- Odoo Header Section -->
+        <div class="p-6 sm:p-8 space-y-6 bg-white border-b border-gray-200">
+            
+            <!-- Type Radio Selector (Individual vs Company) -->
+            <div class="flex items-center gap-6 pb-4 border-b border-gray-100">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Tipo de Contato:</span>
+                <div class="flex items-center gap-4 text-sm font-medium">
+                    {% for choice in form.person_type %}
+                    <label class="inline-flex items-center gap-2 cursor-pointer font-semibold text-gray-800">
+                        {{ choice.tag }}
+                        <span>{{ choice.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Main Name & Tax ID Header Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Avatar & Name Column (Span 2) -->
+                <div class="md:col-span-2 space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1 space-y-3">
+                            <div>
+                                <input type="text" name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}"
+                                       value="{{ form.name.value|default:'' }}" required placeholder="Ex: Nome do Contato ou Razão Social..."
+                                       class="w-full text-2xl font-black text-gray-900 border-0 border-b-2 border-gray-200 focus:border-indigo-600 focus:ring-0 px-0 py-1 placeholder-gray-300">
+                                {% if form.name.errors %}
+                                    <p class="mt-1 text-xs text-red-600 font-semibold">{{ form.name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <input type="text" name="{{ form.trade_name.html_name }}" id="{{ form.trade_name.id_for_label }}"
+                                       value="{{ form.trade_name.value|default:'' }}" placeholder="Nome Fantasia (Opcional)"
+                                       class="w-full text-sm font-medium text-gray-700 border-0 border-b border-gray-200 focus:border-indigo-500 focus:ring-0 px-0 py-1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HTMX Document Field Container -->
+                    <div id="document-field-container" class="pt-2">
+                        <label for="{{ form.document.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-600">
+                            CPF ou CNPJ (Validação Assíncrona no Blur)
+                        </label>
+                        <input type="text" name="{{ form.document.html_name }}" id="{{ form.document.id_for_label }}"
+                               value="{{ form.document.value|default:'' }}" placeholder="Apenas números ou formatado"
+                               hx-post="{% url 'format_document_hx' %}"
+                               hx-trigger="blur"
+                               hx-target="#document-field-container"
+                               hx-swap="outerHTML"
+                               hx-include="[name='person_type']"
+                               class="mt-1 block w-full px-3 py-2 bg-gray-50 border {% if form.document.errors %}border-red-500{% else %}border-gray-300{% endif %} rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
+                        {% if form.document.errors %}
+                            <p class="mt-1 text-xs text-red-600 font-semibold">{{ form.document.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Channels Column -->
+                <div class="space-y-4 bg-gray-50/50 p-4 rounded-xl border border-gray-200">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500">Telefone Fixos / Comercial</label>
+                        <input type="text" name="{{ form.phone.html_name }}" value="{{ form.phone.value|default:'' }}" placeholder="(11) 3333-4444"
+                               class="mt-1 block w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500">Celular / WhatsApp</label>
+                        <input type="text" name="{{ form.whatsapp.html_name }}" value="{{ form.whatsapp.value|default:'' }}" placeholder="(11) 99999-8888"
+                               class="mt-1 block w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500">E-mail Principal</label>
+                        <input type="email" name="{{ form.email.html_name }}" value="{{ form.email.value|default:'' }}" placeholder="contato@empresa.com.br"
+                               class="mt-1 block w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500">Website</label>
+                        <input type="url" name="{{ form.website.html_name }}" value="{{ form.website.value|default:'' }}" placeholder="https://..."
+                               class="mt-1 block w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Address Block with HTMX ViaCEP Lookup -->
+            {% include 'contacts/partials/address_fields.html' with zip_code=form.zip_code.value address=form.address.value city=form.city.value state=form.state.value %}
+
+            <!-- Tags / Roles -->
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Etiquetas / Papéis do Contato</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    {% for choice in form.roles %}
+                    <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
+                        {{ choice.tag }}
+                        <span>{{ choice.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Odoo Notebook Tabs (Alpine.js) -->
+        <div x-data="{ activeTab: 'fiscais' }" class="p-6 sm:p-8 bg-gray-50/50">
+            
+            <!-- Tab Headers -->
+            <div class="flex border-b border-gray-200 space-x-6 overflow-x-auto">
+                <button type="button" @click="activeTab = 'fiscais'"
+                        :class="activeTab === 'fiscais' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="py-3 px-1 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors">
+                    Dados Fiscais & Registro
+                </button>
+                
+                <button type="button" @click="activeTab = 'comercial'"
+                        :class="activeTab === 'comercial' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="py-3 px-1 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors">
+                    Vendas, Compras & Dados Bancários
+                </button>
+                
+                <button type="button" @click="activeTab = 'observacoes'"
+                        :class="activeTab === 'observacoes' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="py-3 px-1 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors">
+                    Observações Internas
+                </button>
+            </div>
+
+            <!-- Tab 1: Dados Fiscais & Registro -->
+            <div x-show="activeTab === 'fiscais'" class="pt-6 space-y-6">
+                <!-- PJ Fiscal -->
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">Inscrições & Regime Tributário (Pessoa Jurídica)</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-5 rounded-xl border border-gray-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 uppercase">Inscrição Estadual</label>
+                            <input type="text" name="{{ form.inscricao_estadual.html_name }}" value="{{ form.inscricao_estadual.value|default:'' }}" placeholder="Isento se não houver" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 uppercase">Inscrição Municipal</label>
+                            <input type="text" name="{{ form.inscricao_municipal.html_name }}" value="{{ form.inscricao_municipal.value|default:'' }}" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 uppercase">Indicador de Inscrição Estadual</label>
+                            <select name="{{ form.indicador_inscricao_estadual.html_name }}" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                                {% for val, label in form.fields.indicador_inscricao_estadual.choices %}
+                                <option value="{{ val }}" {% if form.indicador_inscricao_estadual.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 uppercase">Regime Tributário</label>
+                            <select name="{{ form.regime_tributario.html_name }}" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                                {% for val, label in form.fields.regime_tributario.choices %}
+                                <option value="{{ val }}" {% if form.regime_tributario.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PF Profissional -->
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">Documentos & Registro Profissional (Pessoa Física)</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-5 rounded-xl border border-gray-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 uppercase">RG</label>
+                            <input type="text" name="{{ form.rg.html_name }}" value="{{ form.rg.value|default:'' }}" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 uppercase">Profissão</label>
+                            <input type="text" name="{{ form.profissao.html_name }}" value="{{ form.profissao.value|default:'' }}" placeholder="Ex: Engenheiro Geotécnico" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 uppercase">Conselho Profissional (ex: CREA, CAU)</label>
+                            <input type="text" name="{{ form.conselho_profissional.html_name }}" value="{{ form.conselho_profissional.value|default:'' }}" placeholder="CREA" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 uppercase">Número do Registro Profissional</label>
+                            <input type="text" name="{{ form.registro_profissional.html_name }}" value="{{ form.registro_profissional.value|default:'' }}" placeholder="CREA-SP 123456" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Vendas, Compras & Dados Bancários -->
+            <div x-show="activeTab === 'comercial'" class="pt-6 space-y-6" style="display: none;">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-white p-5 rounded-xl border border-gray-200">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase">Limite de Crédito (R$)</label>
+                        <input type="number" step="0.01" name="{{ form.limite_credito.html_name }}" value="{{ form.limite_credito.value|default:0.00 }}" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase">Condição Padrão de Pagamento</label>
+                        <input type="text" name="{{ form.condicao_pagamento.html_name }}" value="{{ form.condicao_pagamento.value|default:'' }}" placeholder="Ex: 30 dias após emissão da NF" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase">Banco & Agência</label>
+                        <div class="flex gap-2">
+                            <input type="text" name="{{ form.banco.html_name }}" value="{{ form.banco.value|default:'' }}" placeholder="Banco" class="mt-1 block w-2/3 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                            <input type="text" name="{{ form.agencia.html_name }}" value="{{ form.agencia.value|default:'' }}" placeholder="Agência" class="mt-1 block w-1/3 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase">Conta Bancária & Chave Pix</label>
+                        <div class="flex gap-2">
+                            <input type="text" name="{{ form.conta.html_name }}" value="{{ form.conta.value|default:'' }}" placeholder="Conta + Dígito" class="mt-1 block w-1/2 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                            <input type="text" name="{{ form.pix.html_name }}" value="{{ form.pix.value|default:'' }}" placeholder="Chave Pix" class="mt-1 block w-1/2 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Observações Internas -->
+            <div x-show="activeTab === 'observacoes'" class="pt-6 space-y-4" style="display: none;">
+                <div>
+                    <label for="{{ form.observacoes.id_for_label }}" class="block text-xs font-semibold text-gray-700 uppercase">Observações & Histórico de Compliance</label>
+                    <textarea name="{{ form.observacoes.html_name }}" id="{{ form.observacoes.id_for_label }}" rows="4"
+                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Anotações internas sobre este contato...">{{ form.observacoes.value|default:'' }}</textarea>
+                </div>
+                
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" name="{{ form.ativo.html_name }}" id="{{ form.ativo.id_for_label }}"
+                           {% if form.ativo.value or form.ativo.value is None %}checked{% endif %}
+                           class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <label for="{{ form.ativo.id_for_label }}" class="text-sm font-semibold text-gray-800">Contato Ativo no Sistema</label>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Form Footer Actions -->
+        <div class="p-6 bg-white border-t border-gray-200 flex justify-end gap-3">
+            <a href="{% url 'contact_list' %}" class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</a>
             {% include 'components/_button.html' with label="Salvar Contato" type="submit" variant="primary" %}
         </div>
 

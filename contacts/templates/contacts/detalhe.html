@@ -1,7 +1,8 @@
 {% extends 'base_app.html' %}
+{% load formatters %}
 
 {% block title %}{{ contact.nome_razao_social }} | ERPangea{% endblock %}
-{% block header_title %}Detalhes do Contato{% endblock %}
+{% block header_title %}Ficha do Contato — {{ contact.nome_razao_social }}{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto space-y-6">
@@ -27,21 +28,27 @@
         </div>
     </div>
 
-    <!-- Contact Master Header Card -->
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8">
+    <!-- Odoo Master Header Card -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8 space-y-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 pb-6">
-            <div>
-                <div class="flex items-center gap-3">
-                    <h1 class="text-2xl font-bold text-gray-900">{{ contact.nome_razao_social }}</h1>
-                    {% if contact.is_active %}
-                        {% include 'components/_badge.html' with text="Ativo" variant="success" dot=True %}
-                    {% else %}
-                        {% include 'components/_badge.html' with text="Inativo" variant="danger" %}
-                    {% endif %}
+            <div class="flex items-start gap-4">
+                <div class="w-16 h-16 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xl shadow-md flex-shrink-0">
+                    {{ contact.nome_razao_social|slice:":2"|upper }}
                 </div>
-                {% if contact.nome_fantasia %}
-                    <p class="text-sm text-gray-500 mt-1">Nome Fantasia: <span class="font-medium text-gray-700">{{ contact.nome_fantasia }}</span></p>
-                {% endif %}
+                <div>
+                    <div class="flex items-center gap-3">
+                        <h1 class="text-2xl font-black text-gray-900">{{ contact.nome_razao_social }}</h1>
+                        {% if contact.is_active %}
+                            {% include 'components/_badge.html' with text="Ativo" variant="success" dot=True %}
+                        {% else %}
+                            {% include 'components/_badge.html' with text="Inativo" variant="danger" %}
+                        {% endif %}
+                    </div>
+                    {% if contact.nome_fantasia %}
+                        <p class="text-sm text-gray-500 font-medium mt-0.5">{{ contact.nome_fantasia }}</p>
+                    {% endif %}
+                    <p class="text-xs font-bold text-indigo-600 mt-1">{{ contact.get_tipo_pessoa_display }} • {{ contact.document|default:"Sem CPF/CNPJ" }}</p>
+                </div>
             </div>
 
             <div class="flex flex-wrap gap-1.5">
@@ -53,165 +60,209 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 text-sm">
+        <!-- Master Fields Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
             <div>
-                <span class="text-xs text-gray-400 uppercase font-semibold block">Tipo & Documento</span>
-                <p class="font-medium text-gray-800 mt-0.5">{{ contact.get_tipo_pessoa_display }}</p>
-                <p class="text-gray-600 font-bold">{{ contact.document|default:"Documento não informado" }}</p>
-            </div>
-
-            <div>
-                <span class="text-xs text-gray-400 uppercase font-semibold block">Contato</span>
-                <p class="font-medium text-gray-800 mt-0.5">{{ contact.phone|default:"Sem telefone" }}</p>
+                <span class="text-gray-400 uppercase font-semibold block">Contato Direct</span>
+                <p class="font-bold text-gray-800 text-sm mt-0.5">{{ contact.phone|default:"Sem telefone" }}</p>
                 <p class="text-gray-600">{{ contact.email|default:"Sem e-mail" }}</p>
             </div>
 
             <div>
-                <span class="text-xs text-gray-400 uppercase font-semibold block">Localização</span>
-                <p class="font-medium text-gray-800 mt-0.5">
+                <span class="text-gray-400 uppercase font-semibold block">Localização Principal</span>
+                <p class="font-bold text-gray-800 text-sm mt-0.5">
                     {% if contact.city or contact.state %}{{ contact.city }}{% if contact.state %}/{{ contact.state }}{% endif %}{% else %}Não informada{% endif %}
                     {% if contact.zip_code %}<span class="text-xs text-gray-500 font-normal ml-1">({{ contact.zip_code }})</span>{% endif %}
                 </p>
-                <p class="text-gray-600 text-xs truncate">{{ contact.address|default:"" }}</p>
+                <p class="text-gray-600 truncate">{{ contact.address|default:"" }}</p>
             </div>
-        </div>
 
-        <!-- Dados Específicos PF / PJ -->
-        {% if contact.tipo_pessoa == 'FISICA' and contact.pessoa_fisica %}
-        <div class="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div>
-                <span class="text-gray-400 uppercase font-semibold block">Profissão</span>
-                <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_fisica.profissao|default:"-" }}</span>
-            </div>
-            <div>
-                <span class="text-gray-400 uppercase font-semibold block">Conselho Profissional</span>
-                <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_fisica.conselho_profissional }} {{ contact.pessoa_fisica.registro_profissional }}</span>
-            </div>
-            <div>
-                <span class="text-gray-400 uppercase font-semibold block">Especialidade</span>
-                <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_fisica.especialidade|default:"-" }}</span>
-            </div>
-            <div>
-                <span class="text-gray-400 uppercase font-semibold block">Nascimento</span>
-                <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_fisica.data_nascimento|date:"d/m/Y"|default:"-" }}</span>
+                <span class="text-gray-400 uppercase font-semibold block">Cadastro & Responsável</span>
+                <p class="font-medium text-gray-800 mt-0.5">Criado em: {{ contact.created_at|date:"d/m/Y H:i" }}</p>
+                <p class="text-gray-600">Por: {{ contact.created_by.username|default:"Sistema" }}</p>
             </div>
         </div>
-        {% elif contact.tipo_pessoa == 'JURIDICA' and contact.pessoa_juridica %}
-        <div class="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div>
-                <span class="text-gray-400 uppercase font-semibold block">Inscrição Estadual</span>
-                <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_juridica.inscricao_estadual|default:"ISENTO" }}</span>
-            </div>
-            <div>
-                <span class="text-gray-400 uppercase font-semibold block">Inscrição Municipal</span>
-                <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_juridica.inscricao_municipal|default:"-" }}</span>
-            </div>
-            <div>
-                <span class="text-gray-400 uppercase font-semibold block">Regime Tributário</span>
-                <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_juridica.get_regime_tributario_display }}</span>
-            </div>
-            <div>
-                <span class="text-gray-400 uppercase font-semibold block">Situação Cadastral</span>
-                <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_juridica.get_situacao_cadastral_display }}</span>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if contact.observacoes %}
-        <div class="mt-6 pt-6 border-t border-gray-100">
-            <span class="text-xs text-gray-400 uppercase font-semibold block">Observações</span>
-            <p class="text-sm text-gray-700 mt-1 whitespace-pre-line">{{ contact.observacoes }}</p>
-        </div>
-        {% endif %}
     </div>
 
-    <!-- Interactions Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Odoo Notebook Tabs (Alpine.js) -->
+    <div x-data="{ activeTab: 'vinculos' }" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        
+        <!-- Tab Navigation Bar -->
+        <div class="flex border-b border-gray-200 bg-gray-50 px-6 space-x-6 overflow-x-auto">
+            <button type="button" @click="activeTab = 'vinculos'"
+                    :class="activeTab === 'vinculos' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-3.5 px-1 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors">
+                Contatos & Vínculos (Equipe)
+            </button>
+            
+            <button type="button" @click="activeTab = 'comercial'"
+                    :class="activeTab === 'comercial' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-3.5 px-1 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors">
+                Vendas, Compras & Bancário
+            </button>
+            
+            <button type="button" @click="activeTab = 'fiscais'"
+                    :class="activeTab === 'fiscais' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-3.5 px-1 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors">
+                Fiscais & Registro
+            </button>
 
-        <div class="lg:col-span-2 space-y-4">
-            <div class="flex items-center justify-between">
-                <h2 class="text-lg font-bold text-gray-900">Histórico de Interações</h2>
-                <span class="text-xs font-medium text-gray-500 bg-gray-200 px-2.5 py-0.5 rounded-full">{{ interactions.count }} interações</span>
-            </div>
+            <button type="button" @click="activeTab = 'interacoes'"
+                    :class="activeTab === 'interacoes' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-3.5 px-1 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors">
+                Histórico de Interações ({{ interactions.count }})
+            </button>
 
-            <div class="space-y-4">
-                {% for interaction in interactions %}
-                <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-3">
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center gap-2">
-                            {% include 'components/_badge.html' with text=interaction.get_interaction_type_display variant="purple" %}
-                            <h3 class="font-bold text-gray-900 text-sm">{{ interaction.subject }}</h3>
-                        </div>
-                        <span class="text-xs text-gray-400">{{ interaction.date|date:"d/m/Y H:i" }}</span>
-                    </div>
+            <button type="button" @click="activeTab = 'observacoes'"
+                    :class="activeTab === 'observacoes' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-3.5 px-1 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors">
+                Observações
+            </button>
+        </div>
 
-                    <p class="text-sm text-gray-700 whitespace-pre-line">{{ interaction.description }}</p>
-
-                    {% if interaction.next_action %}
-                    <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-900 flex justify-between items-center">
-                        <div>
-                            <strong>Próxima ação:</strong> {{ interaction.next_action }}
-                        </div>
-                        {% if interaction.next_action_deadline %}
-                        <span class="font-medium text-amber-700">Prazo: {{ interaction.next_action_deadline|date:"d/m/Y" }}</span>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-
-                    <div class="text-xs text-gray-400 pt-2 border-t border-gray-100">
-                        Registrado por: <strong class="text-gray-600">{{ interaction.user.username|default:"Sistema" }}</strong>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-                    <p class="text-sm">Nenhuma interação registrada ainda para este contato.</p>
-                </div>
-                {% endfor %}
+        <!-- Tab 1: Vínculos & Sub-contatos -->
+        <div x-show="activeTab === 'vinculos'" class="p-6 sm:p-8 space-y-4">
+            <h3 class="text-sm font-bold text-gray-900">Membros da Equipe & Vínculos Cadastrados</h3>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% if contact.tipo_pessoa == 'JURIDICA' %}
+                    {% for vinculo in contact.vinculos_como_pj.all %}
+                        {% include 'contacts/partials/_vinculo_row.html' with vinculo=vinculo %}
+                    {% empty %}
+                        <p class="text-xs text-gray-400 col-span-2 py-4 text-center">Nenhum membro ou responsável vinculado a esta empresa.</p>
+                    {% endfor %}
+                {% else %}
+                    {% for vinculo in contact.vinculos_como_pf.all %}
+                        {% include 'contacts/partials/_vinculo_row.html' with vinculo=vinculo %}
+                    {% empty %}
+                        <p class="text-xs text-gray-400 col-span-2 py-4 text-center">Nenhuma empresa vinculada a este profissional.</p>
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
 
-        <!-- Add New Interaction Form -->
-        <div class="space-y-4">
-            <h2 class="text-lg font-bold text-gray-900">Nova Interação</h2>
-
-            <form method="post" class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4">
-                {% csrf_token %}
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 uppercase">Tipo</label>
-                    <select name="{{ interaction_form.interaction_type.html_name }}" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
-                        {% for val, label in interaction_form.fields.interaction_type.choices %}
-                        <option value="{{ val }}">{{ label }}</option>
-                        {% endfor %}
-                    </select>
+        <!-- Tab 2: Vendas & Compras -->
+        <div x-show="activeTab === 'comercial'" class="p-6 sm:p-8 space-y-6" style="display: none;">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-xs">
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <span class="text-gray-400 uppercase font-semibold block">Limite de Crédito</span>
+                    <span class="font-bold text-gray-900 text-base">R$ {{ contact.dados_comerciais.limite_credito|currency_br|default:"0,00" }}</span>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 uppercase">Assunto</label>
-                    <input type="text" name="{{ interaction_form.subject.html_name }}" required
-                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Ex: Reunião inicial de projeto">
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <span class="text-gray-400 uppercase font-semibold block">Condição de Pagamento</span>
+                    <span class="font-bold text-gray-900 text-sm mt-0.5 block">{{ contact.dados_comerciais.condicao_pagamento|default:"Conforme contrato" }}</span>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 uppercase">Descrição</label>
-                    <textarea name="{{ interaction_form.description.html_name }}" rows="3" required
-                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Detalhamento do contato..."></textarea>
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <span class="text-gray-400 uppercase font-semibold block">Dados Bancários</span>
+                    <span class="font-bold text-gray-900 text-sm mt-0.5 block">
+                        {% if contact.dados_comerciais.banco %}{{ contact.dados_comerciais.banco }} (Ag: {{ contact.dados_comerciais.agencia }} / Cc: {{ contact.dados_comerciais.conta }}){% else %}Não informado{% endif %}
+                    </span>
                 </div>
 
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <span class="text-gray-400 uppercase font-semibold block">Chave Pix</span>
+                    <span class="font-bold text-indigo-700 text-sm mt-0.5 block">{{ contact.dados_comerciais.pix|default:"Não informada" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Fiscais & Registro -->
+        <div x-show="activeTab === 'fiscais'" class="p-6 sm:p-8 space-y-6" style="display: none;">
+            {% if contact.tipo_pessoa == 'JURIDICA' and contact.pessoa_juridica %}
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 uppercase">Próxima Ação (Opcional)</label>
-                    <input type="text" name="{{ interaction_form.next_action.html_name }}"
-                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500" placeholder="Ex: Enviar proposta comercial">
+                    <span class="text-gray-400 uppercase font-semibold block">Inscrição Estadual</span>
+                    <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_juridica.inscricao_estadual|default:"ISENTO" }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 uppercase font-semibold block">Inscrição Municipal</span>
+                    <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_juridica.inscricao_municipal|default:"-" }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 uppercase font-semibold block">Regime Tributário</span>
+                    <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_juridica.get_regime_tributario_display }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 uppercase font-semibold block">Situação Cadastral</span>
+                    <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_juridica.get_situacao_cadastral_display }}</span>
+                </div>
+            </div>
+            {% elif contact.tipo_pessoa == 'FISICA' and contact.pessoa_fisica %}
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs">
+                <div>
+                    <span class="text-gray-400 uppercase font-semibold block">RG</span>
+                    <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_fisica.rg|default:"-" }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 uppercase font-semibold block">Profissão</span>
+                    <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_fisica.profissao|default:"-" }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 uppercase font-semibold block">Conselho Profissional</span>
+                    <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_fisica.conselho_profissional }} {{ contact.pessoa_fisica.registro_profissional }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 uppercase font-semibold block">Especialidade</span>
+                    <span class="font-bold text-gray-800 text-sm">{{ contact.pessoa_fisica.especialidade|default:"-" }}</span>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-xs text-gray-500">Nenhum dado fiscal específico cadastrado.</p>
+            {% endif %}
+        </div>
+
+        <!-- Tab 4: Interações -->
+        <div x-show="activeTab === 'interacoes'" class="p-6 sm:p-8 space-y-6" style="display: none;">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-4">
+                    {% for interaction in interactions %}
+                    <div class="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-2">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-2">
+                                {% include 'components/_badge.html' with text=interaction.get_interaction_type_display variant="purple" %}
+                                <h4 class="font-bold text-gray-900 text-sm">{{ interaction.subject }}</h4>
+                            </div>
+                            <span class="text-xs text-gray-400">{{ interaction.date|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 whitespace-pre-line">{{ interaction.description }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-gray-500 py-4 text-center">Nenhuma interação registrada.</p>
+                    {% endfor %}
                 </div>
 
+                <!-- Fast Interaction Form -->
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 uppercase">Prazo da Próxima Ação</label>
-                    <input type="date" name="{{ interaction_form.next_action_deadline.html_name }}"
-                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                    <form method="post" class="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3 text-xs">
+                        {% csrf_token %}
+                        <h4 class="font-bold text-gray-900 uppercase">Nova Interação</h4>
+                        <div>
+                            <select name="{{ interaction_form.interaction_type.html_name }}" class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded text-xs">
+                                {% for val, label in interaction_form.fields.interaction_type.choices %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <input type="text" name="{{ interaction_form.subject.html_name }}" required placeholder="Assunto..." class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded text-xs">
+                        </div>
+                        <div>
+                            <textarea name="{{ interaction_form.description.html_name }}" rows="2" required placeholder="Descrição..." class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded text-xs"></textarea>
+                        </div>
+                        <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded text-xs shadow-sm">
+                            Registrar
+                        </button>
+                    </form>
                 </div>
+            </div>
+        </div>
 
-                {% include 'components/_button.html' with label="Registrar Interação" type="submit" variant="primary" extra_classes="w-full" %}
-            </form>
+        <!-- Tab 5: Observações Internas -->
+        <div x-show="activeTab === 'observacoes'" class="p-6 sm:p-8" style="display: none;">
+            <p class="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{{ contact.observacoes|default:"Nenhuma observação interna cadastrada." }}</p>
         </div>
 
     </div>
