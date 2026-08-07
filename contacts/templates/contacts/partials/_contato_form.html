@@ -1,0 +1,113 @@
+{% csrf_token %}
+
+<div class="border-b border-gray-200 pb-4">
+    <h2 class="text-lg font-bold text-gray-900">Informações Básicas do Contato</h2>
+    <p class="text-xs text-gray-500">Dados de identificação e classificação no cadastro unificado.</p>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    
+    <div class="sm:col-span-2">
+        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+            Nome ou Razão Social <span class="text-red-500">*</span>
+        </label>
+        <input type="text" name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}"
+               value="{{ form.name.value|default:'' }}" required
+               class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+        {% if form.name.errors %}
+            <p class="mt-1 text-xs text-red-600 font-semibold">{{ form.name.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label for="{{ form.trade_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+            Nome Fantasia
+        </label>
+        <input type="text" name="{{ form.trade_name.html_name }}" id="{{ form.trade_name.id_for_label }}"
+               value="{{ form.trade_name.value|default:'' }}"
+               class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+    </div>
+
+    <div>
+        <label for="{{ form.person_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+            Tipo de Pessoa
+        </label>
+        <select name="{{ form.person_type.html_name }}" id="{{ form.person_type.id_for_label }}"
+                class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+            {% for choice_val, choice_label in form.fields.person_type.choices %}
+                <option value="{{ choice_val }}" {% if form.person_type.value == choice_val %}selected{% endif %}>{{ choice_label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- HTMX Document Field container -->
+    <div id="document-field-container">
+        <label for="{{ form.document.id_for_label }}" class="block text-sm font-medium text-gray-700">
+            CPF ou CNPJ
+        </label>
+        <input type="text" name="{{ form.document.html_name }}" id="{{ form.document.id_for_label }}"
+               value="{{ form.document.value|default:'' }}" placeholder="Apenas números ou formatado"
+               hx-post="{% url 'format_document_hx' %}"
+               hx-trigger="blur"
+               hx-target="#document-field-container"
+               hx-swap="outerHTML"
+               hx-include="#id_person_type"
+               class="mt-1 block w-full px-3 py-2 bg-white border {% if form.document.errors %}border-red-500{% else %}border-gray-300{% endif %} rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+        {% if form.document.errors %}
+            <p class="mt-1 text-xs text-red-600 font-semibold">{{ form.document.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+            E-mail
+        </label>
+        <input type="email" name="{{ form.email.html_name }}" id="{{ form.email.id_for_label }}"
+               value="{{ form.email.value|default:'' }}"
+               class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+    </div>
+
+    <div>
+        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+            Telefone / WhatsApp
+        </label>
+        <input type="text" name="{{ form.phone.html_name }}" id="{{ form.phone.id_for_label }}"
+               value="{{ form.phone.value|default:'' }}"
+               class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+    </div>
+
+</div>
+
+<!-- Endereço com Autocomplete ViaCEP (HTMX) -->
+{% include 'contacts/partials/address_fields.html' with zip_code=form.zip_code.value address=form.address.value city=form.city.value state=form.state.value %}
+
+<!-- Funções do Contato (Multi-função) -->
+<div class="border-t border-gray-200 pt-6">
+    <h2 class="text-lg font-bold text-gray-900 mb-1">Papéis e Funções do Contato</h2>
+    <p class="text-xs text-gray-500 mb-4">Selecione uma ou mais funções (ex: Cliente, Fornecedor e Parceiro simultaneamente).</p>
+    
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+        {% for choice in form.roles %}
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            {{ choice.tag }}
+            <span>{{ choice.choice_label }}</span>
+        </label>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Observações e Status -->
+<div class="space-y-4 pt-4 border-t border-gray-200">
+    <div>
+        <label for="{{ form.observacoes.id_for_label }}" class="block text-sm font-medium text-gray-700">Observações Gerais</label>
+        <textarea name="{{ form.observacoes.html_name }}" id="{{ form.observacoes.id_for_label }}" rows="3"
+                  class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">{{ form.observacoes.value|default:'' }}</textarea>
+    </div>
+
+    <div class="flex items-center gap-2 pt-2">
+        <input type="checkbox" name="{{ form.ativo.html_name }}" id="{{ form.ativo.id_for_label }}"
+               {% if form.ativo.value or form.ativo.value is None %}checked{% endif %}
+               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+        <label for="{{ form.ativo.id_for_label }}" class="text-sm font-medium text-gray-700">Contato Ativo (Disponível em lançamentos)</label>
+    </div>
+</div>

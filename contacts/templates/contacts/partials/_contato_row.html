@@ -1,0 +1,48 @@
+{% load formatters %}
+<tr class="hover:bg-gray-50/80 transition-colors">
+    <td class="px-6 py-4 font-medium text-gray-900">
+        <a href="{% url 'contact_detail' contact.pk %}" class="hover:text-indigo-600 font-bold block">
+            {{ contact.nome_razao_social }}
+        </a>
+        {% if contact.nome_fantasia %}
+            <p class="text-xs text-gray-400 font-normal">{{ contact.nome_fantasia }}</p>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4">
+        {% include 'components/_badge.html' with text=contact.get_tipo_pessoa_display variant="info" %}
+        {% if contact.document %}
+            <p class="text-xs text-gray-500 mt-0.5 font-semibold">{{ contact.document }}</p>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4">
+        <div class="flex flex-wrap gap-1">
+            {% for role in contact.roles.all %}
+                {% include 'components/_badge.html' with text=role.get_codigo_display variant="purple" %}
+            {% empty %}
+                <span class="text-xs text-gray-400">-</span>
+            {% endfor %}
+        </div>
+    </td>
+    <td class="px-6 py-4">
+        <p class="text-gray-900 font-medium">{{ contact.phone|default:"-" }}</p>
+        <p class="text-xs text-gray-500">{{ contact.email|default:"" }}</p>
+    </td>
+    <td class="px-6 py-4">
+        {% if contact.city or contact.state %}
+            {{ contact.city }}{% if contact.state %}/{{ contact.state }}{% endif %}
+        {% else %}
+            <span class="text-gray-400">-</span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4">
+        {% if contact.is_active %}
+            {% include 'components/_badge.html' with text="Ativo" variant="success" dot=True %}
+        {% else %}
+            {% include 'components/_badge.html' with text="Inativo" variant="danger" %}
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 text-right space-x-2">
+        <a href="{% url 'contact_detail' contact.pk %}" class="text-indigo-600 hover:text-indigo-900 font-medium">Ver</a>
+        <a href="{% url 'contact_edit' contact.pk %}" class="text-gray-600 hover:text-gray-900 font-medium">Editar</a>
+    </td>
+</tr>

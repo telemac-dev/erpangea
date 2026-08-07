@@ -40,7 +40,7 @@ def contact_list(request):
         'role_filter': role_filter,
         'roles': roles,
     }
-    return render(request, 'contacts/contact_list.html', context)
+    return render(request, 'contacts/lista.html', context)
 
 @login_required
 def contact_create(request):
@@ -59,7 +59,7 @@ def contact_create(request):
     else:
         form = ContactForm()
 
-    return render(request, 'contacts/contact_form.html', {'form': form, 'title': 'Novo Contato'})
+    return render(request, 'contacts/formulario.html', {'form': form, 'title': 'Novo Contato'})
 
 @login_required
 def contact_detail(request, pk):
@@ -88,7 +88,7 @@ def contact_detail(request, pk):
         'interactions': contact.interactions.all(),
         'interaction_form': interaction_form,
     }
-    return render(request, 'contacts/contact_detail.html', context)
+    return render(request, 'contacts/detalhe.html', context)
 
 @login_required
 def contact_edit(request, pk):
@@ -108,7 +108,7 @@ def contact_edit(request, pk):
     else:
         form = ContactForm(instance=contact)
 
-    return render(request, 'contacts/contact_form.html', {'form': form, 'contact': contact, 'title': f'Editar {contact.nome_razao_social}'})
+    return render(request, 'contacts/formulario.html', {'form': form, 'contact': contact, 'title': f'Editar {contact.nome_razao_social}'})
 
 @login_required
 def contact_delete(request, pk):
@@ -118,8 +118,7 @@ def contact_delete(request, pk):
         soft_delete_contact(contact, user=request.user)
         messages.success(request, f'Contato "{name}" removido com sucesso.')
         return redirect('contact_list')
-
-    return render(request, 'contacts/contact_confirm_delete.html', {'contact': contact})
+    return render(request, 'contacts/confirmar_exclusao.html', {'contact': contact})
 
 @login_required
 def format_document_hx(request):

@@ -1,0 +1,29 @@
+{% comment %}
+Componente Reutilizável: Modal HTMX / Alpine (Tailwind CSS)
+Uso: {% include 'components/_modal.html' with title="Confirmar" id="confirm-modal" %}
+{% endcomment %}
+<div x-data="{ open: true }" x-show="open" id="{{ id|default:'modal-container' }}"
+     class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div x-show="open" x-transition.opacity class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="open = false"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div x-show="open" x-transition.scale
+             class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-xl shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-gray-200">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-900">{{ title }}</h3>
+                <button @click="open = false" class="text-gray-400 hover:text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mt-4">
+                {% block modal_body %}{{ body }}{% endblock %}
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,4 @@
+<div class="flex items-center justify-between p-2 bg-gray-50 rounded text-xs">
+    <span class="font-medium text-gray-800">{{ email.email }}</span>
+    {% include 'components/_badge.html' with text=email.get_tipo_display variant="purple" %}
+</div>

@@ -1,0 +1,9 @@
+<div class="flex items-center justify-between p-2 bg-gray-50 rounded text-xs">
+    <span class="font-bold text-gray-800">{{ telefone.numero }}</span>
+    <div class="flex items-center gap-1">
+        {% include 'components/_badge.html' with text=telefone.get_tipo_display variant="info" %}
+        {% if telefone.whatsapp %}
+            <span class="px-1.5 py-0.5 bg-green-100 text-green-800 font-bold rounded text-[10px]">Zap</span>
+        {% endif %}
+    </div>
+</div>

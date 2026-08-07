@@ -1,0 +1,13 @@
+{% comment %}
+Componente Reutilizável: Alerta (Tailwind CSS)
+Uso: {% include 'components/_alert.html' with message="Operação realizada com sucesso" type="success" %}
+{% endcomment %}
+<div class="p-4 rounded-lg border text-sm flex items-center justify-between shadow-sm
+     {% if type == 'error' %}bg-red-50 text-red-700 border-red-200
+     {% elif type == 'success' %}bg-green-50 text-green-700 border-green-200
+     {% elif type == 'warning' %}bg-amber-50 text-amber-700 border-amber-200
+     {% else %}bg-blue-50 text-blue-700 border-blue-200{% endif %} {{ extra_classes }}">
+    <div class="flex items-center gap-3">
+        <span>{{ message }}</span>
+    </div>
+</div>

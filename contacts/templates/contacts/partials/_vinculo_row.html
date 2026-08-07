@@ -1,0 +1,10 @@
+<div class="p-3 bg-white rounded-lg border border-gray-200 text-xs flex justify-between items-center">
+    <div>
+        <span class="font-bold text-gray-900">{{ vinculo.pessoa_fisica.nome_razao_social }}</span>
+        <span class="text-gray-500">@ {{ vinculo.pessoa_juridica.nome_razao_social }}</span>
+        <p class="text-indigo-600 font-semibold mt-0.5">{{ vinculo.get_tipo_vinculo_display }} {% if vinculo.cargo %}- {{ vinculo.cargo }}{% endif %}</p>
+    </div>
+    {% if vinculo.pode_assinar %}
+        {% include 'components/_badge.html' with text="Pode Assinar" variant="success" %}
+    {% endif %}
+</div>

@@ -1,0 +1,27 @@
+<div id="pessoa-juridica-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+    <div>
+        <label class="block text-xs font-semibold text-gray-700 uppercase">Inscrição Estadual</label>
+        <input type="text" name="inscricao_estadual" value="{{ pj.inscricao_estadual|default:'' }}" placeholder="Isento se não houver" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-gray-700 uppercase">Inscrição Municipal</label>
+        <input type="text" name="inscricao_municipal" value="{{ pj.inscricao_municipal|default:'' }}" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-gray-700 uppercase">Regime Tributário</label>
+        <select name="regime_tributario" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+            <option value="SIMPLES_NACIONAL">Simples Nacional</option>
+            <option value="LUCRO_PRESUMIDO">Lucro Presumido</option>
+            <option value="LUCRO_REAL">Lucro Real</option>
+            <option value="MEI">MEI</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-gray-700 uppercase">Situação Cadastral</label>
+        <select name="situacao_cadastral" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+            <option value="ATIVA">Ativa</option>
+            <option value="BAIXADA">Baixada</option>
+            <option value="SUSPENSA">Suspensa</option>
+        </select>
+    </div>
+</div>

@@ -1,0 +1,9 @@
+<div class="p-3 bg-white rounded-lg border border-gray-200 text-xs flex justify-between items-center">
+    <div>
+        <p class="font-bold text-gray-900">{{ endereco.logradouro }}, {{ endereco.numero|default:"s/n" }}</p>
+        <p class="text-gray-500">{{ endereco.bairro }} - {{ endereco.municipio }}/{{ endereco.uf }} ({{ endereco.cep }})</p>
+    </div>
+    {% if principal %}
+        {% include 'components/_badge.html' with text="Principal" variant="success" %}
+    {% endif %}
+</div>

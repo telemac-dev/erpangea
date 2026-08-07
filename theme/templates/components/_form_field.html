@@ -1,0 +1,18 @@
+{% comment %}
+Componente Reutilizável: Form Field Input (Tailwind CSS)
+Uso: {% include 'components/_form_field.html' with field=form.name label="Nome" required=True %}
+{% endcomment %}
+<div>
+    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+        {{ label }}{% if required %}<span class="text-red-500 ml-0.5">*</span>{% endif %}
+    </label>
+    <div class="mt-1">
+        {{ field }}
+    </div>
+    {% if field.errors %}
+        <p class="mt-1 text-xs text-red-600 font-semibold">{{ field.errors.0 }}</p>
+    {% endif %}
+    {% if help_text %}
+        <p class="mt-1 text-xs text-gray-500">{{ help_text }}</p>
+    {% endif %}
+</div>
