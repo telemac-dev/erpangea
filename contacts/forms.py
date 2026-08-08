@@ -8,17 +8,30 @@ from .models import (
 from .utils import validate_cpf, validate_cnpj, format_cpf, format_cnpj, format_cep
 from .services import add_endereco, add_telefone, add_email, set_contact_roles, create_vinculo
 
+class PersonTypeField(forms.ChoiceField):
+    def to_python(self, value):
+        val = super().to_python(value)
+        if val == 'PJ':
+            return TipoPessoaChoices.JURIDICA
+        if val == 'PF':
+            return TipoPessoaChoices.FISICA
+        return val
+
+    def valid_value(self, value):
+        if value in ['PJ', 'PF', TipoPessoaChoices.JURIDICA, TipoPessoaChoices.FISICA]:
+            return True
+        return super().valid_value(value)
+
+
 class ContactForm(forms.ModelForm):
     # Odoo Header Fields
     name = forms.CharField(label="Nome ou Razão Social", max_length=255)
     trade_name = forms.CharField(label="Nome Fantasia", max_length=255, required=False)
-    person_type = forms.ChoiceField(
+    person_type = PersonTypeField(
         label="Tipo de Pessoa",
         choices=[
             (TipoPessoaChoices.JURIDICA, 'Empresa (Pessoa Jurídica)'),
             (TipoPessoaChoices.FISICA, 'Individual (Pessoa Física)'),
-            ('PJ', 'Empresa (Pessoa Jurídica)'),
-            ('PF', 'Individual (Pessoa Física)'),
         ],
         initial=TipoPessoaChoices.JURIDICA,
         widget=forms.RadioSelect
