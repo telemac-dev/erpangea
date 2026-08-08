@@ -58,7 +58,7 @@ class ContactForm(forms.ModelForm):
     state = forms.CharField(label="UF", max_length=2, required=False)
     
     roles = forms.ModelMultipleChoiceField(
-        queryset=TipoContato.objects.all(),
+        queryset=TipoContato.objects.exclude(codigo__in=['PRESTADOR_SERVICO', 'TOMADOR_SERVICO']),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label="Etiquetas / Papéis do Contato"

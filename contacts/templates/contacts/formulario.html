@@ -132,14 +132,18 @@
             {% include 'contacts/partials/address_fields.html' with zip_code=form.zip_code.value address=form.address.value city=form.city.value state=form.state.value %}
 
             <!-- Tags / Roles -->
+            <!-- Tags / Roles (Odoo-Style Tag Chips Grid) -->
             <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Etiquetas / Papéis do
-                    Contato</label>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
+                    Etiquetas / Papéis do Contato
+                </label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
                     {% for choice in form.roles %}
-                    <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
+                    <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-white hover:bg-indigo-50/50 hover:border-indigo-300 cursor-pointer transition-all shadow-2xs group">
                         {{ choice.tag }}
-                        <span>{{ choice.choice_label }}</span>
+                        <span class="text-xs font-bold text-slate-700 group-hover:text-indigo-700 select-none">
+                            {{ choice.choice_label }}
+                        </span>
                     </label>
                     {% endfor %}
                 </div>
