@@ -166,6 +166,13 @@ class Contato(models.Model):
         if end_obj:
             return end_obj.endereco.formatted_cep
         return ""
+    @property
+    def todos_vinculos(self):
+        """Retorna todos os vínculos ativos (como PF ou PJ) para exibição na aba Equipe."""
+        from .models import VinculoContato
+        if self.tipo_pessoa == TipoPessoaChoices.JURIDICA:
+            return self.vinculos_como_pj.filter(ativo=True)
+        return self.vinculos_como_pf.filter(ativo=True)
 
     @property
     def roles(self):

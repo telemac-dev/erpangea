@@ -1,15 +1,26 @@
-<!-- Member Cards Grid -->
+<!-- Member / Company Cards Grid -->
 {% for vinculo in vinculos %}
 <div class="p-4 bg-white rounded-xl border border-gray-200 shadow-sm flex items-start justify-between gap-3 hover:border-indigo-300 transition-all">
     <div class="flex items-start gap-3">
         <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-100 flex-shrink-0">
-            {{ vinculo.pessoa_fisica.nome_razao_social|slice:":2"|upper }}
+            {% if person_type == 'FISICA' %}
+                {{ vinculo.pessoa_juridica.nome_razao_social|slice:":2"|upper }}
+            {% else %}
+                {{ vinculo.pessoa_fisica.nome_razao_social|slice:":2"|upper }}
+            {% endif %}
         </div>
         <div>
-            <h4 class="font-bold text-gray-900 text-sm">{{ vinculo.pessoa_fisica.nome_razao_social }}</h4>
-            <p class="text-xs text-indigo-600 font-semibold mt-0.5">{{ vinculo.cargo|default:vinculo.get_tipo_vinculo_display }}</p>
-            <p class="text-[11px] text-gray-500 mt-1">{{ vinculo.email_corporativo|default:vinculo.pessoa_fisica.email }}</p>
-            <p class="text-[11px] text-gray-500">{{ vinculo.telefone_corporativo|default:vinculo.pessoa_fisica.phone }}</p>
+            {% if person_type == 'FISICA' %}
+                <h4 class="font-bold text-gray-900 text-sm">{{ vinculo.pessoa_juridica.nome_razao_social }}</h4>
+                <p class="text-xs text-indigo-600 font-semibold mt-0.5">{{ vinculo.cargo|default:vinculo.get_tipo_vinculo_display }}</p>
+                <p class="text-[11px] text-gray-500 mt-1">{{ vinculo.email_corporativo|default:vinculo.pessoa_juridica.email }}</p>
+                <p class="text-[11px] text-gray-500">{{ vinculo.telefone_corporativo|default:vinculo.pessoa_juridica.phone }}</p>
+            {% else %}
+                <h4 class="font-bold text-gray-900 text-sm">{{ vinculo.pessoa_fisica.nome_razao_social }}</h4>
+                <p class="text-xs text-indigo-600 font-semibold mt-0.5">{{ vinculo.cargo|default:vinculo.get_tipo_vinculo_display }}</p>
+                <p class="text-[11px] text-gray-500 mt-1">{{ vinculo.email_corporativo|default:vinculo.pessoa_fisica.email }}</p>
+                <p class="text-[11px] text-gray-500">{{ vinculo.telefone_corporativo|default:vinculo.pessoa_fisica.phone }}</p>
+            {% endif %}
         </div>
     </div>
     {% if vinculo.pode_assinar %}
