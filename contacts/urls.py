@@ -9,4 +9,5 @@ urlpatterns = [
     path('<uuid:pk>/excluir/', views.contact_delete, name='contact_delete'),
     path('format-document-hx/', views.format_document_hx, name='format_document_hx'),
     path('lookup-cep-hx/', views.lookup_cep_hx, name='lookup_cep_hx'),
+    path('related-company-hx/', views.related_company_hx, name='related_company_hx'),
 ]

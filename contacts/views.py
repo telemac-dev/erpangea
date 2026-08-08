@@ -193,3 +193,13 @@ def lookup_cep_hx(request):
         'error_msg': error_msg,
     }
     return render(request, 'contacts/partials/address_fields.html', context)
+@login_required
+def related_company_hx(request):
+    """HTMX endpoint para exibir ou ocultar o campo de Empresa Relacionada dinamicamente ao alterar o Tipo de Pessoa."""
+    person_type = request.POST.get('person_type') or request.GET.get('person_type') or TipoPessoaChoices.JURIDICA
+    form = ContactForm(initial={'person_type': person_type})
+    context = {
+        'form': form,
+        'person_type': person_type,
+    }
+    return render(request, 'contacts/partials/_related_company_field.html', context)

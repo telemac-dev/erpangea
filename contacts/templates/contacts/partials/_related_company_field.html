@@ -1,0 +1,38 @@
+<div id="related-company-container" class="transition-all duration-200">
+    {% if person_type == 'FISICA' or person_type == 'PF' %}
+    <div class="p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-4 my-2">
+        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-900">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            <span>Vínculo com Empresa Relacionada (Estilo Odoo)</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2">
+                <label for="{{ form.parent_company.id_for_label }}" class="block text-xs font-semibold text-gray-700 uppercase">
+                    Empresa Relacionada / Contratante
+                </label>
+                <select name="{{ form.parent_company.html_name }}" id="{{ form.parent_company.id_for_label }}"
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                    <option value="">Selecione uma empresa cadastrada...</option>
+                    {% for choice_val, choice_label in form.fields.parent_company.choices %}
+                        {% if choice_val %}
+                        <option value="{{ choice_val }}" {% if form.parent_company.value|slugify == choice_val|slugify %}selected{% endif %}>{{ choice_label }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="{{ form.cargo_vinculo.id_for_label }}" class="block text-xs font-semibold text-gray-700 uppercase">
+                    Cargo / Função
+                </label>
+                <input type="text" name="{{ form.cargo_vinculo.html_name }}" id="{{ form.cargo_vinculo.id_for_label }}"
+                       value="{{ form.cargo_vinculo.value|default:'' }}" placeholder="Ex: Diretor de Obras"
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>

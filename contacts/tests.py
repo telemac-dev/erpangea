@@ -103,6 +103,13 @@ class ContactsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '111.444.777-35')
         self.assertTemplateUsed(response, 'contacts/partials/document_field.html')
+    def test_htmx_related_company_on_type_change(self):
+        response = self.client.post(reverse('related_company_hx'), {
+            'person_type': 'PF',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Empresa Relacionada / Contratante')
+        self.assertTemplateUsed(response, 'contacts/partials/_related_company_field.html')
 
     @patch('urllib.request.urlopen')
     def test_htmx_lookup_cep_success(self, mock_urlopen):

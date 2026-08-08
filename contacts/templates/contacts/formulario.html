@@ -25,7 +25,11 @@
             <!-- Type Radio Selector (Individual vs Company) -->
             <div class="flex items-center gap-6 pb-4 border-b border-gray-100">
                 <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Tipo de Contato:</span>
-                <div class="flex items-center gap-4 text-sm font-medium">
+                <div class="flex items-center gap-4 text-sm font-medium"
+                     hx-post="{% url 'related_company_hx' %}"
+                     hx-trigger="change from:[name='person_type']"
+                     hx-target="#related-company-container"
+                     hx-swap="outerHTML">
                     {% for choice in form.person_type %}
                     <label class="inline-flex items-center gap-2 cursor-pointer font-semibold text-gray-800">
                         {{ choice.tag }}
@@ -34,6 +38,9 @@
                     {% endfor %}
                 </div>
             </div>
+
+            <!-- Dynamic Related Company Field (HTMX) -->
+            {% include 'contacts/partials/_related_company_field.html' with person_type=form.person_type.value %}
 
             <!-- Main Name & Tax ID Header Grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">

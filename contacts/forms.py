@@ -2,10 +2,11 @@ import re
 from django import forms
 from .models import (
     Contato, TipoPessoaChoices, TipoContato, PessoaFisica, PessoaJuridica,
-    ContatoComercial, RegimeTributarioChoices, IndicadorInscricaoEstadualChoices, Interaction
+    ContatoComercial, RegimeTributarioChoices, IndicadorInscricaoEstadualChoices,
+    TipoVinculoChoices, VinculoContato, Interaction
 )
 from .utils import validate_cpf, validate_cnpj, format_cpf, format_cnpj, format_cep
-from .services import add_endereco, add_telefone, add_email, set_contact_roles
+from .services import add_endereco, add_telefone, add_email, set_contact_roles, create_vinculo
 
 class ContactForm(forms.ModelForm):
     # Odoo Header Fields
@@ -22,6 +23,16 @@ class ContactForm(forms.ModelForm):
         initial=TipoPessoaChoices.JURIDICA,
         widget=forms.RadioSelect
     )
+
+    # Odoo Company Link (Vínculo com Empresa Relacionada quando for Pessoa Física)
+    parent_company = forms.ModelChoiceField(
+        queryset=Contato.objects.filter(tipo_pessoa=TipoPessoaChoices.JURIDICA, deleted_at__isnull=True),
+        required=False,
+        label="Empresa Relacionada / Contratante"
+    )
+    cargo_vinculo = forms.CharField(label="Cargo / Função na Empresa", max_length=100, required=False)
+    tipo_vinculo = forms.ChoiceField(label="Tipo de Vínculo", choices=TipoVinculoChoices.choices, required=False, initial=TipoVinculoChoices.CONTATO_COMERCIAL)
+
     document = forms.CharField(label="CPF ou CNPJ", max_length=20, required=False)
     email = forms.EmailField(label="E-mail", required=False)
     phone = forms.CharField(label="Telefone / Fixos", max_length=30, required=False)
@@ -78,6 +89,13 @@ class ContactForm(forms.ModelForm):
             self.fields['city'].initial = self.instance.city
             self.fields['state'].initial = self.instance.state
             self.fields['roles'].initial = self.instance.roles
+
+            if self.instance.tipo_pessoa == TipoPessoaChoices.FISICA:
+                v = self.instance.vinculos_como_pf.filter(ativo=True).first()
+                if v:
+                    self.fields['parent_company'].initial = v.pessoa_juridica
+                    self.fields['cargo_vinculo'].initial = v.cargo
+                    self.fields['tipo_vinculo'].initial = v.tipo_vinculo
 
             if hasattr(self.instance, 'pessoa_fisica') and self.instance.pessoa_fisica:
                 pf = self.instance.pessoa_fisica
@@ -179,6 +197,13 @@ class ContactForm(forms.ModelForm):
                 pf.conselho_profissional = self.cleaned_data.get('conselho_profissional', '')
                 pf.registro_profissional = self.cleaned_data.get('registro_profissional', '')
                 pf.save()
+
+                # Handle Parent Company Link (Vínculo com PJ)
+                parent_comp = self.cleaned_data.get('parent_company')
+                if parent_comp:
+                    cargo = self.cleaned_data.get('cargo_vinculo', '')
+                    t_vinc = self.cleaned_data.get('tipo_vinculo', TipoVinculoChoices.CONTATO_COMERCIAL)
+                    create_vinculo(pf_contato=contato, pj_contato=parent_comp, cargo=cargo, tipo_vinculo=t_vinc)
             else:
                 pj, _ = PessoaJuridica.objects.get_or_create(contato=contato)
                 pj.razao_social = contato.nome_razao_social
