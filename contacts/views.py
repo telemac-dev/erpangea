@@ -146,6 +146,7 @@ def format_document_hx(request):
 
     context = {
         'value': formatted_value,
+        'person_type': person_type,
         'error_msg': error_msg,
     }
     return render(request, 'contacts/partials/document_field.html', context)
@@ -203,3 +204,50 @@ def related_company_hx(request):
         'person_type': person_type,
     }
     return render(request, 'contacts/partials/_related_company_field.html', context)
+@login_required
+def add_vinculo_modal_hx(request):
+    """HTMX endpoint para exibir modal e cadastrar vinculo de membro da equipe."""
+    contact_id = request.GET.get('contact_id') or request.POST.get('contact_id')
+    
+    if request.method == 'POST':
+        nome_membro = request.POST.get('nome_membro', '')
+        cpf_membro = request.POST.get('cpf_membro', '')
+        cargo = request.POST.get('cargo', '')
+        email_membro = request.POST.get('email_membro', '')
+        telefone_membro = request.POST.get('telefone_membro', '')
+        tipo_vinculo = request.POST.get('tipo_vinculo', 'CONTATO_COMERCIAL')
+
+        if nome_membro:
+            pf_contato = create_pf_contact(
+                nome_completo=nome_membro,
+                cpf=cpf_membro,
+                email=email_membro,
+                telefone=telefone_membro,
+                user=request.user
+            )
+            
+            if contact_id:
+                pj_contato = get_object_or_404(Contato, pk=contact_id)
+                create_vinculo(
+                    pf_contato=pf_contato,
+                    pj_contato=pj_contato,
+                    cargo=cargo,
+                    tipo_vinculo=tipo_vinculo,
+                    email_corporativo=email_membro,
+                    telefone_corporativo=telefone_membro
+                )
+                messages.success(request, f'Membro "{nome_membro}" adicionado com sucesso!')
+
+        vinculos = []
+        if contact_id:
+            pj_contato = get_object_or_404(Contato, pk=contact_id)
+            vinculos = pj_contato.vinculos_como_pj.filter(ativo=True)
+            
+        return render(request, 'contacts/partials/_vinculos_grid.html', {
+            'vinculos': vinculos,
+            'contact_id': contact_id,
+        })
+
+    return render(request, 'contacts/partials/_vinculo_modal_form.html', {
+        'contact_id': contact_id,
+    })

@@ -1,0 +1,91 @@
+{% load formatters %}
+<div x-data="{ open: true }" x-show="open" id="vinculo-modal-container" class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div x-show="open" x-transition.opacity class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="open = false"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div x-show="open" x-transition.scale
+             class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-xl shadow-xl sm:my-8 sm:align-middle sm:max-w-xl sm:w-full sm:p-6 border border-gray-200">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                    </svg>
+                    <span>Adicionar Membro / Vínculo (Equipe)</span>
+                </h3>
+                <button type="button" @click="open = false" class="text-gray-400 hover:text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form method="post" action="{% url 'add_vinculo_modal_hx' %}"
+                  hx-post="{% url 'add_vinculo_modal_hx' %}"
+                  hx-target="#vinculos-cards-grid"
+                  hx-swap="innerHTML"
+                  @submit="open = false"
+                  class="mt-4 space-y-4 text-xs">
+                {% csrf_token %}
+                {% if contact_id %}
+                    <input type="hidden" name="contact_id" value="{{ contact_id }}">
+                {% endif %}
+
+                <div>
+                    <label class="block font-semibold text-gray-700 uppercase">Nome do Membro / Pessoa Física *</label>
+                    <input type="text" name="nome_membro" required placeholder="Ex: Carlos Silva"
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-gray-700 uppercase">CPF</label>
+                        <input type="text" name="cpf_membro" placeholder="111.444.777-35"
+                               class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 uppercase">Cargo / Função</label>
+                        <input type="text" name="cargo" placeholder="Ex: Gerente de Obras"
+                               class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-gray-700 uppercase">E-mail Corporativo</label>
+                        <input type="email" name="email_membro" placeholder="membro@empresa.com.br"
+                               class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 uppercase">Telefone / Ramal</label>
+                        <input type="text" name="telefone_membro" placeholder="(11) 99999-8888"
+                               class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-gray-700 uppercase">Tipo de Vínculo</label>
+                    <select name="tipo_vinculo" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none">
+                        <option value="CONTATO_COMERCIAL">Contato Comercial</option>
+                        <option value="ADMINISTRADOR">Administrador</option>
+                        <option value="SOCIO">Sócio</option>
+                        <option value="RESPONSAVEL_LEGAL">Responsável Legal</option>
+                        <option value="CONTATO_FINANCEIRO">Contato Financeiro</option>
+                        <option value="CONTATO_OPERACIONAL">Contato Operacional</option>
+                    </select>
+                </div>
+
+                <div class="pt-3 border-t border-gray-100 flex justify-end gap-3">
+                    <button type="button" @click="open = false" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm">
+                        Adicionar Membro
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>

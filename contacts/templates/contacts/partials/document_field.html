@@ -1,16 +1,22 @@
 <div id="document-field-container">
-    <label for="id_document" class="block text-sm font-medium text-gray-700">
-        CPF ou CNPJ
+    <label for="id_document" class="block text-xs font-bold uppercase tracking-wider text-gray-600">
+        {% if person_type == 'FISICA' or person_type == 'PF' %}
+            CPF
+        {% elif person_type == 'JURIDICA' or person_type == 'PJ' %}
+            CNPJ
+        {% else %}
+            CPF / CNPJ
+        {% endif %}
     </label>
     <input type="text" name="document" id="id_document"
            value="{{ value|default:'' }}"
-           placeholder="Apenas números ou formatado"
+           placeholder="{% if person_type == 'FISICA' or person_type == 'PF' %}123.456.789-00{% else %}12.345.678/0001-12{% endif %}"
            hx-post="{% url 'format_document_hx' %}"
            hx-trigger="blur"
            hx-target="#document-field-container"
            hx-swap="outerHTML"
-           hx-include="#id_person_type"
-           class="mt-1 block w-full px-3 py-2 bg-white border {% if error_msg %}border-red-500{% else %}border-gray-300{% endif %} rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+           hx-include="[name='person_type']"
+           class="mt-1 block w-full px-3 py-2 bg-gray-50 border {% if error_msg %}border-red-500{% else %}border-gray-300{% endif %} rounded-lg text-sm focus:outline-none focus:border-indigo-500 font-bold">
     {% if error_msg %}
         <p class="mt-1 text-xs text-red-600 font-semibold">{{ error_msg }}</p>
     {% endif %}
