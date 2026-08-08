@@ -44,7 +44,8 @@
                     {% endfor %}
                 </div>
             </div>
-
+            <!-- Dynamic Related Company Field (HTMX) -->
+            {% include 'contacts/partials/_related_company_field.html' with person_type=form.person_type.value %}
             <!-- Main Name & Tax ID Header Grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
@@ -76,12 +77,11 @@
                                        placeholder="Nome Fantasia (Opcional)"
                                        class="w-full text-sm font-medium text-gray-700 border-0 border-b border-gray-200 focus:border-indigo-500 focus:ring-0 px-0 py-1">
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- Requisito 3: Vínculo com Empresa Relacionada entre Apelido e CPF -->
-                            {% include 'contacts/partials/_related_company_field.html' with person_type=form.person_type.value %}
-
-                            <!-- Requisito 4: Rótulo CPF/CNPJ e Validação Assíncrona no Blur -->
-                            {% include 'contacts/partials/document_field.html' with value=form.document.value person_type=form.person_type.value error_msg=form.document.errors.0 %}
+                    <!-- Requisito 4: Rótulo CPF/CNPJ e Validação Assíncrona no Blur -->
+                    {% include 'contacts/partials/document_field.html' with value=form.document.value person_type=form.person_type.value error_msg=form.document.errors.0 %}
                 </div>
 
                 <!-- Channels Column -->
