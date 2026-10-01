@@ -44,6 +44,15 @@
             flex: 1;
             padding: 28px 36px;
         }
+        .toggle-password-visibility {
+            cursor: pointer;
+            z-index: 4;
+            border-color: #cbd5e1;
+        }
+        .toggle-password-visibility:hover {
+            background-color: #f8fafc !important;
+            border-color: #cbd5e1;
+        }
         .card-custom {
             border: 1px solid #e2e8f0;
             border-radius: 10px;
@@ -241,6 +250,35 @@
     <script>
         document.body.addEventListener('htmx:configRequest', (event) => {
             event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+        });
+
+        // Alternador Universal de Visibilidade de Senhas (Icone Olho)
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.toggle-password-visibility');
+            if (!btn) return;
+            
+            const group = btn.closest('.input-group');
+            if (!group) return;
+            
+            const input = group.querySelector('input');
+            if (!input) return;
+            
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                }
+                btn.setAttribute('title', 'Ocultar senha');
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+                btn.setAttribute('title', 'Visualizar senha');
+            }
         });
     </script>
 </body>

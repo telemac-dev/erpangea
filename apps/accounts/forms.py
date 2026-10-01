@@ -1,6 +1,11 @@
 import re
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordChangeForm,
+    PasswordResetForm,
+    SetPasswordForm
+)
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from .models import User, UserProfile
@@ -10,7 +15,7 @@ class UserAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(
         label=_("E-mail Corporativo"),
         widget=forms.EmailInput(attrs={
-            'class': 'form-control form-control-lg',
+            'class': 'form-control form-control-lg border-start-0',
             'placeholder': 'nome@pangea.com.br',
             'autofocus': True
         })
@@ -19,7 +24,7 @@ class UserAuthenticationForm(AuthenticationForm):
         label=_("Senha de Acesso"),
         strip=False,
         widget=forms.PasswordInput(attrs={
-            'class': 'form-control form-control-lg',
+            'class': 'form-control form-control-lg border-start-0 border-end-0',
             'placeholder': '••••••••'
         })
     )
@@ -120,14 +125,12 @@ class UserProfileForm(forms.ModelForm):
             user.save(update_fields=['first_name', 'last_name'])
         return profile
 
-from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm, SetPasswordForm
-
 class UserPasswordChangeForm(PasswordChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             field.widget.attrs.update({
-                'class': 'form-control',
+                'class': 'form-control border-start-0 border-end-0',
                 'placeholder': '••••••••'
             })
         self.fields['old_password'].label = _("Senha Atual")
@@ -149,7 +152,7 @@ class UserSetPasswordForm(SetPasswordForm):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             field.widget.attrs.update({
-                'class': 'form-control form-control-lg',
+                'class': 'form-control form-control-lg border-start-0 border-end-0',
                 'placeholder': '••••••••'
             })
         self.fields['new_password1'].label = _("Nova Senha")
