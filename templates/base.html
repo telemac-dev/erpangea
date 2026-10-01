@@ -92,28 +92,121 @@
         <!-- Main Body -->
         <div class="flex-grow-1 d-flex flex-column">
             <!-- Navbar -->
-            <header class="navbar navbar-expand bg-white border-bottom px-4 py-2 justify-content-between">
-                <div class="d-flex align-items-center">
-                    <span class="text-muted small">Pangea Engenharia Ltda.</span>
+            <header class="navbar navbar-expand bg-white border-bottom px-4 py-2 justify-content-between shadow-sm" style="min-height: 64px;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-secondary small fw-bold text-uppercase tracking-wider">Pangea Engenharia</span>
+                    <span class="text-muted opacity-50 d-none d-md-inline">&bull;</span>
+                    <span class="text-muted small d-none d-md-inline">Sistema Integrado de Gestão</span>
                 </div>
+
                 <div class="d-flex align-items-center gap-3">
+                    <!-- Setor Corporativo e Nivel Hierarquico -->
                     {% with primary=request.user.get_primary_assignment %}
                         {% if primary %}
-                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1" title="Atribuição Principal">
-                                <i class="bi bi-shield-check me-1"></i> {{ primary.get_sector_display }} &bull; {{ primary.get_level_display }}
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1.5 fs-7 d-flex align-items-center gap-1" title="Setor Principal e Alçada">
+                                    <i class="bi bi-shield-check"></i>
+                                    <span>{{ primary.get_sector_display }}</span>
+                                    <span class="text-muted opacity-50">|</span>
+                                    <strong>{{ primary.get_level_display }}</strong>
+                                </span>
                                 {% if request.user.sector_assignments.count > 1 %}
-                                    <span class="badge bg-secondary ms-1" title="Setores adicionais acumulados">+{{ request.user.sector_assignments.count|add:"-1" }}</span>
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1.5 py-1.5" style="font-size: 0.7rem;" title="{{ request.user.sector_assignments.count }} setores acumulados">
+                                        +{{ request.user.sector_assignments.count|add:"-1" }}
+                                    </span>
                                 {% endif %}
-                            </span>
+                            </div>
                         {% endif %}
                     {% endwith %}
-                    <span class="small fw-semibold text-dark">{{ request.user.email }}</span>
-                    <form method="post" action="{% url 'accounts:logout' %}" class="m-0">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Encerrar Sessão">
-                            <i class="bi bi-box-arrow-right"></i>
+
+                    <div class="vr my-2 text-secondary opacity-25"></div>
+
+                    <!-- Menu Dropdown do Usuario -->
+                    <div class="dropdown">
+                        <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 text-dark border-0 shadow-none dropdown-toggle" 
+                                type="button" 
+                                id="userMenuDropdown" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false">
+                            <!-- Foto / Avatar do Usuario -->
+                            {% if request.user.profile.avatar %}
+                                <img src="{{ request.user.profile.avatar.url }}" 
+                                     alt="{{ request.user.get_full_name }}" 
+                                     class="rounded-circle border shadow-sm" 
+                                     style="width: 38px; height: 38px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center border border-primary border-opacity-25 fw-bold" 
+                                     style="width: 38px; height: 38px; font-size: 0.9rem;">
+                                    {{ request.user.first_name|first|default:request.user.email|first|upper }}
+                                </div>
+                            {% endif %}
+
+                            <!-- Nome e Cargo/Email -->
+                            <div class="text-start d-none d-sm-block">
+                                <div class="fw-bold text-dark small mb-0 lh-sm">
+                                    {{ request.user.get_full_name|default:request.user.email }}
+                                </div>
+                                <div class="text-muted" style="font-size: 0.72rem;">
+                                    {{ request.user.profile.job_title|default:request.user.email }}
+                                </div>
+                            </div>
                         </button>
-                    </form>
+
+                        <!-- Dropdown Menu -->
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border mt-2 py-2" aria-labelledby="userMenuDropdown" style="min-width: 240px; border-radius: 8px;">
+                            <li class="px-3 py-2 border-bottom mb-1 bg-light bg-opacity-50">
+                                <div class="fw-bold text-dark small">{{ request.user.get_full_name }}</div>
+                                <div class="text-muted small text-truncate" style="font-size: 0.75rem;">{{ request.user.email }}</div>
+                                {% if request.user.profile.crea_number %}
+                                    <div class="badge bg-secondary bg-opacity-10 text-secondary border mt-1" style="font-size: 0.68rem;">
+                                        {{ request.user.profile.crea_number }}
+                                    </div>
+                                {% endif %}
+                            </li>
+
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2 small" href="{% url 'accounts:profile' %}">
+                                    <i class="bi bi-person-badge text-primary"></i>
+                                    <span>Meu Perfil & CREA</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2 small" href="{% url 'dashboard' %}">
+                                    <i class="bi bi-speedometer2 text-secondary"></i>
+                                    <span>Dashboard</span>
+                                </a>
+                            </li>
+
+                            {% if request.user.is_staff %}
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li class="dropdown-header small text-uppercase fw-bold text-muted" style="font-size: 0.65rem;">Governança</li>
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2 small" href="{% url 'accounts:admin_help' %}">
+                                    <i class="bi bi-journal-text text-secondary"></i>
+                                    <span>Manual de Governança</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2 small" href="/admin/" target="_blank">
+                                    <i class="bi bi-sliders text-secondary"></i>
+                                    <span>Painel Django Admin</span>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            <li><hr class="dropdown-divider my-1"></li>
+
+                            <li>
+                                <form method="post" action="{% url 'accounts:logout' %}" class="m-0 p-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item py-2 d-flex align-items-center gap-2 small text-danger">
+                                        <i class="bi bi-box-arrow-right"></i>
+                                        <span>Encerrar Sessão (Sair)</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </header>
 
