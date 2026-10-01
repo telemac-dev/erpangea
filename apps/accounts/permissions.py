@@ -1,24 +1,29 @@
 from functools import wraps
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.mixins import AccessMixin
+from .models import HierarchyLevel, SectorChoices
 
-def user_has_sector(user, allowed_sectors):
-    if not user.is_authenticated:
+def has_role(user, sector, min_level=HierarchyLevel.OPERACIONAL):
+    """
+    Avalia se o usuario autenticado possui o setor com nivel >= min_level.
+    """
+    if not user or not user.is_authenticated:
         return False
     if user.is_superuser:
         return True
-    profile = getattr(user, 'profile', None)
-    if profile and profile.sector in allowed_sectors:
-        return True
-    # Tambem verifica grupos Django caso pertença ao grupo correspondente
-    if user.groups.filter(name__in=allowed_sectors).exists():
-        return True
-    return False
+    return user.has_sector_permission(sector, min_level=min_level)
 
-def role_required(*allowed_sectors):
+def require_role(sector_or_rules, min_level=HierarchyLevel.OPERACIONAL):
     """
-    Decorator para views baseadas em funcao garantindo acesso por setor corporativo.
-    Exemplo: @role_required('TECNICO', 'TI')
+    Decorator para views garantindo autorizacao cumulativa hierarquica.
+    Suporta:
+      1) Setor unico com nivel minimo:
+         @require_role(SectorChoices.FINANCEIRO, min_level=HierarchyLevel.COORDENACAO)
+      2) Lista de combinacoes alternativas (OR logico):
+         @require_role([
+             (SectorChoices.FINANCEIRO, HierarchyLevel.COORDENACAO),
+             (SectorChoices.TI, HierarchyLevel.OPERACIONAL)
+         ])
     """
     def decorator(view_func):
         @wraps(view_func)
@@ -26,22 +31,56 @@ def role_required(*allowed_sectors):
             if not request.user.is_authenticated:
                 from django.contrib.auth.views import redirect_to_login
                 return redirect_to_login(request.get_full_path())
-            if not user_has_sector(request.user, allowed_sectors):
-                raise PermissionDenied("Acesso não autorizado para o setor corporativo do usuário.")
+            
+            authorized = False
+
+            if isinstance(sector_or_rules, (list, tuple)) and sector_or_rules and isinstance(sector_or_rules[0], (list, tuple)):
+                # Lista de regras (sector, min_level)
+                for sec, lvl in sector_or_rules:
+                    if has_role(request.user, sec, lvl):
+                        authorized = True
+                        break
+            else:
+                # Regra individual
+                sec = sector_or_rules
+                authorized = has_role(request.user, sec, min_level)
+
+            if not authorized:
+                raise PermissionDenied(
+                    "Acesso negado: seu perfil não possui a alçada ou setor corporativo necessário para esta operação."
+                )
             return view_func(request, *args, **kwargs)
         return _wrapped_view
     return decorator
 
 class RoleRequiredMixin(AccessMixin):
     """
-    Mixin para CBVs exigindo um ou mais setores corporativos.
-    Exemplo: allowed_sectors = ['FINANCEIRO', 'TI']
+    Mixin para CBVs com autorizacao cumulativa hierarquica.
+    Exemplo:
+        required_sector = SectorChoices.TECNICO
+        min_level = HierarchyLevel.COORDENACAO
     """
-    allowed_sectors = ()
+    required_sector = None
+    min_level = HierarchyLevel.OPERACIONAL
+    alternative_roles = None # Lista de tuplas [(sector, min_level), ...]
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if not user_has_sector(request.user, self.allowed_sectors):
-            raise PermissionDenied("Acesso não autorizado para o setor corporativo do usuário.")
+
+        authorized = False
+        if self.alternative_roles:
+            for sec, lvl in self.alternative_roles:
+                if has_role(request.user, sec, lvl):
+                    authorized = True
+                    break
+        elif self.required_sector:
+            authorized = has_role(request.user, self.required_sector, self.min_level)
+        elif request.user.is_superuser:
+            authorized = True
+
+        if not authorized:
+            raise PermissionDenied(
+                "Acesso negado: seu perfil não possui a alçada ou setor corporativo necessário para esta operação."
+            )
         return super().dispatch(request, *args, **kwargs)

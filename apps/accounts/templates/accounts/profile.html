@@ -8,9 +8,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="fw-bold mb-1 text-dark">
-            <i class="bi bi-person-badge text-primary me-2"></i>Perfil Profissional
+            <i class="bi bi-person-badge text-primary me-2"></i>Perfil Profissional & Alçadas
         </h3>
-        <p class="text-muted mb-0">Gestão de credenciais técnicas, habilitação no CREA e informações de contato.</p>
+        <p class="text-muted mb-0">Gestão de credenciais técnicas, habilitação no CREA e atribuições hierárquicas por setor.</p>
     </div>
 </div>
 
@@ -31,10 +31,16 @@
             <h5 class="fw-bold text-dark mb-1">{{ request.user.get_full_name }}</h5>
             <p class="text-muted small mb-2">{{ request.user.email }}</p>
 
-            <div class="mb-3">
-                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 fs-7">
-                    <i class="bi bi-shield-check me-1"></i> {{ profile.get_sector_display }}
-                </span>
+            <!-- Atribuicoes Setoriais (Multi-Setor) -->
+            <div class="mb-3 d-flex flex-wrap gap-1 justify-content-center">
+                {% for a in request.user.sector_assignments.all %}
+                    <span class="badge {% if a.is_primary %}bg-primary{% else %}bg-secondary{% endif %} bg-opacity-10 text-dark border px-2 py-1 small" style="font-size: 0.75rem;">
+                        <i class="bi bi-shield-check me-1"></i> {{ a.get_sector_display }}: <strong>{{ a.get_level_display }}</strong>
+                        {% if a.is_primary %}&bull; Principal{% endif %}
+                    </span>
+                {% empty %}
+                    <span class="badge bg-light text-muted border">Sem atribuição setorial</span>
+                {% endfor %}
             </div>
 
             <ul class="list-group list-group-flush text-start border-top pt-3 small">
@@ -64,7 +70,7 @@
 
             <div class="alert alert-light border small text-muted text-start mt-3 mb-0 p-2">
                 <i class="bi bi-info-circle text-primary me-1"></i>
-                Setores e alçadas de autorização são gerenciados pelo administrador de TI.
+                Setores e alçadas de autorização são gerenciados pelo administrador de TI conforme a matriz RBAC.
             </div>
         </div>
     </div>
@@ -82,25 +88,64 @@
             <form method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
 
-                <!-- Secao 1: Credenciais Institucionais (Somente Leitura) -->
+                <!-- Secao 1: Identificacao Institucional & Setores Acumulados -->
                 <div class="mb-4">
                     <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
-                        <i class="bi bi-lock me-1"></i> 1. Identificação Institucional
+                        <i class="bi bi-diagram-3 me-1"></i> 1. Identificação Institucional & Alçadas Atribuídas
                     </h6>
-                    <div class="row g-3">
-                        <div class="col-md-6">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
                             <label class="form-label small fw-semibold text-muted">E-mail Corporativo (Login)</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-envelope"></i></span>
                                 <input type="text" class="form-control bg-light border-start-0" value="{{ request.user.email }}" disabled readonly>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Setor Corporativo (RBAC)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-diagram-3"></i></span>
-                                <input type="text" class="form-control bg-light border-start-0" value="{{ profile.get_sector_display }}" disabled readonly>
-                            </div>
+                    </div>
+
+                    <!-- Tabela de Setores Atribuidos -->
+                    <div class="card bg-light border-0 p-3">
+                        <div class="small fw-bold text-secondary mb-2">Setores e Níveis Hierárquicos Ativos (Governança RBAC):</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered bg-white mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr style="font-size: 0.8rem;">
+                                        <th>Setor Corporativo</th>
+                                        <th>Nível Hierárquico</th>
+                                        <th>Escopo de Autoridade</th>
+                                        <th>Condição</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="font-size: 0.82rem;">
+                                    {% for a in request.user.sector_assignments.all %}
+                                    <tr>
+                                        <td class="fw-semibold">
+                                            <i class="bi bi-check2-circle text-primary me-1"></i> {{ a.get_sector_display }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-dark bg-opacity-75">Nível {{ a.level }} - {{ a.get_level_display }}</span>
+                                        </td>
+                                        <td class="text-muted">
+                                            {% if a.level == 4 %}Alçada Total / Decisão e Homologação Final
+                                            {% elif a.level == 3 %}Coordenação / Liberação e Despacho
+                                            {% elif a.level == 2 %}Operacional / Execução Técnica e Cálculos
+                                            {% else %}Assistência / Consulta e Rascunhos{% endif %}
+                                        </td>
+                                        <td>
+                                            {% if a.is_primary %}
+                                                <span class="badge bg-primary text-white">Principal</span>
+                                            {% else %}
+                                                <span class="badge bg-light text-muted border">Acumulado</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-2">Nenhum setor atribuído.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -238,10 +283,8 @@
                 if (v.length > 11) v = v.slice(0, 11);
 
                 if (v.length > 10) {
-                    // Formato padrao celular brasileiro: (99) 9 9999-9999
                     e.target.value = `(${v.slice(0, 2)}) ${v.slice(2, 3)} ${v.slice(3, 7)}-${v.slice(7)}`;
                 } else if (v.length > 6) {
-                    // Formato padrao fixo: (99) 9999-9999
                     e.target.value = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
                 } else if (v.length > 2) {
                     e.target.value = `(${v.slice(0, 2)}) ${v.slice(2)}`;

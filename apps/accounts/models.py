@@ -36,6 +36,12 @@ class SectorChoices(models.TextChoices):
     FINANCEIRO = 'FINANCEIRO', _('Financeiro')
     TI = 'TI', _('TI / Infraestrutura')
 
+class HierarchyLevel(models.IntegerChoices):
+    ASSISTENTE = 1, _('Assistente / Estagiário')
+    OPERACIONAL = 2, _('Engenheiro / Analista')
+    COORDENACAO = 3, _('Coordenador / Gerente')
+    DIRETORIA = 4, _('Diretor / Sócio / RT')
+
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(_('endereço de e-mail'), unique=True, max_length=255, db_index=True)
@@ -84,19 +90,39 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.locked_until = timezone.now() + timezone.timedelta(minutes=lock_duration_minutes)
         self.save(update_fields=['failed_login_attempts', 'locked_until'])
 
+    def has_sector_permission(self, sector, min_level=HierarchyLevel.OPERACIONAL):
+        """
+        Avalia se o usuario possui atribuicao no setor com nivel igual ou superior ao exigido.
+        Superusuarios possuem acesso irrestrito.
+        """
+        if not self.is_active:
+            return False
+        if self.is_superuser:
+            return True
+        return self.sector_assignments.filter(
+            sector=sector,
+            level__gte=min_level
+        ).exists()
+
+    def get_primary_assignment(self):
+        """
+        Retorna a atribuicao marcada como primaria ou a de maior autoridade hierarquica.
+        """
+        primary = self.sector_assignments.filter(is_primary=True).first()
+        if primary:
+            return primary
+        return self.sector_assignments.order_by('-level').first()
+
+    def get_highest_level(self):
+        assignment = self.sector_assignments.order_by('-level').first()
+        return assignment.level if assignment else None
+
     def __str__(self):
         return self.email
 
 class UserProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    sector = models.CharField(
-        _('setor'),
-        max_length=25,
-        choices=SectorChoices.choices,
-        default=SectorChoices.TECNICO,
-        db_index=True
-    )
     phone = models.CharField(_('telefone'), max_length=20, blank=True)
     job_title = models.CharField(_('cargo'), max_length=100, blank=True)
     crea_number = models.CharField(
@@ -115,4 +141,45 @@ class UserProfile(models.Model):
         verbose_name_plural = _('perfis de usuários')
 
     def __str__(self):
-        return f"Perfil: {self.user.email} [{self.get_sector_display()}]"
+        primary = self.user.get_primary_assignment()
+        sector_str = f"[{primary.get_sector_display()} - {primary.get_level_display()}]" if primary else "[Sem Setor]"
+        return f"Perfil: {self.user.email} {sector_str}"
+
+class UserSectorAssignment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sector_assignments')
+    sector = models.CharField(
+        _('setor corporativo'),
+        max_length=25,
+        choices=SectorChoices.choices,
+        db_index=True
+    )
+    level = models.PositiveSmallIntegerField(
+        _('nível hierárquico'),
+        choices=HierarchyLevel.choices,
+        default=HierarchyLevel.OPERACIONAL,
+        db_index=True
+    )
+    is_primary = models.BooleanField(
+        _('setor principal'),
+        default=False,
+        help_text=_('Identifica o setor padrão para relatórios e exibição principal.')
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('atribuição de setor e alçada')
+        verbose_name_plural = _('atribuições de setores e alçadas')
+        unique_together = ('user', 'sector')
+        ordering = ['-level', 'sector']
+
+    def save(self, *args, **kwargs):
+        # Se for marcado como primario, desmarca os demais setores do usuario
+        if self.is_primary:
+            UserSectorAssignment.objects.filter(user=self.user, is_primary=True).exclude(pk=self.pk).update(is_primary=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        primary_badge = " (Principal)" if self.is_primary else ""
+        return f"{self.user.email} -> {self.get_sector_display()} [{self.get_level_display()}]{primary_badge}"
