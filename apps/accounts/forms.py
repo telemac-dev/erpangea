@@ -7,12 +7,19 @@ from .models import User, UserProfile
 class UserAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(
         label=_("E-mail Corporativo"),
-        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'nome@pangea.com.br', 'autofocus': True})
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': 'nome@pangea.com.br',
+            'autofocus': True
+        })
     )
     password = forms.CharField(
         label=_("Senha de Acesso"),
         strip=False,
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': '••••••••'})
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': '••••••••'
+        })
     )
 
     def clean(self):
@@ -28,12 +35,53 @@ class UserAuthenticationForm(AuthenticationForm):
         return super().clean()
 
 class UserProfileForm(forms.ModelForm):
-    first_name = forms.CharField(label=_("Primeiro Nome"), max_length=150, required=False)
-    last_name = forms.CharField(label=_("Sobrenome"), max_length=150, required=False)
+    first_name = forms.CharField(
+        label=_("Primeiro Nome"),
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ex: Carlos'
+        })
+    )
+    last_name = forms.CharField(
+        label=_("Sobrenome"),
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ex: Silva'
+        })
+    )
 
     class Meta:
         model = UserProfile
         fields = ['phone', 'job_title', 'crea_number', 'avatar']
+        widgets = {
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '(11) 98765-4321',
+                'maxlength': '20'
+            }),
+            'job_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: Engenheiro Geotécnico Sênior'
+            }),
+            'crea_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: CREA-SP 5061234567/D'
+            }),
+            'avatar': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+        }
+        labels = {
+            'phone': _('Telefone Corporativo'),
+            'job_title': _('Cargo / Especialidade'),
+            'crea_number': _('Registro CREA / UF'),
+            'avatar': _('Foto de Identificação'),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

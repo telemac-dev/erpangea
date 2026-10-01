@@ -1,76 +1,215 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
 
 {% block title %}Meu Perfil & CREA - ERPangea{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h3 class="fw-bold mb-1"><i class="bi bi-person-badge text-primary me-2"></i>Perfil Profissional</h3>
-        <p class="text-muted mb-0">Informações cadastrais, CREA e dados de identificação técnica.</p>
+        <h3 class="fw-bold mb-1 text-dark">
+            <i class="bi bi-person-badge text-primary me-2"></i>Perfil Profissional
+        </h3>
+        <p class="text-muted mb-0">Gestão de credenciais técnicas, habilitação no CREA e informações de contato.</p>
     </div>
 </div>
 
 <div class="row g-4">
-    <!-- Card Lateral de Resumo -->
+    <!-- Coluna Esquerda: Cartao de Identidade Corporativa -->
     <div class="col-lg-4">
-        <div class="card card-custom p-4 text-center">
-            <div class="mb-3">
+        <div class="card card-custom p-4 text-center sticky-top" style="top: 24px; z-index: 1;">
+            <div class="position-relative d-inline-block mx-auto mb-3">
                 {% if profile.avatar %}
-                    <img src="{{ profile.avatar.url }}" alt="Avatar" class="rounded-circle img-thumbnail shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">
+                    <img src="{{ profile.avatar.url }}" alt="Avatar" class="rounded-circle img-thumbnail shadow-sm" style="width: 130px; height: 130px; object-fit: cover;">
                 {% else %}
-                    <div class="d-inline-flex align-items-center justify-content-center bg-light text-secondary rounded-circle border" style="width: 120px; height: 120px;">
-                        <i class="bi bi-person fs-1"></i>
+                    <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle border border-primary border-opacity-25" style="width: 130px; height: 130px;">
+                        <i class="bi bi-person-workspace display-4"></i>
                     </div>
                 {% endif %}
             </div>
-            <h5 class="fw-bold mb-1">{{ request.user.get_full_name }}</h5>
+
+            <h5 class="fw-bold text-dark mb-1">{{ request.user.get_full_name }}</h5>
             <p class="text-muted small mb-2">{{ request.user.email }}</p>
-            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 mb-3">
-                {{ profile.get_sector_display }}
-            </span>
-            <div class="text-start border-top pt-3 small text-muted">
-                <div class="mb-1"><strong>Cargo:</strong> {{ profile.job_title|default:"Não informado" }}</div>
-                <div class="mb-1"><strong>CREA:</strong> {{ profile.crea_number|default:"Não registrado" }}</div>
-                <div><strong>Telefone:</strong> {{ profile.phone|default:"Não informado" }}</div>
+
+            <div class="mb-3">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 fs-7">
+                    <i class="bi bi-shield-check me-1"></i> {{ profile.get_sector_display }}
+                </span>
+            </div>
+
+            <ul class="list-group list-group-flush text-start border-top pt-3 small">
+                <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center bg-transparent border-0">
+                    <span class="text-muted"><i class="bi bi-briefcase me-2"></i>Cargo</span>
+                    <span class="fw-semibold text-dark">{{ profile.job_title|default:"Não informado" }}</span>
+                </li>
+                <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center bg-transparent border-0">
+                    <span class="text-muted"><i class="bi bi-award me-2"></i>CREA</span>
+                    <span class="fw-semibold text-dark">{{ profile.crea_number|default:"Não registrado" }}</span>
+                </li>
+                <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center bg-transparent border-0">
+                    <span class="text-muted"><i class="bi bi-telephone me-2"></i>Contato</span>
+                    <span class="fw-semibold text-dark">{{ profile.phone|default:"Não informado" }}</span>
+                </li>
+                <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center bg-transparent border-0">
+                    <span class="text-muted"><i class="bi bi-calendar-check me-2"></i>Membro desde</span>
+                    <span class="text-secondary">{{ request.user.date_joined|date:"d/m/Y" }}</span>
+                </li>
+            </ul>
+
+            <div class="alert alert-light border small text-muted text-start mt-3 mb-0 p-2">
+                <i class="bi bi-info-circle text-primary me-1"></i>
+                Setores e alçadas de autorização são gerenciados pelo administrador de TI.
             </div>
         </div>
     </div>
 
-    <!-- Form de Atualizacao -->
+    <!-- Coluna Direita: Formulario Estruturado de Edicao -->
     <div class="col-lg-8">
-        <div class="card card-custom p-4">
-            <h5 class="fw-bold mb-3 border-bottom pb-2">Editar Dados do Colaborador</h5>
-            <form method="post" enctype="multipart/form-data">
+        <div class="card card-custom p-4 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>Editar Dados do Colaborador
+                </h5>
+                <span class="badge bg-light text-muted border">Atualização Cadastral</span>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Primeiro Nome</label>
-                        {{ form.first_name }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Sobrenome</label>
-                        {{ form.last_name }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Telefone Corporativo</label>
-                        {{ form.phone }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Cargo / Função</label>
-                        {{ form.job_title }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Número do CREA (ex: CREA-SP 123456/D)</label>
-                        {{ form.crea_number }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Foto de Perfil (Avatar)</label>
-                        {{ form.avatar }}
+
+                <!-- Secao 1: Credenciais Institucionais (Somente Leitura) -->
+                <div class="mb-4">
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
+                        <i class="bi bi-lock me-1"></i> 1. Identificação Institucional
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">E-mail Corporativo (Login)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-envelope"></i></span>
+                                <input type="text" class="form-control bg-light border-start-0" value="{{ request.user.email }}" disabled readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Setor Corporativo (RBAC)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-diagram-3"></i></span>
+                                <input type="text" class="form-control bg-light border-start-0" value="{{ profile.get_sector_display }}" disabled readonly>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="mt-4 pt-3 border-top d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
+
+                <hr class="text-muted opacity-25 my-4">
+
+                <!-- Secao 2: Dados Pessoais -->
+                <div class="mb-4">
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
+                        <i class="bi bi-person me-1"></i> 2. Identificação Pessoal
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label small fw-semibold text-dark">
+                                Primeiro Nome
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-secondary border-end-0"><i class="bi bi-person"></i></span>
+                                {{ form.first_name }}
+                            </div>
+                            {% if form.first_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label small fw-semibold text-dark">
+                                Sobrenome
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-secondary border-end-0"><i class="bi bi-person-fill"></i></span>
+                                {{ form.last_name }}
+                            </div>
+                            {% if form.last_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="text-muted opacity-25 my-4">
+
+                <!-- Secao 3: Qualificacao Tecnica e Contato -->
+                <div class="mb-4">
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
+                        <i class="bi bi-cone-striped me-1"></i> 3. Habilitação Técnica & Comunicação
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.job_title.id_for_label }}" class="form-label small fw-semibold text-dark">
+                                {{ form.job_title.label }}
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-secondary border-end-0"><i class="bi bi-briefcase"></i></span>
+                                {{ form.job_title }}
+                            </div>
+                            <div class="form-text text-muted small" style="font-size: 0.75rem;">
+                                Ex: Engenheiro Geotécnico Sênior, Cadista, Coordenador
+                            </div>
+                            {% if form.job_title.errors %}
+                                <div class="text-danger small mt-1">{{ form.job_title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.crea_number.id_for_label }}" class="form-label small fw-semibold text-dark">
+                                {{ form.crea_number.label }}
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-secondary border-end-0"><i class="bi bi-award"></i></span>
+                                {{ form.crea_number }}
+                            </div>
+                            <div class="form-text text-muted small" style="font-size: 0.75rem;">
+                                Número do registro e UF para fins de homologação de ARTs.
+                            </div>
+                            {% if form.crea_number.errors %}
+                                <div class="text-danger small mt-1">{{ form.crea_number.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label small fw-semibold text-dark">
+                                {{ form.phone.label }}
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-secondary border-end-0"><i class="bi bi-telephone"></i></span>
+                                {{ form.phone }}
+                            </div>
+                            {% if form.phone.errors %}
+                                <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.avatar.id_for_label }}" class="form-label small fw-semibold text-dark">
+                                {{ form.avatar.label }}
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-secondary border-end-0"><i class="bi bi-image"></i></span>
+                                {{ form.avatar }}
+                            </div>
+                            <div class="form-text text-muted small" style="font-size: 0.75rem;">
+                                Formatos permitidos: JPG, PNG. Recomendado: 400x400 px.
+                            </div>
+                            {% if form.avatar.errors %}
+                                <div class="text-danger small mt-1">{{ form.avatar.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botoes de Acao -->
+                <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4 fw-semibold">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
                         <i class="bi bi-check2-circle me-1"></i> Salvar Alterações
                     </button>
                 </div>
