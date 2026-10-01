@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Visão Geral</h2>
+    <span class="text-muted"><i class="bi bi-calendar3"></i> Hoje, {% now "d \d\e F \d\e Y" %}</span>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="card card-stat bg-white h-100 p-3 border-start border-4 border-primary">
+            <div class="text-muted fw-bold small mb-2">PROJETOS ATIVOS</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 fw-bold">12</h3>
+                <i class="bi bi-kanban fs-2 text-primary opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat bg-white h-100 p-3 border-start border-4 border-warning">
+            <div class="text-muted fw-bold small mb-2">PROPOSTAS PENDENTES</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 fw-bold">5</h3>
+                <i class="bi bi-envelope-paper fs-2 text-warning opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat bg-white h-100 p-3 border-start border-4 border-success">
+            <div class="text-muted fw-bold small mb-2">FATURAMENTO (MÊS)</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 fw-bold text-success">R$ 145k</h3>
+                <i class="bi bi-cash-stack fs-2 text-success opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat bg-white h-100 p-3 border-start border-4 border-danger">
+            <div class="text-muted fw-bold small mb-2">CONTAS A PAGAR</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 fw-bold text-danger">R$ 28k</h3>
+                <i class="bi bi-graph-down-arrow fs-2 text-danger opacity-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card bg-white border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold text-secondary"><i class="bi bi-activity"></i> Últimas Atividades</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item p-3">
+                        <small class="text-muted float-end">Há 5 min</small>
+                        <strong>Administrativo</strong> anexou a ART aprovada no projeto <em>Muro Flexão BR-101</em>.
+                    </li>
+                    <li class="list-group-item p-3">
+                        <small class="text-muted float-end">Há 45 min</small>
+                        <strong>Comercial</strong> gerou o contrato <em>CTR-2026-0001</em>.
+                    </li>
+                    <li class="list-group-item p-3">
+                        <small class="text-muted float-end">Há 2 horas</small>
+                        <strong>Técnico</strong> enviou medição da OS-2026-0012 para aprovação do cliente.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-primary text-white border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <i class="bi bi-shield-check display-3 mb-3"></i>
+                <h5>Ambiente Seguro</h5>
+                <p class="small text-white-50">Auditoria imutável ativada. Suas ações estão sendo registradas no ActivityLog.</p>
+                <a href="/contacts/" class="btn btn-light mt-3 fw-bold text-primary w-100">Começar Operação</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

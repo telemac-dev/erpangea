@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Faturamento e NFS-e - ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-receipt me-2 text-primary"></i>Faturamento e Notas Fiscais (NFS-e)</h2>
+        <p class="text-muted mb-0">Emissão de NFS-e baseadas em medições aprovadas e geração de títulos a receber.</p>
+    </div>
+    <button class="btn btn-primary shadow-sm"
+            hx-get="{% url 'invoices:create_modal' %}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            data-bs-toggle="modal"
+            data-bs-target="#genericModal">
+        <i class="bi bi-plus-circle me-1"></i> Emitir NFS-e
+    </button>
+</div>
+
+<!-- Tabela de Notas Fiscais -->
+<div class="card border-0 shadow-sm mb-5">
+    <div class="card-header bg-white py-3 border-bottom">
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Notas Fiscais Emitidas</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">NFS-e #</th>
+                        <th>Cliente / Contrato</th>
+                        <th>Emissão</th>
+                        <th>Valor Bruto</th>
+                        <th>ISS</th>
+                        <th>Valor Líquido</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in invoices %}
+                    <tr>
+                        <td class="ps-4">
+                            <strong>{{ inv.numero_nfse }}</strong><br>
+                            <small class="text-muted">Cód: {{ inv.codigo_verificacao|default:"-" }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ inv.medicao.contrato.proposta.cliente }}</strong><br>
+                            <small class="text-muted">{{ inv.medicao.contrato.numero_contrato }} (Medição #{{ inv.medicao.numero_medicao }})</small>
+                        </td>
+                        <td>{{ inv.data_emissao|date:"d/m/Y" }}</td>
+                        <td>R$ {{ inv.valor_bruto }}</td>
+                        <td>{{ inv.aliquota_iss }}%</td>
+                        <td class="fw-bold text-success">R$ {{ inv.valor_liquido }}</td>
+                        <td>
+                            {% if inv.status == 'EMITIDA' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                    <i class="bi bi-send me-1"></i>Emitida
+                                </span>
+                            {% elif inv.status == 'PAGA' %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                    <i class="bi bi-check2-all me-1"></i>Paga
+                                </span>
+                            {% elif inv.status == 'CANCELADA' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
+                                    <i class="bi bi-x-circle me-1"></i>Cancelada
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ inv.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if inv.status != 'CANCELADA' %}
+                            <button class="btn btn-sm btn-outline-danger"
+                                    hx-post="{% url 'invoices:cancel' inv.id %}"
+                                    hx-confirm="Tem certeza que deseja cancelar esta NFS-e? As contas a receber associadas serão canceladas e a medição será estornada."
+                                    title="Cancelar NFS-e">
+                                <i class="bi bi-x-circle me-1"></i> Cancelar
+                            </button>
+                            {% else %}
+                            <span class="text-muted small">Estornada</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            <i class="bi bi-receipt-cutoff display-6 d-block mb-2 opacity-25"></i>
+                            Nenhuma NFS-e emitida até o momento.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Contas a Receber Geradas -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-cash-stack me-2 text-success"></i>Títulos a Receber (Gerados Automaticamente)</h5>
+        <span class="badge bg-light text-muted border">{{ receivables|length }} títulos</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Origem / NFS-e</th>
+                        <th>Parcela</th>
+                        <th>Data Vencimento</th>
+                        <th>Valor do Título</th>
+                        <th>Data Liquidação</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in receivables %}
+                    <tr>
+                        <td class="ps-4">
+                            <strong>NFS-e {{ rec.nota_fiscal.numero_nfse }}</strong><br>
+                            <small class="text-muted">{{ rec.nota_fiscal.medicao.contrato.proposta.cliente }}</small>
+                        </td>
+                        <td><span class="badge bg-secondary rounded-pill">Parcela #{{ rec.numero_parcela }}</span></td>
+                        <td>
+                            <i class="bi bi-calendar-event me-1 text-muted"></i>
+                            <strong>{{ rec.data_vencimento|date:"d/m/Y" }}</strong>
+                        </td>
+                        <td class="fw-bold text-dark">R$ {{ rec.valor_parcela }}</td>
+                        <td>{{ rec.data_recebimento|date:"d/m/Y"|default:"Pendente" }}</td>
+                        <td>
+                            {% if rec.status == 'LIQUIDADA' %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                    <i class="bi bi-check-circle me-1"></i>Liquidada
+                                </span>
+                            {% elif rec.status == 'A_VENCER' %}
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">
+                                    <i class="bi bi-clock me-1"></i>A Vencer
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
+                                    <i class="bi bi-exclamation-circle me-1"></i>Vencida
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="bi bi-cash display-6 d-block mb-2 opacity-25"></i>
+                            Nenhum título a receber em aberto.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

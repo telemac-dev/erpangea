@@ -1,0 +1,30 @@
+{% load crispy_forms_tags %}
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-receipt me-2 text-primary"></i>Emitir NFS-e</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form hx-post="{% url 'invoices:create_modal' %}" hx-target="#modal-container">
+    {% csrf_token %}
+    <div class="modal-body">
+        {% if error_msg %}
+        <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+            <div>
+                <strong>Erro de Validação:</strong><br>
+                {{ error_msg }}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="alert alert-light border small mb-3">
+            <i class="bi bi-info-circle me-1 text-primary"></i>
+            Ao emitir esta NFS-e, as parcelas financeiras serão geradas automaticamente no Contas a Receber respeitando a data de vencimento (30 dias).
+        </div>
+
+        {{ form|crispy }}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-send-check me-1"></i> Emitir NFS-e</button>
+    </div>
+</form>

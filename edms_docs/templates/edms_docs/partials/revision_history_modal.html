@@ -1,0 +1,66 @@
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-clock-history me-2 text-primary"></i>Histórico de Revisões</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body p-0">
+    <div class="p-3 bg-light border-bottom">
+        <h6 class="mb-0 fw-bold">{{ doc.codigo_identificador }} - {{ doc.titulo }}</h6>
+        <small class="text-muted">Projeto: {{ doc.projeto.nome_projeto }}</small>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Rev</th>
+                    <th>Status</th>
+                    <th>Enviado Por</th>
+                    <th>Data</th>
+                    <th>Notas</th>
+                    <th class="text-end pe-3">Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rev in revisions %}
+                <tr>
+                    <td class="ps-3"><span class="badge bg-dark">{{ rev.revisao }}</span></td>
+                    <td>
+                        {% if rev.status == 'APROVADO_CLIENTE' or rev.status == 'APROVADO_INTERNO' %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">{{ rev.get_status_display }}</span>
+                        {% else %}
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">{{ rev.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ rev.enviado_por.email }}</small></td>
+                    <td><small>{{ rev.data_upload|date:"d/m/Y H:i" }}</small></td>
+                    <td><small class="text-muted">{{ rev.notas_alteracao|default:"-" }}</small></td>
+                    <td class="text-end pe-3">
+                        <div class="btn-group">
+                            {% if rev.arquivo %}
+                            <a href="{{ rev.arquivo.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Download">
+                                <i class="bi bi-download"></i>
+                            </a>
+                            {% endif %}
+                            {% if rev.status != 'APROVADO_CLIENTE' %}
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-success"
+                                    title="Aprovar esta Revisão"
+                                    hx-post="{% url 'edms_docs:approve_revision' rev.id %}"
+                                    hx-target="#modal-container">
+                                <i class="bi bi-check-lg"></i> Aprovar
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-3 text-muted">Nenhuma revisão encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+</div>

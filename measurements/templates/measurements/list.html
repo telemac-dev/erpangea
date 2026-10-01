@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Medições Físico-Financeiras - ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-rulers me-2 text-primary"></i>Medições Físico-Financeiras</h2>
+        <p class="text-muted mb-0">Apuração das entregas contratuais para liberação de faturamento.</p>
+    </div>
+    <button class="btn btn-primary shadow-sm"
+            hx-get="{% url 'measurements:create_modal' %}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            data-bs-toggle="modal"
+            data-bs-target="#genericModal">
+        <i class="bi bi-plus-circle me-1"></i> Nova Folha de Medição
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Contrato</th>
+                        <th>Medição #</th>
+                        <th>Competência</th>
+                        <th>Valor Medido</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in measurements %}
+                    <tr>
+                        <td class="ps-4">
+                            <strong>{{ m.contrato.numero_contrato }}</strong><br>
+                            <small class="text-muted">{{ m.contrato.proposta.cliente }}</small>
+                        </td>
+                        <td><span class="badge bg-dark rounded-pill">#{{ m.numero_medicao|stringformat:"02d" }}</span></td>
+                        <td>{{ m.competencia|date:"m/Y" }}</td>
+                        <td class="fw-bold text-dark">R$ {{ m.valor_total_medido }}</td>
+                        <td id="status-m-{{ m.id }}">
+                            {% if m.status == 'FATURADA' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                    <i class="bi bi-receipt me-1"></i>Faturada
+                                </span>
+                            {% elif m.status == 'APROVADA_CLIENTE' %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                    <i class="bi bi-check-circle me-1"></i>Aprovada pelo Cliente
+                                </span>
+                            {% elif m.status == 'SUBMETIDA_TECNICO' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">
+                                    <i class="bi bi-clock me-1"></i>Submetida
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">
+                                    {{ m.get_status_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if m.status != 'APROVADA_CLIENTE' and m.status != 'FATURADA' %}
+                            <button class="btn btn-sm btn-outline-success"
+                                    hx-post="{% url 'measurements:approve' m.id %}"
+                                    hx-target="#status-m-{{ m.id }}"
+                                    title="Aprovar Medição pelo Cliente">
+                                <i class="bi bi-check2-circle me-1"></i> Aprovar Medição
+                            </button>
+                            {% elif m.status == 'APROVADA_CLIENTE' %}
+                            <a href="/invoices/create/modal/?medicao_id={{ m.id }}"
+                               class="btn btn-sm btn-primary"
+                               hx-get="/invoices/create/modal/?medicao_id={{ m.id }}"
+                               hx-target="#modal-container"
+                               hx-swap="innerHTML"
+                               data-bs-toggle="modal"
+                               data-bs-target="#genericModal">
+                                <i class="bi bi-receipt me-1"></i> Emitir NFS-e
+                            </a>
+                            {% else %}
+                            <span class="badge bg-light text-muted border p-2">Processo Concluído</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-clipboard-x display-4 d-block mb-3 opacity-25"></i>
+                            Nenhuma folha de medição cadastrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

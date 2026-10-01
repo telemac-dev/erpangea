@@ -1,0 +1,37 @@
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-arrow-right-circle me-2 text-primary"></i>Alterar Status do Projeto</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form hx-post="{% url 'projects:advance_status' project.id %}" hx-target="#modal-container">
+    {% csrf_token %}
+    <div class="modal-body">
+        {% if error_msg %}
+        <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="bi bi-shield-x fs-3 me-3 text-danger"></i>
+            <div>
+                <strong>Bloqueio de Qualidade:</strong><br>
+                {{ error_msg }}
+            </div>
+        </div>
+        {% endif %}
+
+        <p>Projeto: <strong>{{ project.nome_projeto }}</strong></p>
+        <p class="text-muted small">Status atual: <span class="badge bg-secondary">{{ project.get_status_display }}</span></p>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Novo Status Desejado:</label>
+            <select name="novo_status" class="form-select">
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if val == project.status %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-text mt-2 text-warning">
+                <i class="bi bi-info-circle me-1"></i> Atenção: O status <strong>"Entregue"</strong> exige a existência e homologação de pelo menos uma ART no Repositório Técnico (EDMS).
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button type="submit" class="btn btn-primary">Salvar Alteração</button>
+    </div>
+</form>

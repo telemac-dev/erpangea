@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Rentabilidade por Obra - {{ project.nome_projeto }} | ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'financial:list' %}" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Voltar ao Financeiro</a>
+        <h2 class="mb-1"><i class="bi bi-pie-chart me-2 text-primary"></i>Relatório Financeiro de Rentabilidade por Obra</h2>
+        <p class="text-muted mb-0">Projeto: <strong>{{ project.nome_projeto }}</strong> (OS: {{ project.ordem_servico.numero_os }})</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-white border-start border-4 border-success shadow-sm p-3">
+            <div class="text-muted fw-bold small mb-1">RECEITA MEDIDA (FATURÁVEL)</div>
+            <h3 class="mb-0 fw-bold text-success">R$ {{ receita_medida }}</h3>
+            <small class="text-muted">Apurado via Medições Físico-Financeiras</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-white border-start border-4 border-danger shadow-sm p-3">
+            <div class="text-muted fw-bold small mb-1">CUSTOS DIRETOS ALOCADOS</div>
+            <h3 class="mb-0 fw-bold text-danger">R$ {{ total_despesas }}</h3>
+            <small class="text-muted">Despesas vinculadas diretamente à obra</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-white border-start border-4 border-primary shadow-sm p-3">
+            <div class="text-muted fw-bold small mb-1">MARGEM DIRETA DE CONTRIBUIÇÃO</div>
+            <h3 class="mb-0 fw-bold text-primary">R$ {{ margem_direta }}</h3>
+            <small class="fw-bold {% if margem_percentual >= 0 %}text-success{% else %}text-danger{% endif %}">
+                Margem: {{ margem_percentual|floatformat:1 }}%
+            </small>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-bottom">
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-list-check me-2 text-primary"></i>Despesas Diretas Alocadas a Esta Obra</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Descrição</th>
+                        <th>Fornecedor</th>
+                        <th>Categoria</th>
+                        <th>Data Vencimento</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in despesas_projeto %}
+                    <tr>
+                        <td class="ps-4"><strong>{{ d.descricao }}</strong></td>
+                        <td>{{ d.fornecedor }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ d.categoria_despesa }}</span></td>
+                        <td>{{ d.data_vencimento|date:"d/m/Y" }}</td>
+                        <td class="fw-bold text-dark">R$ {{ d.valor_nominal }}</td>
+                        <td><span class="badge bg-secondary">{{ d.get_status_display }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">Nenhum custo direto alocado a este projeto até o momento.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

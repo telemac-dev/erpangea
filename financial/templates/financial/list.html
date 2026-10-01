@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Contas a Pagar e Finanças - ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-wallet2 me-2 text-primary"></i>Gestão Financeira - Contas a Pagar</h2>
+        <p class="text-muted mb-0">Controle de compromissos com fornecedores, alçadas de aprovação e rateio por obra.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if projects %}
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-pie-chart me-1"></i> Relatório por Obra
+            </button>
+            <ul class="dropdown-menu">
+                {% for proj in projects %}
+                <li><a class="dropdown-item" href="{% url 'financial:project_report' proj.id %}">{{ proj.nome_projeto }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <button class="btn btn-primary shadow-sm"
+                hx-get="{% url 'financial:create_modal' %}"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+                data-bs-toggle="modal"
+                data-bs-target="#genericModal">
+            <i class="bi bi-plus-circle me-1"></i> Nova Despesa
+        </button>
+    </div>
+</div>
+
+<!-- KPIs Financeiros -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-white border-start border-4 border-warning shadow-sm p-3">
+            <div class="text-muted fw-bold small mb-1">AGUARDANDO APROVAÇÃO (> R$ 5k)</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 fw-bold text-warning">R$ {{ total_aguardando }}</h3>
+                <i class="bi bi-shield-exclamation fs-2 text-warning opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-white border-start border-4 border-primary shadow-sm p-3">
+            <div class="text-muted fw-bold small mb-1">A PAGAR (APROVADO)</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 fw-bold text-primary">R$ {{ total_aprovado }}</h3>
+                <i class="bi bi-cash-stack fs-2 text-primary opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-white border-start border-4 border-success shadow-sm p-3">
+            <div class="text-muted fw-bold small mb-1">TOTAL LIQUIDADO</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 fw-bold text-success">R$ {{ total_liquidado }}</h3>
+                <i class="bi bi-check2-circle fs-2 text-success opacity-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Contas a Pagar -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Descrição / Fornecedor</th>
+                        <th>Centro de Custo</th>
+                        <th>Projeto Vinculado</th>
+                        <th>Vencimento</th>
+                        <th>Valor Nominal</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payables %}
+                    <tr>
+                        <td class="ps-4">
+                            <strong>{{ p.descricao }}</strong><br>
+                            <small class="text-muted">{{ p.fornecedor }} &bull; {{ p.categoria_despesa }}</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ p.get_centro_de_custo_display }}</span></td>
+                        <td>
+                            {% if p.projeto %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                    <i class="bi bi-folder2 me-1"></i>{{ p.projeto.nome_projeto }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted small">Custo Geral / Fixo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <i class="bi bi-calendar-event me-1 text-muted"></i>
+                            {{ p.data_vencimento|date:"d/m/Y" }}
+                        </td>
+                        <td class="fw-bold text-dark">R$ {{ p.valor_nominal }}</td>
+                        <td id="status-p-{{ p.id }}">
+                            {% if p.status == 'AGUARDANDO_APROVACAO' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">
+                                    <i class="bi bi-shield-lock me-1"></i>Retido Alçada
+                                </span>
+                            {% elif p.status == 'APROVADA' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                    <i class="bi bi-check me-1"></i>Aprovada
+                                </span>
+                            {% elif p.status == 'LIQUIDADA' %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                    <i class="bi bi-check2-all me-1"></i>Liquidada
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ p.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if p.status == 'AGUARDANDO_APROVACAO' %}
+                            <button class="btn btn-sm btn-outline-success"
+                                    hx-post="{% url 'financial:approve' p.id %}"
+                                    hx-target="#status-p-{{ p.id }}"
+                                    title="Aprovar Alçada">
+                                <i class="bi bi-check-lg me-1"></i> Liberar Alçada
+                            </button>
+                            {% elif p.status == 'APROVADA' %}
+                            <button class="btn btn-sm btn-primary shadow-sm"
+                                    hx-get="{% url 'financial:liquidate_modal' p.id %}"
+                                    hx-target="#modal-container"
+                                    hx-swap="innerHTML"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#genericModal">
+                                <i class="bi bi-cash me-1"></i> Liquidar
+                            </button>
+                            {% elif p.status == 'LIQUIDADA' and p.comprovante_pagamento %}
+                            <a href="{{ p.comprovante_pagamento.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Ver Comprovante Bancário">
+                                <i class="bi bi-paperclip"></i> Comprovante
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-cash-stack display-6 d-block mb-2 opacity-25"></i>
+                            Nenhuma despesa ou conta a pagar cadastrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

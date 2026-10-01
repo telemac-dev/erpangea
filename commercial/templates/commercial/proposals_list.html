@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Propostas Comerciais - ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-briefcase me-2 text-primary"></i>Gestão Comercial - Propostas</h2>
+        <p class="text-muted mb-0">Controle do pipeline de propostas, minutas de contratos e ordens de serviço.</p>
+    </div>
+    <button class="btn btn-primary shadow-sm"
+            hx-get="{% url 'commercial:create_proposal_modal' %}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            data-bs-toggle="modal"
+            data-bs-target="#genericModal">
+        <i class="bi bi-plus-circle me-1"></i> Nova Proposta
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Código</th>
+                        <th>Cliente</th>
+                        <th>Disciplina Principal</th>
+                        <th>Valor Global</th>
+                        <th>Validade</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="proposals-table-body">
+                    {% for proposal in proposals %}
+                    <tr>
+                        <td class="ps-4">
+                            <strong>{{ proposal.codigo_proposta }}</strong>
+                        </td>
+                        <td class="fw-semibold">{{ proposal.cliente }}</td>
+                        <td><span class="badge bg-secondary">{{ proposal.get_disciplina_principal_display }}</span></td>
+                        <td class="fw-bold text-dark">R$ {{ proposal.valor_global }}</td>
+                        <td>{{ proposal.validade|date:"d/m/Y" }}</td>
+                        <td id="status-{{ proposal.id }}">
+                            {% if proposal.status == 'APROVADA' %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                    <i class="bi bi-check-circle me-1"></i>{{ proposal.get_status_display }}
+                                </span>
+                            {% elif proposal.status == 'RASCUNHO' %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">
+                                    {{ proposal.get_status_display }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                    {{ proposal.get_status_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if proposal.status != 'APROVADA' %}
+                            <button class="btn btn-sm btn-outline-success"
+                                    hx-get="{% url 'commercial:approve_proposal' proposal.id %}"
+                                    hx-target="#modal-container"
+                                    hx-swap="innerHTML"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#genericModal">
+                                <i class="bi bi-check2-circle me-1"></i> Aprovar Proposta
+                            </button>
+                            {% else %}
+                            <span class="badge bg-light text-muted border p-2">
+                                <i class="bi bi-file-earmark-check me-1"></i> Contrato Gerado
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-folder-x display-4 d-block mb-3 opacity-25"></i>
+                            Nenhuma proposta cadastrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

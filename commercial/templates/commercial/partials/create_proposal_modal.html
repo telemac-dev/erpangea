@@ -1,0 +1,15 @@
+{% load crispy_forms_tags %}
+<div class="modal-header">
+    <h5 class="modal-title">Criar Nova Proposta</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form hx-post="{% url 'commercial:create_proposal_modal' %}" hx-target="#modal-container">
+    {% csrf_token %}
+    <div class="modal-body">
+        {{ form|crispy }}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Rascunho</button>
+    </div>
+</form>

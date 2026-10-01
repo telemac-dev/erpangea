@@ -1,0 +1,37 @@
+{% load crispy_forms_tags %}
+<div class="modal-header bg-primary text-white">
+    <h5 class="modal-title"><i class="bi bi-cash-coin me-2"></i>Liquidar Pagamento</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form hx-post="{% url 'financial:liquidate_modal' payable.id %}" hx-target="#modal-container" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="modal-body">
+        {% if error_msg %}
+        <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+            <div>
+                <strong>Atenção:</strong><br>
+                {{ error_msg }}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card bg-light border-0 p-3 mb-3">
+            <div class="d-flex justify-content-between">
+                <span>Despesa: <strong>{{ payable.descricao }}</strong></span>
+                <span class="fw-bold text-dark">R$ {{ payable.valor_nominal }}</span>
+            </div>
+            <small class="text-muted">Fornecedor: {{ payable.fornecedor }}</small>
+        </div>
+
+        <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i> Conforme as regras de governança, toda despesa liquidada exige anexo obrigatório do comprovante bancário (transferência/TED/Pix ou boleto autenticado).
+        </div>
+
+        {{ form|crispy }}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-success"><i class="bi bi-check2-circle me-1"></i> Confirmar Liquidação</button>
+    </div>
+</form>

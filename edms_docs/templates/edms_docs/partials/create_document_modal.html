@@ -1,0 +1,19 @@
+{% load crispy_forms_tags %}
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-cloud-arrow-up me-2 text-primary"></i>Novo Documento Técnico</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form hx-post="{% url 'edms_docs:create_modal' %}" hx-target="#modal-container" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="modal-body">
+        <p class="text-muted small mb-3">Ao submeter, o sistema criará o documento e registrará automaticamente a versão inicial como <strong>R00</strong>.</p>
+        {{ form|crispy }}
+        <div class="form-text mt-2 text-muted">
+            Formatos válidos: <code>.dwg</code>, <code>.dxf</code>, <code>.pdf</code>, <code>.xlsx</code>, <code>.cype</code>, <code>.gsz</code>, <code>.plx</code>.
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i> Cadastrar Documento</button>
+    </div>
+</form>

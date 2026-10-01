@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Cofre de Documentos (EDMS) | ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-file-earmark-lock me-2 text-primary"></i>Repositório Técnico EDMS</h2>
+        <p class="text-muted mb-0">Controle de versionamento estrito de pranchas, relatórios e ARTs.</p>
+    </div>
+    <button class="btn btn-primary shadow-sm"
+            hx-get="{% url 'edms_docs:create_modal' %}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            data-bs-toggle="modal"
+            data-bs-target="#genericModal">
+        <i class="bi bi-cloud-arrow-up me-2"></i> Novo Arquivo
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Identificador & Título</th>
+                        <th>Tipo / Projeto</th>
+                        <th>Última Rev.</th>
+                        <th>Status</th>
+                        <th>Data Upload</th>
+                        <th>Responsável</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in doc_list %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-file-earmark-pdf fs-4 me-3 text-danger"></i>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ item.document.codigo_identificador }}</h6>
+                                    <small class="text-muted">{{ item.document.titulo }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ item.document.get_tipo_display }}</div>
+                            <small class="text-muted"><i class="bi bi-folder2 me-1"></i>{{ item.document.projeto.nome_projeto }}</small>
+                        </td>
+                        <td>
+                            {% if item.latest_revision %}
+                                <span class="badge bg-dark rounded-pill">{{ item.latest_revision.revisao }}</span>
+                            {% else %}
+                                <span class="badge bg-light text-muted border">Vazio</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.latest_revision %}
+                                {% if item.latest_revision.status == 'APROVADO_CLIENTE' or item.latest_revision.status == 'APROVADO_INTERNO' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                        <i class="bi bi-check-circle me-1"></i>{{ item.latest_revision.get_status_display }}
+                                    </span>
+                                {% elif item.latest_revision.status == 'EMITIDO_CLIENTE' %}
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">
+                                        <i class="bi bi-send me-1"></i>{{ item.latest_revision.get_status_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">
+                                        <i class="bi bi-pencil me-1"></i>{{ item.latest_revision.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.latest_revision %}
+                                {{ item.latest_revision.data_upload|date:"d/m/Y H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.latest_revision %}
+                                <small class="text-muted">{{ item.latest_revision.enviado_por.email }}</small>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group shadow-sm">
+                                {% if item.latest_revision and item.latest_revision.arquivo %}
+                                <a href="{{ item.latest_revision.arquivo.url }}"
+                                   target="_blank"
+                                   class="btn btn-sm btn-outline-secondary"
+                                   title="Baixar Arquivo">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                {% endif %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary"
+                                        title="Histórico de Revisões"
+                                        hx-get="{% url 'edms_docs:revision_history' item.document.id %}"
+                                        hx-target="#modal-container"
+                                        hx-swap="innerHTML"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#genericModal">
+                                    <i class="bi bi-clock-history"></i>
+                                </button>
+                                <button type="button"
+                                        class="btn btn-sm btn-primary"
+                                        title="Nova Revisão (Incremental)"
+                                        hx-get="{% url 'edms_docs:upload_revision' item.document.id %}"
+                                        hx-target="#modal-container"
+                                        hx-swap="innerHTML"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#genericModal">
+                                    <i class="bi bi-upload"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-folder-x display-4 d-block mb-3 opacity-25"></i>
+                            Nenhum documento técnico submetido no repositório.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

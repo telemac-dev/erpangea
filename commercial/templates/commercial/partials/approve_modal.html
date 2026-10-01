@@ -1,0 +1,18 @@
+<div class="modal-header bg-success text-white">
+    <h5 class="modal-title">Aprovar Proposta {{ proposal.codigo_proposta }}?</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <p>A aprovação desta proposta de <strong>R$ {{ proposal.valor_global }}</strong> fechará seu escopo (impedindo edições de valores) e <strong>gerará automaticamente a Minuta de Contrato</strong> no sistema.</p>
+    <p>Deseja continuar?</p>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+    <!-- Quando confirmado, dispara POST para a mesma URL, alterando apenas a celula de status na tabela -->
+    <button type="button" class="btn btn-success"
+            hx-post="{% url 'commercial:approve_proposal' proposal.id %}"
+            hx-target="#status-{{ proposal.id }}"
+            data-bs-dismiss="modal">
+        Sim, Aprovar e Gerar Contrato
+    </button>
+</div>

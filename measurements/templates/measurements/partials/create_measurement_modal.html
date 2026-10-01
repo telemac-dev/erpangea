@@ -1,0 +1,29 @@
+{% load crispy_forms_tags %}
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Nova Folha de Medição</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form hx-post="{% url 'measurements:create_modal' %}" hx-target="#modal-container" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="modal-body">
+        {% if error_msg %}
+        <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+            <div>
+                <strong>Erro de Validação:</strong><br>
+                {{ error_msg }}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-shield-lock me-1"></i> O somatório das medições parciais não pode ultrapassar o saldo financeiro do contrato contratado.
+        </div>
+
+        {{ form|crispy }}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Registrar Medição</button>
+    </div>
+</form>

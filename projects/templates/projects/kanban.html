@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Quadro Kanban - {{ project.nome_projeto|default:"Projetos" }} | ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-kanban me-2 text-primary"></i>Quadro de Tarefas</h2>
+        {% if project %}
+            <p class="text-muted mb-0">
+                Projeto Ativo: <strong>{{ project.nome_projeto }}</strong> (OS: {{ project.ordem_servico.numero_os }})
+                &bull; Status: <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">{{ project.get_status_display }}</span>
+            </p>
+        {% else %}
+            <p class="text-muted mb-0">Nenhum projeto ativo selecionado.</p>
+        {% endif %}
+    </div>
+    {% if project %}
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary shadow-sm"
+                hx-get="{% url 'projects:advance_status' project.id %}"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+                data-bs-toggle="modal"
+                data-bs-target="#genericModal">
+            <i class="bi bi-flag me-1"></i> Alterar Status do Projeto
+        </button>
+        <button class="btn btn-primary shadow-sm"
+                hx-get="{% url 'projects:create_task_modal' %}"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+                data-bs-toggle="modal"
+                data-bs-target="#genericModal">
+            <i class="bi bi-plus-circle me-1"></i> Nova Tarefa
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+{% if project %}
+    {% include 'projects/partials/kanban_columns.html' %}
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i> Não há projetos ativos no momento. Para iniciar um projeto, aprove uma proposta comercial que contenha uma Ordem de Serviço vinculada.
+</div>
+{% endif %}
+
+<style>
+    .min-w-280 { min-width: 290px; }
+    .border-dashed { border: 1px dashed #dee2e6; }
+</style>
+{% endblock %}

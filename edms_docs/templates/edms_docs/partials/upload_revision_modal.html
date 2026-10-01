@@ -1,0 +1,22 @@
+{% load crispy_forms_tags %}
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-upload me-2 text-primary"></i>Nova Revisão Incremental</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form hx-post="{% url 'edms_docs:upload_revision' doc.id %}" hx-target="#modal-container" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="alert alert-light border mb-3">
+            <strong>Documento:</strong> {{ doc.codigo_identificador }} - {{ doc.titulo }}<br>
+            <small class="text-muted">A nova versão será incrementada automaticamente (ex: R00 &rarr; R01).</small>
+        </div>
+        {{ form|crispy }}
+        <div class="form-text mt-2 text-muted">
+            Formatos válidos: <code>.dwg</code>, <code>.dxf</code>, <code>.pdf</code>, <code>.xlsx</code>, <code>.cype</code>, <code>.gsz</code>, <code>.plx</code>.
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-cloud-arrow-up me-1"></i> Enviar Revisão</button>
+    </div>
+</form>

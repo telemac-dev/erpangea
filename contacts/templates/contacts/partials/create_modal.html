@@ -1,0 +1,29 @@
+{% load crispy_forms_tags %}
+<div class="modal-header">
+    <h5 class="modal-title">Criar Novo Contato</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form hx-post="{% url 'contacts:create_modal' %}" hx-target="#modal-container">
+    {% csrf_token %}
+    <div class="modal-body">
+        <!-- Campo com validação ao perder foco usando HTMX -->
+        <div class="mb-3">
+            <label>CPF / CNPJ</label>
+            <input type="text"
+                   name="cpf_cnpj"
+                   class="form-control"
+                   hx-post="{% url 'contacts:validate_document' %}"
+                   hx-trigger="blur"
+                   hx-target="#doc-feedback"
+                   hx-swap="innerHTML" />
+            <div id="doc-feedback"></div>
+        </div>
+        
+        <!-- Renderiza os outros campos com crispy -->
+        {{ form|crispy }}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Contato</button>
+    </div>
+</form>
