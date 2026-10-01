@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+*.Zone.Identifier
+db.sqlite3
+media/
+backups/
+.env
