@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from .models import User, UserProfile, UserSectorAssignment
 
@@ -72,17 +72,22 @@ class UserAdmin(BaseUserAdmin):
     def get_sectors_badge(self, obj):
         assignments = obj.sector_assignments.all()
         if not assignments:
-            return format_html('<span style="color: #999;">Sem setor</span>')
+            return mark_safe('<span style="color: #94a3b8; font-size: 11px;">Sem setor</span>')
         
         badges = []
         for a in assignments:
-            primary_style = "border: 1px solid #2563eb; font-weight: bold;" if a.is_primary else ""
+            if a.is_primary:
+                style = "border: 1px solid #2563eb; color: #1e40af; background: #eff6ff; font-weight: 600;"
+                star = " ★"
+            else:
+                style = "border: 1px solid #e2e8f0; color: #334155; background: #f8fafc;"
+                star = ""
             badges.append(
-                f'<span style="background: #f1f5f9; padding: 3px 6px; border-radius: 4px; margin-right: 4px; font-size: 11px; {primary_style}">'
-                f'{a.get_sector_display()} ({a.get_level_display()})'
+                f'<span style="{style} padding: 2px 6px; border-radius: 4px; margin-right: 4px; font-size: 11px; display: inline-block;">'
+                f'{a.get_sector_display()} ({a.get_level_display()}){star}'
                 f'</span>'
             )
-        return format_html("".join(badges))
+        return mark_safe(" ".join(badges))
 
     @admin.display(description=_('Status'))
     def get_lock_status(self, obj):
