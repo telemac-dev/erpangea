@@ -29,7 +29,12 @@
                 {{ form.username }}
             </div>
             <div class="mb-4">
-                <label class="form-label small fw-semibold text-secondary">SENHA</label>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-semibold text-secondary mb-0">SENHA DE ACESSO</label>
+                    <a href="{% url 'accounts:password_reset' %}" class="small text-decoration-none text-primary fw-semibold" style="font-size: 0.78rem;">
+                        Esqueceu a senha?
+                    </a>
+                </div>
                 {{ form.password }}
             </div>
             <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">

@@ -119,3 +119,38 @@ class UserProfileForm(forms.ModelForm):
         if commit:
             user.save(update_fields=['first_name', 'last_name'])
         return profile
+
+from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm, SetPasswordForm
+
+class UserPasswordChangeForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({
+                'class': 'form-control',
+                'placeholder': '••••••••'
+            })
+        self.fields['old_password'].label = _("Senha Atual")
+        self.fields['new_password1'].label = _("Nova Senha")
+        self.fields['new_password2'].label = _("Confirmação da Nova Senha")
+
+class UserPasswordResetForm(PasswordResetForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email'].widget.attrs.update({
+            'class': 'form-control form-control-lg',
+            'placeholder': 'seu-email@pangea.com.br',
+            'autofocus': True
+        })
+        self.fields['email'].label = _("E-mail Corporativo Cadastrado")
+
+class UserSetPasswordForm(SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({
+                'class': 'form-control form-control-lg',
+                'placeholder': '••••••••'
+            })
+        self.fields['new_password1'].label = _("Nova Senha")
+        self.fields['new_password2'].label = _("Confirmar Nova Senha")

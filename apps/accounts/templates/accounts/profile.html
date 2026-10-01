@@ -82,7 +82,12 @@
                 <h5 class="fw-bold text-dark mb-0">
                     <i class="bi bi-pencil-square text-primary me-2"></i>Editar Dados do Colaborador
                 </h5>
-                <span class="badge bg-light text-muted border">Atualização Cadastral</span>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-secondary btn-sm py-1 px-3 shadow-sm">
+                        <i class="bi bi-key me-1 text-primary"></i> Alterar Senha
+                    </a>
+                    <span class="badge bg-light text-muted border">Atualização Cadastral</span>
+                </div>
             </div>
 
             <form method="post" enctype="multipart/form-data" novalidate>

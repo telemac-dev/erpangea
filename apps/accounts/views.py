@@ -34,3 +34,44 @@ class AdminHelpView(LoginRequiredMixin, View):
     """
     def get(self, request):
         return render(request, 'accounts/admin_help.html')
+
+from django.urls import reverse_lazy
+from django.contrib.auth.views import (
+    PasswordChangeView,
+    PasswordResetView,
+    PasswordResetDoneView,
+    PasswordResetConfirmView,
+    PasswordResetCompleteView,
+)
+from .forms import (
+    UserPasswordChangeForm,
+    UserPasswordResetForm,
+    UserSetPasswordForm,
+)
+
+class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    template_name = 'accounts/password_change.html'
+    form_class = UserPasswordChangeForm
+    success_url = reverse_lazy('accounts:profile')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Sua senha de acesso foi alterada com sucesso!")
+        return super().form_valid(form)
+
+class UserPasswordResetView(PasswordResetView):
+    template_name = 'accounts/password_reset.html'
+    form_class = UserPasswordResetForm
+    email_template_name = 'accounts/password_reset_email.html'
+    subject_template_name = 'accounts/password_reset_subject.txt'
+    success_url = reverse_lazy('accounts:password_reset_done')
+
+class UserPasswordResetDoneView(PasswordResetDoneView):
+    template_name = 'accounts/password_reset_done.html'
+
+class UserPasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'accounts/password_reset_confirm.html'
+    form_class = UserSetPasswordForm
+    success_url = reverse_lazy('accounts:password_reset_complete')
+
+class UserPasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = 'accounts/password_reset_complete.html'
