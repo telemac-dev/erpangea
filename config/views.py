@@ -1,7 +1,19 @@
 import json
+from django.shortcuts import render
 from django.http import JsonResponse
 from django.db import connection
 from django.core.cache import cache
+from django.contrib.auth.decorators import login_required
+from apps.audit_log.models import AuditLog
+
+@login_required
+def dashboard_view(request):
+    recent_logs = AuditLog.objects.select_related('user').all()[:15]
+    total_audit_entries = AuditLog.objects.count()
+    return render(request, 'dashboard.html', {
+        'recent_logs': recent_logs,
+        'total_audit_entries': total_audit_entries,
+    })
 
 def health_check(request):
     status = {
@@ -11,7 +23,6 @@ def health_check(request):
     }
     status_code = 200
 
-    # 1. Checagem do Banco de Dados
     try:
         connection.ensure_connection()
         status['database'] = 'connected'
@@ -20,7 +31,6 @@ def health_check(request):
         status['status'] = 'unhealthy'
         status_code = 503
 
-    # 2. Checagem do Cache / Redis
     try:
         cache.set('health_test_key', 'ok', timeout=10)
         val = cache.get('health_test_key')
