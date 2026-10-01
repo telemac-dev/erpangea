@@ -27,3 +27,10 @@ class ProfileView(LoginRequiredMixin, View):
             messages.success(request, "Perfil atualizado com sucesso!")
             return redirect('accounts:profile')
         return render(request, 'accounts/profile.html', {'form': form, 'profile': profile})
+
+class AdminHelpView(LoginRequiredMixin, View):
+    """
+    Pagina de ajuda e documentacao de governanca para administradores do sistema.
+    """
+    def get(self, request):
+        return render(request, 'accounts/admin_help.html')

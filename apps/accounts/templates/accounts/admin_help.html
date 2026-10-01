@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+
+{% block title %}Manual de Governança & Permissões RBAC - ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+        <h3 class="fw-bold mb-1 text-dark">
+            <i class="bi bi-shield-lock-fill text-primary me-2"></i>Manual de Governança & Permissões RBAC
+        </h3>
+        <p class="text-muted mb-0">Guia de referência arquitetural e operacional para administradores do sistema.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/admin/accounts/user/" target="_blank" class="btn btn-outline-primary btn-sm shadow-sm">
+            <i class="bi bi-people me-1"></i> Gerenciar Usuários
+        </a>
+        <a href="/admin/" target="_blank" class="btn btn-outline-secondary btn-sm shadow-sm">
+            <i class="bi bi-sliders me-1"></i> Django Admin
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Navegacao Rapida Lateral -->
+    <div class="col-lg-3">
+        <div class="card card-custom p-3 sticky-top" style="top: 24px;">
+            <div class="small fw-bold text-uppercase text-secondary mb-2 tracking-wider">Índice do Manual</div>
+            <nav class="nav nav-pills flex-column gap-1" id="help-nav">
+                <a class="nav-link py-2 px-3 small text-dark" href="#arquitetura">
+                    <i class="bi bi-diagram-3 me-2 text-primary"></i>1. Visão Geral da Arquitetura
+                </a>
+                <a class="nav-link py-2 px-3 small text-dark" href="#escala">
+                    <i class="bi bi-bar-chart-steps me-2 text-primary"></i>2. Escala Hierárquica Unificada
+                </a>
+                <a class="nav-link py-2 px-3 small text-dark" href="#setores">
+                    <i class="bi bi-grid-3x3-gap me-2 text-primary"></i>3. Matriz por Setores & Alçadas
+                </a>
+                <a class="nav-link py-2 px-3 small text-dark" href="#acumulo">
+                    <i class="bi bi-arrow-left-right me-2 text-primary"></i>4. Acúmulo & Conflito de Interesses
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Conteudo Principal -->
+    <div class="col-lg-9">
+
+        <!-- Secao 1: Visao Geral -->
+        <section id="arquitetura" class="card card-custom p-4 mb-4">
+            <div class="d-flex align-items-center mb-3">
+                <span class="badge bg-primary rounded-circle p-2 me-2">1</span>
+                <h4 class="fw-bold mb-0 text-dark">Visão Geral da Arquitetura de Permissões</h4>
+            </div>
+            
+            <p class="text-secondary leading-relaxed">
+                Em empresas de consultoria em engenharia com quadros enxutos, colaboradores frequentemente acumulam responsabilidades de setores distintos (ex.: o Responsável Técnico atua na gestão de propostas e aprovações financeiras). Para atender a essa realidade com máxima segurança e conformidade, o <strong>ERPangea v2.0</strong> adota o padrão de <strong>Autorização Multi-Setor com Hierarquia Cumulativa por Atribuição</strong>.
+            </p>
+
+            <div class="bg-light p-3 rounded-3 border mb-3">
+                <div class="small fw-bold text-dark mb-2"><i class="bi bi-cpu me-1 text-primary"></i> Regra de Avaliação de Acesso:</div>
+                <p class="mb-0 small text-muted font-monospace">
+                    Autorização = (Setor Requerido) &cap; (Nível do Usuário &ge; Nível Mínimo Exigido)
+                </p>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="border rounded p-3 h-100 bg-white">
+                        <div class="fw-bold text-dark small mb-1"><i class="bi bi-fingerprint text-primary me-1"></i> Identidade Única (UUID)</div>
+                        <p class="text-muted small mb-0">Usuários utilizam identificadores UUIDv4 nativos, mitigando ataques de enumeração horizontal de recursos.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3 h-100 bg-white">
+                        <div class="fw-bold text-dark small mb-1"><i class="bi bi-layers text-primary me-1"></i> Multi-Setor Ativo</div>
+                        <p class="text-muted small mb-0">Um colaborador pode ter N atribuições via <code>UserSectorAssignment</code>, cada uma com seu respectivo nível hierárquico independente.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3 h-100 bg-white">
+                        <div class="fw-bold text-dark small mb-1"><i class="bi bi-shield-shaded text-primary me-1"></i> Trilha de Auditoria</div>
+                        <p class="text-muted small mb-0">Todas as tentativas de acesso, login e mutações de dados são gravadas em registros imutáveis no <code>AuditLog</code>.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Secao 2: Escala Hierarquica -->
+        <section id="escala" class="card card-custom p-4 mb-4">
+            <div class="d-flex align-items-center mb-3">
+                <span class="badge bg-primary rounded-circle p-2 me-2">2</span>
+                <h4 class="fw-bold mb-0 text-dark">Escala Hierárquica Unificada</h4>
+            </div>
+
+            <p class="text-secondary leading-relaxed">
+                A estrutura corporativa é padronizada em quatro níveis cumulativos de autoridade. O <strong>Princípio da Herança Cumulativa</strong> estabelece que um nível superior herda automaticamente todas as prerrogativas de execução dos níveis inferiores dentro do mesmo setor.
+            </p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-3">
+                    <thead class="table-light">
+                        <tr style="font-size: 0.85rem;">
+                            <th style="width: 90px;">Nível</th>
+                            <th style="width: 140px;">Identificador</th>
+                            <th style="width: 200px;">Papel Típico</th>
+                            <th>Poder de Decisão & Governança</th>
+                        </tr>
+                    </thead>
+                    <tbody style="font-size: 0.875rem;">
+                        <tr class="table-primary bg-opacity-10">
+                            <td class="text-center fw-bold"><span class="badge bg-primary fs-7">Nível 4</span></td>
+                            <td><code>DIRETORIA</code></td>
+                            <td class="fw-semibold">Diretor / Sócio / RT</td>
+                            <td>Alçada financeira máxima (> R$ 25k), homologação perante conselhos (CREA/ART), assinatura formal de contratos e entrega definitiva de projetos.</td>
+                        </tr>
+                        <tr>
+                            <td class="text-center fw-bold"><span class="badge bg-dark fs-7">Nível 3</span></td>
+                            <td><code>COORDENACAO</code></td>
+                            <td class="fw-semibold">Coordenador / Gerente</td>
+                            <td>Despacho de Ordens de Serviço (OS), alocação de equipes, aprovação de medições de campo e liberação de despesas entre R$ 5k e R$ 25k.</td>
+                        </tr>
+                        <tr>
+                            <td class="text-center fw-bold"><span class="badge bg-secondary fs-7">Nível 2</span></td>
+                            <td><code>OPERACIONAL</code></td>
+                            <td class="fw-semibold">Engenheiro / Analista</td>
+                            <td>Elaboração técnica plena: dimensionamento geotécnico, emissão de revisões incrementais (R00 &rarr; R01), emissão de NFS-e e lançamentos até R$ 5k.</td>
+                        </tr>
+                        <tr class="table-light">
+                            <td class="text-center fw-bold"><span class="badge bg-light text-dark border fs-7">Nível 1</span></td>
+                            <td><code>ASSISTENTE</code></td>
+                            <td class="fw-semibold">Assistente / Estagiário</td>
+                            <td>Consulta ampla e cadastramento de rascunhos. Bloqueada qualquer homologação técnica, emissão formal para clientes ou liquidação financeira.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mb-0">
+                <i class="bi bi-info-circle-fill me-1"></i>
+                <strong>Herança Cumulativa:</strong> Um colaborador com nível <code>COORDENACAO (3)</code> pode realizar qualquer operação atribuída a <code>OPERACIONAL (2)</code> ou <code>ASSISTENTE (1)</code> no mesmo setor, sem necessidade de duplicar permissões.
+            </div>
+        </section>
+
+        <!-- Secao 3: Setores e Matriz -->
+        <section id="setores" class="card card-custom p-4 mb-4">
+            <div class="d-flex align-items-center mb-3">
+                <span class="badge bg-primary rounded-circle p-2 me-2">3</span>
+                <h4 class="fw-bold mb-0 text-dark">Setores Envolvidos e Matriz de Permissões Hierárquicas</h4>
+            </div>
+
+            <p class="text-secondary leading-relaxed">
+                As operações do ERPangea são divididas em cinco setores de negócio com responsabilidades segregadas:
+            </p>
+
+            <div class="accordion mb-4" id="accordionSetores">
+                <!-- Tecnico -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTecnico">
+                            <i class="bi bi-cone-striped text-warning me-2"></i> Setor Técnico (Engenharia & Geotecnia - TECNICO)
+                        </button>
+                    </h2>
+                    <div id="collapseTecnico" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                        <div class="accordion-body small text-secondary">
+                            <strong>Escopo:</strong> Estudos geotécnicos, fundações, contenções, relatórios de sondagem SPT/CPTU, pranchas CAD/BIM, ARTs e medições de campo.<br>
+                            &bull; <em>Nível 1:</em> Visualização de projetos e cadastro de tarefas no Kanban.<br>
+                            &bull; <em>Nível 2:</em> Elaboração de cálculos, upload de revisões no EDMS e apontamento de horas.<br>
+                            &bull; <em>Nível 3:</em> Designação como Coordenador Técnico de OS, emissão de medições e aprovação interna.<br>
+                            &bull; <em>Nível 4:</em> Validação de conformidade técnica de ARTs e autorização de entrega definitiva da obra.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comercial -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseComercial">
+                            <i class="bi bi-briefcase text-primary me-2"></i> Setor Comercial (Oportunidades & Contratos - COMERCIAL)
+                        </button>
+                    </h2>
+                    <div id="collapseComercial" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                        <div class="accordion-body small text-secondary">
+                            <strong>Escopo:</strong> Gestão de contatos, elaboração de orçamentos, emissão de propostas e formalização contratual.<br>
+                            &bull; <em>Nível 1:</em> Cadastro de clientes e elaboração de rascunhos de propostas.<br>
+                            &bull; <em>Nível 2:</em> Envio de propostas comerciais de até R$ 100.000,00.<br>
+                            &bull; <em>Nível 3:</em> Aprovação formal de propostas (gerando minutas contratuais) e negociação de descontos.<br>
+                            &bull; <em>Nível 4:</em> Assinatura e aditamentos de contratos definitivos com clientes.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financeiro -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFinanceiro">
+                            <i class="bi bi-cash-stack text-success me-2"></i> Setor Financeiro (Tesouraria & Faturamento - FINANCEIRO)
+                        </button>
+                    </h2>
+                    <div id="collapseFinanceiro" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                        <div class="accordion-body small text-secondary">
+                            <strong>Escopo:</strong> Emissão de NFS-e, gestão de contas a receber, aprovação de despesas e liquidação bancária.<br>
+                            &bull; <em>Nível 1:</em> Consulta de títulos e conciliação preliminar de extratos.<br>
+                            &bull; <em>Nível 2:</em> Emissão de Notas Fiscais de Serviços (NFS-e) e agendamento de pagamentos.<br>
+                            &bull; <em>Nível 3:</em> Liberação de despesas de R$ 5.000,01 a R$ 25.000,00 e liquidação com comprovante.<br>
+                            &bull; <em>Nível 4:</em> Alçada financeira total (despesas acima de R$ 25.000,00 e renegociações de títulos).
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Administrativo -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdmin">
+                            <i class="bi bi-building text-secondary me-2"></i> Setor Administrativo (Operação & Suprimentos - ADMINISTRATIVO)
+                        </button>
+                    </h2>
+                    <div id="collapseAdmin" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                        <div class="accordion-body small text-secondary">
+                            <strong>Escopo:</strong> Compras gerais, contratos de fornecedores de sondagem e controle cadastral.<br>
+                            &bull; <em>Nível 1:</em> Triagem de notas e lançamento de despesas correntes de consumo.<br>
+                            &bull; <em>Nível 2:</em> Lançamento de despesas de até R$ 5.000,00 com aprovação direta.<br>
+                            &bull; <em>Nível 3:</em> Contratação de serviços de apoio operacional (laboratórios externos, sondas).<br>
+                            &bull; <em>Nível 4:</em> Compras estratégicas e aquisição de ativos fixos.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TI -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTI">
+                            <i class="bi bi-shield-lock text-danger me-2"></i> Setor de TI & Infraestrutura (TI)
+                        </button>
+                    </h2>
+                    <div id="collapseTI" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                        <div class="accordion-body small text-secondary">
+                            <strong>Escopo:</strong> Governança de acessos, segurança, filas assíncronas e trilha de auditoria.<br>
+                            &bull; <em>Nível 1:</em> Suporte técnico operacional e reset temporário de credenciais.<br>
+                            &bull; <em>Nível 2:</em> Monitoramento de integridade e infraestrutura (Redis, Celery, Postgres).<br>
+                            &bull; <em>Nível 3 / 4:</em> Gestão de colaboradores, atribuição de setores/alçadas e auditoria imutável.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matriz Consolidada -->
+            <div class="small fw-bold text-dark mb-2">Matriz de Operações Críticas vs Nível Mínimo Requerido:</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0" style="font-size: 0.8rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Operação do Sistema</th>
+                            <th>Setor Competente</th>
+                            <th class="text-center">Nível Mínimo</th>
+                            <th>Mecanismo de Controle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Elaborar e Incrementar Pranchas (R00 &rarr; R01)</td>
+                            <td><span class="badge bg-warning text-dark">TECNICO</span></td>
+                            <td class="text-center"><span class="badge bg-secondary">Nível 2 (Operacional)</span></td>
+                            <td>Bloqueio de extensão e auto-incremento</td>
+                        </tr>
+                        <tr>
+                            <td>Despachar Ordem de Serviço (OS Ativa)</td>
+                            <td><span class="badge bg-warning text-dark">TECNICO</span></td>
+                            <td class="text-center"><span class="badge bg-dark">Nível 3 (Coordenação)</span></td>
+                            <td>Exige contrato assinado anexado</td>
+                        </tr>
+                        <tr>
+                            <td>Entrega Definitiva de Obra / Projeto</td>
+                            <td><span class="badge bg-warning text-dark">TECNICO</span></td>
+                            <td class="text-center"><span class="badge bg-primary">Nível 4 (Diretoria)</span></td>
+                            <td>Exige ART aprovada no EDMS</td>
+                        </tr>
+                        <tr>
+                            <td>Aprovar Proposta e Gerar Contrato</td>
+                            <td><span class="badge bg-primary">COMERCIAL</span></td>
+                            <td class="text-center"><span class="badge bg-dark">Nível 3 (Coordenação)</span></td>
+                            <td>Trava imutável de escopo e valores</td>
+                        </tr>
+                        <tr>
+                            <td>Emissão de NFS-e de Serviços</td>
+                            <td><span class="badge bg-success">FINANCEIRO</span></td>
+                            <td class="text-center"><span class="badge bg-secondary">Nível 2 (Operacional)</span></td>
+                            <td>Exige medição com aprovação do cliente</td>
+                        </tr>
+                        <tr>
+                            <td>Liberar Despesa de R$ 5k a R$ 25k</td>
+                            <td><span class="badge bg-success">FINANCEIRO</span></td>
+                            <td class="text-center"><span class="badge bg-dark">Nível 3 (Coordenação)</span></td>
+                            <td>Retenção automática na criação</td>
+                        </tr>
+                        <tr>
+                            <td>Liberar Despesa > R$ 25k</td>
+                            <td><span class="badge bg-success">FINANCEIRO</span></td>
+                            <td class="text-center"><span class="badge bg-primary">Nível 4 (Diretoria)</span></td>
+                            <td>Alçada estatutária de sócios</td>
+                        </tr>
+                        <tr>
+                            <td>Liquidar Pagamento</td>
+                            <td><span class="badge bg-success">FINANCEIRO</span></td>
+                            <td class="text-center"><span class="badge bg-dark">Nível 3 (Coordenação)</span></td>
+                            <td>Obrigatório anexo de comprovante bancário</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Secao 4: Acumulo e Conflito -->
+        <section id="acumulo" class="card card-custom p-4 mb-4">
+            <div class="d-flex align-items-center mb-3">
+                <span class="badge bg-primary rounded-circle p-2 me-2">4</span>
+                <h4 class="fw-bold mb-0 text-dark">Regras de Acúmulo de Funções e Conflito de Interesses</h4>
+            </div>
+
+            <p class="text-secondary leading-relaxed">
+                Para viabilizar a operação em equipes multidisciplinares sem fragilizar o controle interno, são aplicados dois postulados mandatórios:
+            </p>
+
+            <div class="card bg-light border-0 p-3 mb-3">
+                <h6 class="fw-bold text-dark mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i> 1. Princípio da Máxima Autoridade por Setor</h6>
+                <p class="small text-muted mb-0">
+                    O nível hierárquico é estritamente estanque por setor. Ter nível 4 em <code>TECNICO</code> não concede prerrogativas no <code>FINANCEIRO</code> a menos que o usuário possua uma atribuição expressa naquele setor.
+                </p>
+            </div>
+
+            <div class="card bg-light border-0 p-3 mb-3">
+                <h6 class="fw-bold text-dark mb-1"><i class="bi bi-shield-slash-fill text-danger me-1"></i> 2. Segregação Mínima em Operações Sensíveis (Dual Control Mitigado)</h6>
+                <p class="small text-muted mb-2">
+                    Operações financeiramente vinculadas são monitoradas pela trilha de auditoria:
+                </p>
+                <ul class="small text-muted mb-0 ps-3">
+                    <li class="mb-1"><strong>Medição vs. Faturamento:</strong> O colaborador que submete uma medição técnica não deve aprová-la no Comercial sob a mesma alçada sem registro do duplo papel na auditoria.</li>
+                    <li><strong>Lançamento vs. Liberação de Alçada:</strong> Um colaborador com permissão mista pode lançar uma despesa no Administrativo e liberá-la como Financeiro, desde que possua <code>FINANCEIRO Nível 3+</code>. O <code>AuditLog</code> registra o usuário e o IP com os dados da transação.</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-warning py-2 px-3 small mb-0">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                <strong>Dever de Governança do Administrador de TI:</strong> Sempre que um colaborador acumular setores de execução e validação cruzada, certifique-se de definir como <code>Principal</code> o setor de maior alocação de tempo para fins de relatórios analíticos.
+            </div>
+        </section>
+
+    </div>
+</div>
+{% endblock %}
