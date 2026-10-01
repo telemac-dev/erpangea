@@ -1,8 +1,10 @@
+import re
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from .models import User, UserProfile
+from .templatetags.phone_filters import format_phone_br
 
 class UserAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(
@@ -60,8 +62,10 @@ class UserProfileForm(forms.ModelForm):
         widgets = {
             'phone': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '(11) 98765-4321',
-                'maxlength': '20'
+                'placeholder': '(11) 9 9876-5432',
+                'maxlength': '20',
+                'id': 'id_phone',
+                'autocomplete': 'tel'
             }),
             'job_title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -88,6 +92,24 @@ class UserProfileForm(forms.ModelForm):
         if self.instance and self.instance.user:
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial = self.instance.user.last_name
+            if self.instance.phone:
+                self.fields['phone'].initial = format_phone_br(self.instance.phone)
+
+    def clean_phone(self):
+        raw_phone = self.cleaned_data.get('phone', '')
+        if not raw_phone:
+            return ""
+        
+        digits = re.sub(r'\D', '', str(raw_phone))
+        
+        # Validacao da quantidade de digitos para telefones brasileiros (10 ou 11)
+        if len(digits) not in (10, 11):
+            raise ValidationError(
+                _("Número de telefone inválido. Informe o DDD seguido de 8 ou 9 dígitos (ex: (11) 9 9876-5432).")
+            )
+            
+        # Formata padronizado para salvar no banco
+        return format_phone_br(digits)
 
     def save(self, commit=True):
         profile = super().save(commit=commit)
