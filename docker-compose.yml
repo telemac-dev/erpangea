@@ -1,0 +1,121 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: erpangea_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-erpangea_v2}
+      POSTGRES_USER: ${POSTGRES_USER:-pangea_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pangea_secure_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-extensions.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pangea_user} -d ${POSTGRES_DB:-erpangea_v2}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erpangea_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: erpangea_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erpangea_net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: erpangea_web
+    restart: unless-stopped
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - erpangea_net
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: erpangea_worker
+    restart: unless-stopped
+    command: docker/scripts/start-worker.sh
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - erpangea_net
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: erpangea_beat
+    restart: unless-stopped
+    command: docker/scripts/start-beat.sh
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - erpangea_net
+
+volumes:
+  postgres_data:
+    name: erpangea_postgres_data
+  redis_data:
+    name: erpangea_redis_data
+  media_data:
+    name: erpangea_media_data
+
+networks:
+  erpangea_net:
+    name: erpangea_net
+    driver: bridge
