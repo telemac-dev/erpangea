@@ -140,7 +140,7 @@
                         {% if contact.email %}
                         <li class="mb-1">
                             <span class="text-muted me-1"><i class="bi bi-envelope"></i></span>
-                            <a href="mailto">{{ contact.email }}</a>
+                            <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
                         </li>
                         {% endif %}
 
@@ -244,7 +244,11 @@
                             <ul class="list-unstyled small">
                                 <li class="mb-2">
                                     <span class="text-muted d-block">Vendedor Responsável:</span>
-                                    <strong class="text-dark">{{ contact.salesperson.get_full_name|default:contact.salesperson.email|default:"Não atribuído" }}</strong>
+                                    {% if contact.salesperson %}
+                                        <strong class="text-dark">{{ contact.salesperson.get_full_name|default:contact.salesperson.email }}</strong>
+                                    {% else %}
+                                        <span class="text-muted small">Não atribuído</span>
+                                    {% endif %}
                                 </li>
                                 <li class="mb-2">
                                     <span class="text-muted d-block">Condições de Pagamento:</span>
