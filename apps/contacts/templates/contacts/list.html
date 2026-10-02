@@ -262,7 +262,15 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if c.phone %}{{ c.phone|format_phone_br }}{% elif c.mobile %}{{ c.mobile|format_phone_br }}{% else %}<span class="text-muted">-</span>{% endif %}
+                                    {% if c.phone %}
+                                        <div class="text-truncate" style="max-width: 170px;"><i class="bi bi-telephone text-muted me-1"></i>{{ c.phone|format_phone_br }}</div>
+                                    {% endif %}
+                                    {% if c.mobile %}
+                                        <div class="text-muted text-truncate" style="font-size: 0.78rem; max-width: 170px;"><i class="bi bi-whatsapp text-success me-1"></i>{{ c.mobile|format_phone_br }}</div>
+                                    {% endif %}
+                                    {% if not c.phone and not c.mobile %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if c.email %}
@@ -363,6 +371,12 @@
                             {% if c.city or c.state %}
                                 <div class="small text-muted text-truncate mb-1" style="font-size: 0.75rem;" title="{{ c.city }}{% if c.city and c.state %}/{{ c.state }}{% elif c.state %}{{ c.state }}{% endif %}">
                                     <i class="bi bi-geo-alt me-1"></i>{{ c.city }}{% if c.city and c.state %}/{{ c.state }}{% elif c.state %}{{ c.state }}{% endif %}
+                                </div>
+                            {% endif %}
+
+                            {% if c.phone or c.mobile %}
+                                <div class="small text-muted text-truncate mb-1" style="font-size: 0.75rem;" title="{% if c.phone %}{{ c.phone|format_phone_br }}{% else %}{{ c.mobile|format_phone_br }}{% endif %}">
+                                    <i class="bi {% if c.mobile and not c.phone %}bi-whatsapp text-success{% else %}bi-telephone{% endif %} me-1"></i>{% if c.phone %}{{ c.phone|format_phone_br }}{% else %}{{ c.mobile|format_phone_br }}{% endif %}
                                 </div>
                             {% endif %}
 

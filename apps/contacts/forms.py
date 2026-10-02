@@ -2,6 +2,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 from .models import Contact, ContactTag, ContactTypeChoices, AddressTypeChoices, DocTypeChoices
 from .validators import clean_doc_digits, format_document
+from apps.accounts.templatetags.phone_filters import format_phone_br
 
 class ContactForm(forms.ModelForm):
     class Meta:
@@ -62,6 +63,28 @@ class ContactForm(forms.ModelForm):
         # Formata doc_number inicial
         if self.instance and self.instance.doc_number:
             self.fields['doc_number'].initial = self.instance.formatted_doc_number
+        if self.instance and self.instance.phone:
+            self.fields['phone'].initial = format_phone_br(self.instance.phone)
+        if self.instance and self.instance.mobile:
+            self.fields['mobile'].initial = format_phone_br(self.instance.mobile)
+
+    def clean_phone(self):
+        val = self.cleaned_data.get('phone', '')
+        if not val:
+            return ''
+        digits = clean_doc_digits(val)
+        if len(digits) not in (10, 11):
+            raise forms.ValidationError(_('Telefone corporativo deve conter 10 ou 11 dígitos com DDD.'))
+        return format_phone_br(digits)
+
+    def clean_mobile(self):
+        val = self.cleaned_data.get('mobile', '')
+        if not val:
+            return ''
+        digits = clean_doc_digits(val)
+        if len(digits) not in (10, 11):
+            raise forms.ValidationError(_('Celular deve conter 10 ou 11 dígitos com DDD.'))
+        return format_phone_br(digits)
 
 class SubordinateContactForm(forms.ModelForm):
     class Meta:
@@ -76,8 +99,8 @@ class SubordinateContactForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome do Contato ou Identificador do Endereço'}),
             'job_title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Cargo / Função'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@empresa.com.br'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Telefone direto'}),
-            'mobile': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Celular'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '(11) 3333-4444', 'autocomplete': 'tel'}),
+            'mobile': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '(11) 9 9999-8888', 'autocomplete': 'tel'}),
             'street': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Logradouro'}),
             'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número'}),
             'complement': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Complemento'}),
@@ -91,6 +114,28 @@ class SubordinateContactForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['address_type'].initial = AddressTypeChoices.CONTACT
+        if self.instance and self.instance.phone:
+            self.fields['phone'].initial = format_phone_br(self.instance.phone)
+        if self.instance and self.instance.mobile:
+            self.fields['mobile'].initial = format_phone_br(self.instance.mobile)
+
+    def clean_phone(self):
+        val = self.cleaned_data.get('phone', '')
+        if not val:
+            return ''
+        digits = clean_doc_digits(val)
+        if len(digits) not in (10, 11):
+            raise forms.ValidationError(_('Telefone corporativo deve conter 10 ou 11 dígitos com DDD.'))
+        return format_phone_br(digits)
+
+    def clean_mobile(self):
+        val = self.cleaned_data.get('mobile', '')
+        if not val:
+            return ''
+        digits = clean_doc_digits(val)
+        if len(digits) not in (10, 11):
+            raise forms.ValidationError(_('Celular deve conter 10 ou 11 dígitos com DDD.'))
+        return format_phone_br(digits)
 
 class ContactTagForm(forms.ModelForm):
     class Meta:

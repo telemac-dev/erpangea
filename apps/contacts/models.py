@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from .validators import clean_doc_digits, validate_cpf, validate_cnpj, format_document
+from apps.accounts.templatetags.phone_filters import format_phone_br
 
 class ContactTypeChoices(models.TextChoices):
     COMPANY = 'COMPANY', _('Pessoa Jurídica (Empresa)')
@@ -224,6 +225,10 @@ class Contact(models.Model):
     def save(self, *args, **kwargs):
         if self.doc_number:
             self.doc_number = clean_doc_digits(self.doc_number)
+        if self.phone:
+            self.phone = format_phone_br(self.phone)
+        if self.mobile:
+            self.mobile = format_phone_br(self.mobile)
         super().save(*args, **kwargs)
 
     def archive(self):

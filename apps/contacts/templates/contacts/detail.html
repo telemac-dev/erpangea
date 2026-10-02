@@ -222,8 +222,11 @@
                                 {% if sub.email %}
                                     <small class="text-muted d-block mb-1"><i class="bi bi-envelope me-1"></i>{{ sub.email }}</small>
                                 {% endif %}
-                                {% if sub.phone or sub.mobile %}
-                                    <small class="text-muted d-block mb-1"><i class="bi bi-telephone me-1"></i>{{ sub.phone|default:sub.mobile|format_phone_br }}</small>
+                                {% if sub.phone %}
+                                    <small class="text-muted d-block mb-1"><i class="bi bi-telephone me-1"></i>{{ sub.phone|format_phone_br }}</small>
+                                {% endif %}
+                                {% if sub.mobile %}
+                                    <small class="text-muted d-block mb-1"><i class="bi bi-whatsapp text-success me-1"></i>{{ sub.mobile|format_phone_br }}</small>
                                 {% endif %}
                                 {% if sub.display_address and sub.address_type != 'CONTACT' %}
                                     <small class="text-secondary d-block mt-2 pt-2 border-top"><i class="bi bi-geo-alt me-1"></i>{{ sub.display_address }}</small>
