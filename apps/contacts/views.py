@@ -114,6 +114,11 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
             initial['doc_type'] = DocTypeChoices.CNPJ
         return initial
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = False
+        return context
+
     def form_valid(self, form):
         messages.success(self.request, _("Contato cadastrado com sucesso!"))
         return super().form_valid(form)
@@ -125,6 +130,11 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('contacts:detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = True
+        return context
 
     def form_valid(self, form):
         messages.success(self.request, _("Contato atualizado com sucesso!"))
