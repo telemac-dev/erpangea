@@ -132,8 +132,11 @@ class Contact(models.Model):
 
     @property
     def complete_name(self):
-        if self.parent:
-            return f"{self.parent.name}, {self.name}"
+        try:
+            if self.parent_id and self.parent:
+                return f"{self.parent.name}, {self.name}"
+        except Exception:
+            pass
         return self.name
 
     @property
