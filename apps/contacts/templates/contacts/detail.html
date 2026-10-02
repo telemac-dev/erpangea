@@ -203,14 +203,14 @@
                     <div class="row g-3">
                         {% for sub in subordinates %}
                         <div class="col-md-6 col-xl-4">
-                            <div class="card card-custom p-3 h-100 bg-light border-0">
+                            <div class="card card-custom p-3 h-100 bg-light border-0" style="overflow: hidden;">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.7rem;">
                                         {{ sub.get_address_type_display }}
                                     </span>
                                     <a href="{% url 'contacts:detail' sub.pk %}" class="btn btn-link btn-sm p-0 text-secondary" title="Ver detalhes"><i class="bi bi-box-arrow-up-right"></i></a>
                                 </div>
-                                <h6 class="fw-bold text-dark mb-1">{{ sub.name }}</h6>
+                                <h6 class="fw-bold text-dark mb-1 text-truncate-2" title="{{ sub.name }}" style="line-height: 1.25; max-height: 2.6em;">{{ sub.name }}</h6>
                                 {% if sub.job_title %}
                                     <small class="text-muted d-block mb-1">{{ sub.job_title }}</small>
                                 {% endif %}
