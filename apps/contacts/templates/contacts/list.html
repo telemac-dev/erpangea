@@ -316,27 +316,31 @@
             </div>
         </div>
     {% else %}
-        <!-- Visualizacao em Grade Kanban (Padrao Odoo) -->
+        <!-- Visualizacao em Grade Kanban (Padrao Odoo com dimensoes uniformes) -->
         <div class="row g-3">
             {% for c in contacts %}
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card card-custom h-100 p-3 shadow-sm hover-shadow transition-all position-relative" style="cursor: pointer; overflow: hidden;" onclick="window.location.href='{% url 'contacts:detail' c.pk %}'">
-                    <div class="d-flex gap-3 align-items-start" style="min-width: 0;">
+            <div class="col-xl-3 col-lg-4 col-md-6 d-flex align-items-stretch">
+                <div class="card card-custom w-100 p-3 shadow-sm hover-shadow transition-all position-relative d-flex flex-column justify-content-between" 
+                     style="cursor: pointer; height: 195px; min-height: 195px; max-height: 195px; overflow: hidden;" 
+                     onclick="window.location.href='{% url 'contacts:detail' c.pk %}'">
+                    
+                    <!-- Topo do Card: Avatar e Metadados -->
+                    <div class="d-flex gap-2.5 align-items-start" style="min-width: 0;">
                         <!-- Avatar e Sub-Avatar da Empresa Mae -->
-                        <div class="position-relative flex-shrink-0" style="width: 56px; height: 56px;">
+                        <div class="position-relative flex-shrink-0 me-1" style="width: 46px; height: 46px;">
                             {% if c.avatar %}
                                 <img src="{{ c.avatar.url }}" alt="{{ c.name }}" class="rounded-3 border w-100 h-100" style="object-fit: cover;">
                             {% else %}
-                                <div class="rounded-3 {% if c.is_company %}bg-primary{% else %}bg-secondary{% endif %} bg-opacity-10 text-primary w-100 h-100 d-flex align-items-center justify-content-center border" style="font-size: 1.4rem;">
+                                <div class="rounded-3 {% if c.is_company %}bg-primary{% else %}bg-secondary{% endif %} bg-opacity-10 text-primary w-100 h-100 d-flex align-items-center justify-content-center border" style="font-size: 1.25rem;">
                                     <i class="bi {% if c.is_company %}bi-building{% else %}bi-person{% endif %}"></i>
                                 </div>
                             {% endif %}
 
-                            <!-- Sub-avatar da Empresa Mae no canto inferior direito -->
+                            <!-- Sub-avatar da Empresa Mae -->
                             {% if c.parent and c.parent.avatar %}
-                                <img src="{{ c.parent.avatar.url }}" alt="{{ c.parent.name }}" class="position-absolute bottom-0 end-0 rounded-circle border shadow-sm" style="width: 22px; height: 22px; object-fit: cover; background: #fff;" title="Vinculado a {{ c.parent.name }}">
+                                <img src="{{ c.parent.avatar.url }}" alt="{{ c.parent.name }}" class="position-absolute bottom-0 end-0 rounded-circle border shadow-sm" style="width: 18px; height: 18px; object-fit: cover; background: #fff;" title="Vinculado a {{ c.parent.name }}">
                             {% elif c.parent %}
-                                <div class="position-absolute bottom-0 end-0 rounded-circle border bg-white text-secondary d-flex align-items-center justify-content-center shadow-sm" style="width: 22px; height: 22px; font-size: 0.65rem;" title="Vinculado a {{ c.parent.name }}">
+                                <div class="position-absolute bottom-0 end-0 rounded-circle border bg-white text-secondary d-flex align-items-center justify-content-center shadow-sm" style="width: 18px; height: 18px; font-size: 0.55rem;" title="Vinculado a {{ c.parent.name }}">
                                     <i class="bi bi-building"></i>
                                 </div>
                             {% endif %}
@@ -344,60 +348,77 @@
 
                         <!-- Detalhes do Card com corte seguro de texto -->
                         <div class="flex-grow-1 min-w-0" style="min-width: 0; overflow: hidden;">
-                            <h6 class="fw-bold text-dark mb-1 text-truncate-2" title="{{ c.name }}" style="line-height: 1.25; max-height: 2.6em;">
+                            <!-- Nome com fonte reduzida e limite estrito de 2 linhas -->
+                            <div class="fw-bold text-dark text-truncate-2 mb-1 lh-sm" 
+                                 title="{{ c.name }}" 
+                                 style="font-size: 0.85rem; height: 2.3em; overflow: hidden;">
                                 {{ c.name }}
-                            </h6>
+                            </div>
                             
-                            {% if c.parent %}
-                                <div class="text-muted small text-truncate mb-1" style="font-size: 0.75rem;" title="{% if c.is_company %}Controlada por: {{ c.parent.name }}{% else %}{{ c.job_title|default:'Colaborador' }} em {{ c.parent.name }}{% endif %}">
+                            <!-- Subtitulo / Empresa Vinculada -->
+                            <div class="text-muted small text-truncate mb-0.5" style="font-size: 0.72rem; min-height: 1.05rem;" title="{% if c.parent %}{% if c.is_company %}Controlada por: {{ c.parent.name }}{% else %}{{ c.job_title|default:'Colaborador' }} em {{ c.parent.name }}{% endif %}{% elif c.trade_name %}{{ c.trade_name }}{% elif c.job_title %}{{ c.job_title }}{% endif %}">
+                                {% if c.parent %}
                                     <i class="bi bi-arrow-return-right me-1"></i>
                                     {% if c.is_company %}
-                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1" style="font-size: 0.65rem;">{{ c.get_company_subtype_display }}</span> 
-                                        Controlada por: <strong>{{ c.parent.name }}</strong>
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1" style="font-size: 0.62rem;">{{ c.get_company_subtype_display }}</span> 
+                                        {{ c.parent.name }}
                                     {% else %}
-                                        {{ c.job_title|default:"Colaborador" }} em <strong>{{ c.parent.name }}</strong>
+                                        {{ c.job_title|default:"Colaborador" }} &bull; {{ c.parent.name }}
                                     {% endif %}
-                                </div>
-                            {% elif c.trade_name %}
-                                <div class="text-muted small text-truncate mb-1" style="font-size: 0.75rem;" title="{{ c.trade_name }}">{{ c.trade_name }}</div>
-                            {% endif %}
-
-                            {% if c.doc_number %}
-                                <div class="small text-muted mb-1 text-truncate" style="font-size: 0.75rem;">
-                                    <code>{{ c.formatted_doc_number }}</code>
-                                </div>
-                            {% endif %}
-
-                            {% if c.city or c.state %}
-                                <div class="small text-muted text-truncate mb-1" style="font-size: 0.75rem;" title="{{ c.city }}{% if c.city and c.state %}/{{ c.state }}{% elif c.state %}{{ c.state }}{% endif %}">
-                                    <i class="bi bi-geo-alt me-1"></i>{{ c.city }}{% if c.city and c.state %}/{{ c.state }}{% elif c.state %}{{ c.state }}{% endif %}
-                                </div>
-                            {% endif %}
-
-                            {% if c.phone or c.mobile %}
-                                <div class="small text-muted text-truncate mb-1" style="font-size: 0.75rem;" title="{% if c.phone %}{{ c.phone|format_phone_br }}{% else %}{{ c.mobile|format_phone_br }}{% endif %}">
-                                    <i class="bi {% if c.mobile and not c.phone %}bi-whatsapp text-success{% else %}bi-telephone{% endif %} me-1"></i>{% if c.phone %}{{ c.phone|format_phone_br }}{% else %}{{ c.mobile|format_phone_br }}{% endif %}
-                                </div>
-                            {% endif %}
-
-                            {% if c.email %}
-                                <div class="small text-muted text-truncate" style="font-size: 0.75rem;" title="{{ c.email }}">
-                                    <i class="bi bi-envelope me-1"></i>{{ c.email }}
-                                </div>
-                            {% endif %}
-
-                            <!-- Marcadores / Tags com corte horizontal -->
-                            {% if c.tags.exists %}
-                            <div class="d-flex flex-wrap gap-1 mt-2" style="overflow: hidden; max-height: 38px;">
-                                {% for t in c.tags.all %}
-                                    <span class="badge bg-light text-dark border text-truncate" style="max-width: 120px; font-size: 0.65rem; border-color: {{ t.color }} !important;" title="{{ t.name }}">
-                                        {{ t.name }}
-                                    </span>
-                                {% endfor %}
+                                {% elif c.trade_name %}
+                                    {{ c.trade_name }}
+                                {% elif c.job_title %}
+                                    {{ c.job_title }}
+                                {% else %}
+                                    <span class="opacity-0">-</span>
+                                {% endif %}
                             </div>
+
+                            <!-- Documento CNPJ / CPF -->
+                            <div class="text-muted text-truncate mb-0.5" style="font-size: 0.72rem; min-height: 1.05rem;">
+                                {% if c.doc_number %}
+                                    <code>{{ c.formatted_doc_number }}</code>
+                                {% else %}
+                                    <span class="opacity-0">-</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Localização e Telefone (Linha combinada ou empilhada concisa) -->
+                            <div class="text-muted text-truncate" style="font-size: 0.72rem; min-height: 1.05rem;" title="{% if c.city or c.state %}{{ c.city }}{% if c.city and c.state %}/{{ c.state }}{% elif c.state %}{{ c.state }}{% endif %}{% endif %}{% if c.phone %} &bull; {{ c.phone|format_phone_br }}{% elif c.mobile %} &bull; {{ c.mobile|format_phone_br }}{% endif %}">
+                                {% if c.city or c.state %}
+                                    <i class="bi bi-geo-alt me-1 text-secondary"></i>{{ c.city }}{% if c.city and c.state %}/{{ c.state }}{% elif c.state %}{{ c.state }}{% endif %}
+                                {% elif c.phone %}
+                                    <i class="bi bi-telephone me-1 text-secondary"></i>{{ c.phone|format_phone_br }}
+                                {% elif c.mobile %}
+                                    <i class="bi bi-whatsapp me-1 text-success"></i>{{ c.mobile|format_phone_br }}
+                                {% else %}
+                                    <span class="opacity-0">-</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rodapé Fixo do Card: Marcadores / Tags e Tipo PJ/PF -->
+                    <div class="mt-auto pt-1.5 border-top d-flex align-items-center justify-content-between" style="min-height: 26px;">
+                        <div class="d-flex flex-nowrap gap-1 overflow-hidden" style="max-width: 80%;">
+                            {% for t in c.tags.all %}
+                                <span class="badge bg-light text-dark border text-truncate flex-shrink-0" style="max-width: 105px; font-size: 0.62rem; border-color: {{ t.color }} !important;" title="{{ t.name }}">
+                                    <span class="d-inline-block rounded-circle me-1" style="width: 5px; height: 5px; background-color: {{ t.color }};"></span>
+                                    {{ t.name }}
+                                </span>
+                            {% empty %}
+                                <span class="text-muted" style="font-size: 0.68rem;">Sem marcadores</span>
+                            {% endfor %}
+                        </div>
+                        <div>
+                            {% if c.is_company %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.62rem;">PJ</span>
+                            {% else %}
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.62rem;">PF</span>
                             {% endif %}
                         </div>
                     </div>
+
                 </div>
             </div>
             {% endfor %}
