@@ -1,0 +1,140 @@
+<div class="modal-header {% if contact.is_active %}bg-warning bg-opacity-10 border-bottom border-warning border-opacity-25{% else %}bg-success bg-opacity-10 border-bottom border-success border-opacity-25{% endif %} py-3">
+    <h5 class="modal-title fw-bold {% if contact.is_active %}text-dark{% else %}text-success{% endif %} d-flex align-items-center gap-2">
+        {% if contact.is_active %}
+            <i class="bi bi-archive-fill text-warning fs-4"></i> Confirmar Arquivamento de Contato
+        {% else %}
+            <i class="bi bi-arrow-counterclockwise text-success fs-4"></i> Confirmar Desarquivamento / Reativação
+        {% endif %}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<form method="post" action="{% url 'contacts:archive_toggle' contact.pk %}">
+    {% csrf_token %}
+    <div class="modal-body p-4">
+        <!-- 1. Identificação do Registro-Alvo -->
+        <div class="card bg-light border-0 p-3 mb-4">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="badge {% if contact.is_company %}bg-primary{% else %}bg-info{% endif %} bg-opacity-10 {% if contact.is_company %}text-primary{% else %}text-info{% endif %} border mb-1" style="font-size: 0.7rem;">
+                        {{ contact.get_contact_type_display }}
+                    </span>
+                    <h6 class="fw-bold text-dark mb-0">{{ contact.name }}</h6>
+                    {% if contact.trade_name %}
+                        <small class="text-muted d-block">{{ contact.trade_name }}</small>
+                    {% endif %}
+                </div>
+                <div class="text-end small">
+                    {% if contact.doc_number %}
+                        <code>{{ contact.formatted_doc_number }}</code><br>
+                    {% endif %}
+                    <span class="text-muted">{{ contact.city|default:"-" }}{% if contact.state %}/{{ contact.state }}{% endif %}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if contact.is_active %}
+            <!-- 2. O Que Acontecerá Após o Arquivamento -->
+            <div class="mb-4">
+                <h6 class="text-uppercase text-secondary fw-bold small mb-2 tracking-wider">
+                    <i class="bi bi-info-circle-fill text-primary me-1"></i> O Que Acontecerá com Este Registro:
+                </h6>
+                <div class="border rounded-3 p-3 bg-white">
+                    <ul class="list-unstyled mb-0 small text-secondary">
+                        <li class="mb-2 d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-success flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong>Desativação Cadastral (Soft Delete):</strong> O contato será marcado como inativo e deixará de figurar nas listagens ativas, buscas correntes e novas propostas comerciais.
+                            </div>
+                        </li>
+                        <li class="mb-2 d-flex align-items-start gap-2">
+                            <i class="bi bi-shield-fill-check text-primary flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong>Integridade Histórica 100% Preservada:</strong> Todos os contratos, propostas, medições de campo, faturas e tarefas associadas permanecem intactos sem qualquer perda de dados.
+                            </div>
+                        </li>
+                        <li class="mb-2 d-flex align-items-start gap-2">
+                            <i class="bi bi-arrow-repeat text-info flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong>Recuperabilidade Total:</strong> O cadastro pode ser consultado a qualquer momento utilizando o filtro <em>"Contatos Arquivados"</em> e poderá ser reativado quando necessário.
+                            </div>
+                        </li>
+                        <li class="d-flex align-items-start gap-2">
+                            <i class="bi bi-journal-text text-secondary flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong>Trilha de Auditoria:</strong> Esta operação será registrada de forma permanente e rastreável no <code>AuditLog</code> com seu usuário, data e IP.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        {% else %}
+            <!-- Explicacao de Desarquivamento -->
+            <div class="alert alert-info py-2 px-3 small mb-4">
+                <i class="bi bi-info-circle me-1"></i>
+                Ao desarquivar, este contato retornará à listagem principal de contatos ativos e poderá ser selecionado novamente em propostas, contratos e medições.
+            </div>
+        {% endif %}
+
+        <!-- 3. Nível de Permissões Necessárias (Governança RBAC) -->
+        <div class="mb-2">
+            <h6 class="text-uppercase text-secondary fw-bold small mb-2 tracking-wider">
+                <i class="bi bi-shield-lock-fill text-primary me-1"></i> Alçadas & Permissões Exigidas (RBAC):
+            </h6>
+            <div class="card {% if is_authorized %}border-success border-opacity-25 bg-success bg-opacity-10{% else %}border-danger border-opacity-25 bg-danger bg-opacity-10{% endif %} p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small fw-bold {% if is_authorized %}text-success{% else %}text-danger{% endif %}">
+                        {% if is_authorized %}
+                            <i class="bi bi-check-circle-fill me-1"></i> Seu perfil possui autorização para esta ação
+                        {% else %}
+                            <i class="bi bi-slash-circle-fill me-1"></i> Seu perfil NÃO possui permissão para esta ação
+                        {% endif %}
+                    </span>
+                    <span class="badge {% if is_authorized %}bg-success{% else %}bg-danger{% endif %} px-2 py-1" style="font-size: 0.7rem;">
+                        {% if is_authorized %}Alçada Validada{% else %}Acesso Bloqueado{% endif %}
+                    </span>
+                </div>
+
+                <div class="small text-muted mb-2" style="font-size: 0.78rem;">
+                    <strong>Regra de Governança:</strong> O arquivamento de parceiros e clientes é restrito aos seguintes setores e níveis mínimos:
+                </div>
+                <ul class="small text-muted mb-2 ps-3" style="font-size: 0.78rem;">
+                    {% for sec_req in required_sectors %}
+                        <li>{{ sec_req }}</li>
+                    {% endfor %}
+                </ul>
+
+                <div class="border-top pt-2 mt-1 small" style="font-size: 0.75rem;">
+                    <strong>Suas Atribuições Atuais:</strong>
+                    {% for a in user_assignments %}
+                        <span class="badge bg-light text-dark border me-1">{{ a.get_sector_display }}: {{ a.get_level_display }}</span>
+                    {% empty %}
+                        <span class="text-muted">Nenhum setor atribuído</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé com Ações -->
+    <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">
+            Cancelar
+        </button>
+        {% if is_authorized %}
+            {% if contact.is_active %}
+                <button type="submit" class="btn btn-warning btn-sm px-4 fw-semibold shadow-sm text-dark">
+                    <i class="bi bi-archive me-1"></i> Confirmar Arquivamento
+                </button>
+            {% else %}
+                <button type="submit" class="btn btn-success btn-sm px-4 fw-semibold shadow-sm">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Confirmar Reativação
+                </button>
+            {% endif %}
+        {% else %}
+            <button type="button" class="btn btn-secondary btn-sm px-4 fw-semibold" disabled title="Você não possui o nível hierárquico necessário">
+                <i class="bi bi-lock me-1"></i> Ação Não Permitida
+            </button>
+        {% endif %}
+    </div>
+</form>

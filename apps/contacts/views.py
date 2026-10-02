@@ -10,7 +10,9 @@ from django.http import HttpResponse, JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Count
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
+from apps.accounts.models import SectorChoices, HierarchyLevel
+from apps.accounts.permissions import has_role
 
 from .models import Contact, ContactTag, ContactTypeChoices, AddressTypeChoices, DocTypeChoices
 from .forms import (
@@ -140,15 +142,63 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
         messages.success(self.request, _("Contato atualizado com sucesso!"))
         return super().form_valid(form)
 
+def user_can_archive_contact(user):
+    """
+    Regra de Governanca RBAC: Apenas colaboradores com nivel de Coordenacao (3) ou Diretoria (4)
+    nos setores Administrativo ou Comercial, ou nivel Operacional (2+) em TI, ou Superusuarios
+    podem arquivar ou desarquivar contatos.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return (
+        has_role(user, SectorChoices.ADMINISTRATIVO, HierarchyLevel.COORDENACAO) or
+        has_role(user, SectorChoices.COMERCIAL, HierarchyLevel.COORDENACAO) or
+        has_role(user, SectorChoices.TI, HierarchyLevel.OPERACIONAL)
+    )
+
 class ContactArchiveToggleView(LoginRequiredMixin, View):
+    """
+    Modal de confirmacao e execucao de arquivamento (Soft Delete) com explicacao detalhada e validacao RBAC.
+    """
+    def get(self, request, pk):
+        contact = get_object_or_404(Contact, pk=pk)
+        is_authorized = user_can_archive_contact(request.user)
+        user_assignments = request.user.sector_assignments.all() if request.user.is_authenticated else []
+
+        return render(request, 'contacts/partials/archive_modal.html', {
+            'contact': contact,
+            'is_authorized': is_authorized,
+            'user_assignments': user_assignments,
+            'required_sectors': [
+                "Administrativo (Nível 3 - Coordenação ou superior)",
+                "Comercial (Nível 3 - Coordenação ou superior)",
+                "TI & Infraestrutura (Nível 2 - Operacional ou superior)",
+                "Diretoria Corporativa / Superusuários"
+            ]
+        })
+
     def post(self, request, pk):
         contact = get_object_or_404(Contact, pk=pk)
+
+        if not user_can_archive_contact(request.user):
+            raise PermissionDenied(
+                _("Acesso negado: seu perfil não possui alçada para arquivar ou desarquivar contatos. "
+                  "Esta operação exige nível mínimo de Coordenação (Nível 3) no Administrativo/Comercial ou setor de TI.")
+            )
+
         if contact.is_active:
             contact.archive()
             messages.warning(request, _(f"Contato '{contact.name}' foi arquivado com sucesso."))
         else:
             contact.unarchive()
-            messages.success(request, _(f"Contato '{contact.name}' foi desarquivado com sucesso."))
+            messages.success(request, _(f"Contato '{contact.name}' foi reativado / desarquivado com sucesso."))
+
+        if request.htmx:
+            response = HttpResponse("")
+            response['HX-Redirect'] = reverse('contacts:list')
+            return response
         return redirect('contacts:list')
 
 class ContactValidateDocumentView(LoginRequiredMixin, View):

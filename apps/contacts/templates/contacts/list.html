@@ -306,6 +306,15 @@
                                         <a href="{% url 'contacts:edit' c.pk %}" class="btn btn-outline-secondary py-0 px-2" title="Editar Contato">
                                             <i class="bi bi-pencil"></i>
                                         </a>
+                                        <button type="button" 
+                                                class="btn btn-outline-secondary py-0 px-2 {% if not c.is_active %}text-success{% else %}text-muted{% endif %}"
+                                                title="{% if c.is_active %}Arquivar Contato com Confirmação{% else %}Desarquivar Contato{% endif %}"
+                                                hx-get="{% url 'contacts:archive_toggle' c.pk %}"
+                                                hx-target="#contactModalContent"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#contactModal">
+                                            <i class="bi {% if c.is_active %}bi-archive{% else %}bi-arrow-counterclockwise{% endif %}"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

@@ -33,18 +33,27 @@
         <a href="{% url 'contacts:edit' contact.pk %}" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
             <i class="bi bi-pencil me-1"></i> Editar Contato
         </a>
-        <form method="post" action="{% url 'contacts:archive_toggle' contact.pk %}" class="m-0">
-            {% csrf_token %}
-            {% if contact.is_active %}
-                <button type="submit" class="btn btn-outline-secondary btn-sm shadow-sm" title="Ocultar contato mantendo integridade histórica">
-                    <i class="bi bi-archive me-1"></i> Arquivar
-                </button>
-            {% else %}
-                <button type="submit" class="btn btn-outline-success btn-sm shadow-sm" title="Reativar contato">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Desarquivar
-                </button>
-            {% endif %}
-        </form>
+        {% if contact.is_active %}
+            <button type="button" 
+                    class="btn btn-outline-secondary btn-sm shadow-sm" 
+                    title="Arquivar contato com confirmação e verificação de alçada"
+                    hx-get="{% url 'contacts:archive_toggle' contact.pk %}"
+                    hx-target="#contactModalContent"
+                    data-bs-toggle="modal"
+                    data-bs-target="#contactModal">
+                <i class="bi bi-archive me-1"></i> Arquivar
+            </button>
+        {% else %}
+            <button type="button" 
+                    class="btn btn-outline-success btn-sm shadow-sm" 
+                    title="Reativar contato com confirmação"
+                    hx-get="{% url 'contacts:archive_toggle' contact.pk %}"
+                    hx-target="#contactModalContent"
+                    data-bs-toggle="modal"
+                    data-bs-target="#contactModal">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Desarquivar
+            </button>
+        {% endif %}
     </div>
 </div>
 

@@ -123,7 +123,7 @@ class ContactsModuleTestCase(TestCase):
             duplicate.clean()
         self.assertIn('doc_number', cm.exception.message_dict)
 
-    # Cenário 4: Arquivamento e Desarquivamento (Soft Delete)
+    # Cenário 4: Arquivamento e Desarquivamento (Soft Delete) com Modal e RBAC
     def test_soft_delete_archive_and_unarchive(self):
         contact = Contact.objects.create(
             name='Consultoria Histórica Ltda',
@@ -131,21 +131,33 @@ class ContactsModuleTestCase(TestCase):
         )
         self.assertTrue(contact.is_active)
 
-        # Arquiva
-        contact.archive()
+        # 4.1 GET no modal de confirmacao deve retornar 200 com explicacao e status de permissao
+        res_modal = self.client.get(f'/contacts/{contact.pk}/archive-toggle/')
+        self.assertEqual(res_modal.status_code, 200)
+        html_modal = res_modal.content.decode('utf-8')
+        self.assertIn('Confirmar Arquivamento de Contato', html_modal)
+        self.assertIn('Desativação Cadastral (Soft Delete)', html_modal)
+        self.assertIn('Integridade Histórica 100% Preservada', html_modal)
+        self.assertIn('Recuperabilidade Total', html_modal)
+        self.assertIn('Alçada Validada', html_modal)
+
+        # 4.2 POST por usuario autorizado arquiva o contato
+        res_archive = self.client.post(f'/contacts/{contact.pk}/archive-toggle/')
+        self.assertEqual(res_archive.status_code, 302)
         contact.refresh_from_db()
         self.assertFalse(contact.is_active)
 
         # Desaparece da listagem ativa
         res_active = self.client.get('/contacts/')
-        self.assertNotContains(res_active, 'Consultoria Histórica Ltda')
+        self.assertNotIn(contact, res_active.context['contacts'])
 
         # Aparece na listagem com filtro de arquivados
         res_archived = self.client.get('/contacts/?filter=archived')
-        self.assertContains(res_archived, 'Consultoria Histórica Ltda')
+        self.assertIn(contact, res_archived.context['contacts'])
 
-        # Desarquiva
-        contact.unarchive()
+        # 4.3 Desarquiva via endpoint
+        res_unarchive = self.client.post(f'/contacts/{contact.pk}/archive-toggle/')
+        self.assertEqual(res_unarchive.status_code, 302)
         contact.refresh_from_db()
         self.assertTrue(contact.is_active)
 
