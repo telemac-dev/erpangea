@@ -83,7 +83,7 @@ class Contact(models.Model):
     city = models.CharField(_('Cidade'), max_length=100, blank=True, db_index=True)
     state = models.CharField(_('Estado / UF'), max_length=2, blank=True, db_index=True)
     postal_code = models.CharField(_('CEP'), max_length=10, blank=True)
-    country = models.CharField(_('País'), max_length=50, default='Brasil')
+    country = models.CharField(_('País'), max_length=50, default='Brasil', blank=True)
 
     # Comunicacao e canais
     phone = models.CharField(_('Telefone'), max_length=25, blank=True)

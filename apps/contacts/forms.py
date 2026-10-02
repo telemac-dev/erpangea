@@ -19,7 +19,7 @@ class ContactForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control form-control-lg', 'placeholder': 'ex.: Pangea Engenharia Ltda. ou Dr. Carlos Silva', 'autofocus': True}),
             'trade_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome Fantasia corporativo'}),
             'parent': forms.Select(attrs={'class': 'form-select'}),
-            'doc_type': forms.Select(attrs={'class': 'form-select'}),
+            'doc_type': forms.Select(attrs={'class': 'form-select', 'id': 'id_doc_type'}),
             'doc_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apenas números ou formatado', 'id': 'id_doc_number'}),
             'state_registration': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Inscrição Estadual'}),
             'municipal_registration': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Inscrição Municipal'}),
@@ -53,14 +53,16 @@ class ContactForm(forms.ModelForm):
         self.fields['parent'].queryset = company_qs
         self.fields['parent'].empty_label = _("(Nenhuma empresa vinculada - Contato Independente)")
 
+        # País default Brasil
+        self.fields['country'].required = False
+        if not self.instance.country:
+            self.fields['country'].initial = 'Brasil'
+
         # Formata doc_number inicial
         if self.instance and self.instance.doc_number:
             self.fields['doc_number'].initial = self.instance.formatted_doc_number
 
 class SubordinateContactForm(forms.ModelForm):
-    """
-    Formulario para criacao rapida de contato subordinado ou endereco secundario via modal.
-    """
     class Meta:
         model = Contact
         fields = [
@@ -84,6 +86,10 @@ class SubordinateContactForm(forms.ModelForm):
             'postal_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CEP'}),
             'internal_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Observações adicionais...'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['address_type'].initial = AddressTypeChoices.CONTACT
 
 class ContactTagForm(forms.ModelForm):
     class Meta:
