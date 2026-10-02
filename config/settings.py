@@ -39,6 +39,7 @@ INSTALLED_APPS = [
         # Apps de Dominio
     'apps.accounts',
     'apps.audit_log',
+    'apps.contacts',
 ]
 
 MIDDLEWARE = [

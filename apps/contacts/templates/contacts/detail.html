@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load phone_filters %}
+
+{% block title %}{{ contact.complete_name }} - Contatos | ERPangea{% endblock %}
+
+{% block content %}
+<!-- Cabecalho e Acoes do Registro -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-2 border-bottom">
+    <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'contacts:list' %}" class="btn btn-outline-secondary btn-sm shadow-sm" title="Voltar para a listagem">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="{% url 'contacts:list' %}" class="text-decoration-none">Contatos</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ contact.name }}</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                {{ contact.name }}
+                {% if not contact.is_active %}
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 fs-7">
+                        <i class="bi bi-archive me-1"></i> Arquivado
+                    </span>
+                {% endif %}
+            </h4>
+        </div>
+    </div>
+
+    <!-- Botoes de Acao do Registro -->
+    <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'contacts:edit' contact.pk %}" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
+            <i class="bi bi-pencil me-1"></i> Editar Contato
+        </a>
+        <form method="post" action="{% url 'contacts:archive_toggle' contact.pk %}" class="m-0">
+            {% csrf_token %}
+            {% if contact.is_active %}
+                <button type="submit" class="btn btn-outline-secondary btn-sm shadow-sm" title="Ocultar contato mantendo integridade histórica">
+                    <i class="bi bi-archive me-1"></i> Arquivar
+                </button>
+            {% else %}
+                <button type="submit" class="btn btn-outline-success btn-sm shadow-sm" title="Reativar contato">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Desarquivar
+                </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Coluna Principal do Formulario -->
+    <div class="col-lg-12">
+        <div class="card card-custom p-4 shadow-sm">
+            <!-- Ficha Superior: Foto, Tipo, Identificacao e Endereco -->
+            <div class="row g-4 border-bottom pb-4 mb-4">
+                <!-- Avatar / Logo -->
+                <div class="col-md-2 text-center text-md-start">
+                    <div class="position-relative d-inline-block">
+                        {% if contact.avatar %}
+                            <img src="{{ contact.avatar.url }}" alt="{{ contact.name }}" class="rounded-3 border shadow-sm" style="width: 110px; height: 110px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-3 {% if contact.is_company %}bg-primary{% else %}bg-secondary{% endif %} bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center border" style="width: 110px; height: 110px; font-size: 2.5rem;">
+                                <i class="bi {% if contact.is_company %}bi-building{% else %}bi-person{% endif %}"></i>
+                            </div>
+                        {% endif %}
+
+                        {% if contact.parent and contact.parent.avatar %}
+                            <img src="{{ contact.parent.avatar.url }}" alt="{{ contact.parent.name }}" class="position-absolute bottom-0 end-0 rounded-circle border shadow-sm" style="width: 32px; height: 32px; object-fit: cover; background: #fff;" title="Vinculado a {{ contact.parent.name }}">
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Dados Cadastrais Principais -->
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        {% if contact.is_company %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1 small">
+                                <i class="bi bi-building me-1"></i> Pessoa Jurídica (Empresa)
+                            </span>
+                        {% else %}
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2.5 py-1 small">
+                                <i class="bi bi-person me-1"></i> Pessoa Física (Individual)
+                            </span>
+                        {% endif %}
+
+                        {% if contact.parent %}
+                            <span class="badge bg-light text-dark border small">
+                                <i class="bi bi-diagram-2 me-1"></i> Vinculado a: <strong>{{ contact.parent.name }}</strong>
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="fw-bold text-dark mb-1">{{ contact.name }}</h3>
+                    {% if contact.trade_name %}
+                        <h6 class="text-secondary mb-2">{{ contact.trade_name }}</h6>
+                    {% endif %}
+
+                    {% if contact.job_title %}
+                        <div class="text-muted small mb-2"><i class="bi bi-briefcase me-1"></i>{{ contact.job_title }}</div>
+                    {% endif %}
+
+                    <!-- Marcadores -->
+                    {% if contact.tags.exists %}
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        {% for t in contact.tags.all %}
+                            <span class="badge bg-light text-dark border px-2 py-1 small" style="border-color: {{ t.color }} !important;">
+                                <span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background-color: {{ t.color }};"></span>
+                                {{ t.name }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Dados Fiscais e Contato Imediato -->
+                <div class="col-md-4 border-start-md ps-md-4">
+                    <ul class="list-unstyled small mb-0">
+                        {% if contact.doc_number %}
+                        <li class="mb-2">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;">{{ contact.get_doc_type_display }}:</span>
+                            <code class="fs-6 fw-bold text-dark">{{ contact.formatted_doc_number }}</code>
+                        </li>
+                        {% endif %}
+
+                        {% if contact.phone %}
+                        <li class="mb-1">
+                            <span class="text-muted me-1"><i class="bi bi-telephone"></i></span>
+                            <strong>{{ contact.phone|format_phone_br }}</strong>
+                        </li>
+                        {% endif %}
+
+                        {% if contact.mobile %}
+                        <li class="mb-1">
+                            <span class="text-muted me-1"><i class="bi bi-phone"></i></span>
+                            <span>{{ contact.mobile|format_phone_br }}</span>
+                        </li>
+                        {% endif %}
+
+                        {% if contact.email %}
+                        <li class="mb-1">
+                            <span class="text-muted me-1"><i class="bi bi-envelope"></i></span>
+                            <a href="mailto">{{ contact.email }}</a>
+                        </li>
+                        {% endif %}
+
+                        {% if contact.website %}
+                        <li class="mb-1">
+                            <span class="text-muted me-1"><i class="bi bi-globe"></i></span>
+                            <a href="{{ contact.website }}" target="_blank" rel="noopener">{{ contact.website }}</a>
+                        </li>
+                        {% endif %}
+
+                        {% if contact.display_address %}
+                        <li class="mt-2 pt-2 border-top">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;"><i class="bi bi-geo-alt me-1"></i>Endereço Principal:</span>
+                            <span class="text-secondary">{{ contact.display_address }}</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Abas do Registro (Notebook) -->
+            <ul class="nav nav-tabs mb-4" id="contactTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold" id="subordinates-tab" data-bs-toggle="tab" data-bs-target="#subordinates" type="button" role="tab">
+                        <i class="bi bi-people me-1"></i> Contatos e Endereços
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1">{{ subordinates|length }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="commercial-tab" data-bs-toggle="tab" data-bs-target="#commercial" type="button" role="tab">
+                        <i class="bi bi-briefcase me-1"></i> Vendas & Compras
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="fiscal-tab" data-bs-toggle="tab" data-bs-target="#fiscal" type="button" role="tab">
+                        <i class="bi bi-receipt me-1"></i> Dados Fiscais
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
+                        <i class="bi bi-card-text me-1"></i> Anotações Internas
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="contactTabsContent">
+                <!-- Aba 1: Contatos Subordinados e Enderecos -->
+                <div class="tab-pane fade show active" id="subordinates" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0 text-dark">Contatos Subordinados & Unidades Cadastradas</h6>
+                        <button class="btn btn-outline-primary btn-sm fw-semibold shadow-sm"
+                                hx-get="{% url 'contacts:add_subordinate' contact.pk %}"
+                                hx-target="#contactModalContent"
+                                data-bs-toggle="modal"
+                                data-bs-target="#contactModal">
+                            <i class="bi bi-plus-lg me-1"></i> Adicionar Vínculo / Endereço
+                        </button>
+                    </div>
+
+                    <div class="row g-3">
+                        {% for sub in subordinates %}
+                        <div class="col-md-6 col-xl-4">
+                            <div class="card card-custom p-3 h-100 bg-light border-0">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.7rem;">
+                                        {{ sub.get_address_type_display }}
+                                    </span>
+                                    <a href="{% url 'contacts:detail' sub.pk %}" class="btn btn-link btn-sm p-0 text-secondary" title="Ver detalhes"><i class="bi bi-box-arrow-up-right"></i></a>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-1">{{ sub.name }}</h6>
+                                {% if sub.job_title %}
+                                    <small class="text-muted d-block mb-1">{{ sub.job_title }}</small>
+                                {% endif %}
+                                {% if sub.email %}
+                                    <small class="text-muted d-block mb-1"><i class="bi bi-envelope me-1"></i>{{ sub.email }}</small>
+                                {% endif %}
+                                {% if sub.phone or sub.mobile %}
+                                    <small class="text-muted d-block mb-1"><i class="bi bi-telephone me-1"></i>{{ sub.phone|default:sub.mobile|format_phone_br }}</small>
+                                {% endif %}
+                                {% if sub.display_address and sub.address_type != 'CONTACT' %}
+                                    <small class="text-secondary d-block mt-2 pt-2 border-top"><i class="bi bi-geo-alt me-1"></i>{{ sub.display_address }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <div class="text-center py-4 text-muted small bg-light rounded-3 border-dashed">
+                                <i class="bi bi-people fs-3 d-block mb-2 opacity-50"></i>
+                                Nenhum contato subordinado ou endereço secundário vinculado a esta empresa.
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Aba 2: Vendas e Compras -->
+                <div class="tab-pane fade" id="commercial" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Vendas & Comercial</h6>
+                            <ul class="list-unstyled small">
+                                <li class="mb-2">
+                                    <span class="text-muted d-block">Vendedor Responsável:</span>
+                                    <strong class="text-dark">{{ contact.salesperson.get_full_name|default:contact.salesperson.email|default:"Não atribuído" }}</strong>
+                                </li>
+                                <li class="mb-2">
+                                    <span class="text-muted d-block">Condições de Pagamento:</span>
+                                    <strong class="text-dark">{{ contact.payment_terms|default:"Padrão do Contrato" }}</strong>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Compras & Operações</h6>
+                            <ul class="list-unstyled small">
+                                <li class="mb-2">
+                                    <span class="text-muted d-block">Relação Corporativa:</span>
+                                    <strong class="text-dark">{% if contact.is_company %}Fornecedor / Parceiro PJ{% else %}Pessoa Física{% endif %}</strong>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba 3: Dados Fiscais -->
+                <div class="tab-pane fade" id="fiscal" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-light">
+                                <span class="text-muted small d-block">Inscrição Estadual (IE):</span>
+                                <strong class="text-dark">{{ contact.state_registration|default:"Não informada / Isento" }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-light">
+                                <span class="text-muted small d-block">Inscrição Municipal (IM):</span>
+                                <strong class="text-dark">{{ contact.municipal_registration|default:"Não informada" }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-light">
+                                <span class="text-muted small d-block">Código SUFRAMA:</span>
+                                <strong class="text-dark">{{ contact.suframa_code|default:"Não aplicável" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba 4: Anotacoes Internas -->
+                <div class="tab-pane fade" id="notes" role="tabpanel">
+                    <div class="p-3 border rounded-3 bg-light">
+                        <h6 class="fw-bold text-dark mb-2">Histórico & Observações Confidenciais</h6>
+                        {% if contact.internal_notes %}
+                            <p class="mb-0 text-secondary" style="white-space: pre-line;">{{ contact.internal_notes }}</p>
+                        {% else %}
+                            <p class="text-muted mb-0 small fst-italic">Nenhuma anotação interna registrada para este contato.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container para Subordinados -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="contactModalContent"></div>
+    </div>
+</div>
+{% endblock %}

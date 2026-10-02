@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if form.instance.pk %}Editar: {{ form.instance.name }}{% else %}Novo Contato{% endif %} - ERPangea
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div class="d-flex align-items-center gap-2">
+        <a href="{% if form.instance.pk %}{% url 'contacts:detail' form.instance.pk %}{% else %}{% url 'contacts:list' %}{% endif %}" class="btn btn-outline-secondary btn-sm shadow-sm">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="{% url 'contacts:list' %}" class="text-decoration-none">Contatos</a></li>
+                    <li class="breadcrumb-item active">{% if form.instance.pk %}Editar Cadastro{% else %}Novo Contato{% endif %}</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0 text-dark">
+                {% if form.instance.pk %}
+                    <i class="bi bi-pencil-square text-primary me-1"></i> Editar: {{ form.instance.name }}
+                {% else %}
+                    <i class="bi bi-person-plus-fill text-primary me-1"></i> Cadastrar Novo Contato
+                {% endif %}
+            </h4>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom p-4 shadow-sm">
+    <form method="post" enctype="multipart/form-data" novalidate id="contactMainForm">
+        {% csrf_token %}
+        <input type="hidden" name="contact_id" value="{{ form.instance.pk|default:'' }}">
+
+        <!-- 1. Tipo de Entidade (Radio Seletor em Botoes) -->
+        <div class="mb-4 p-3 bg-light rounded-3 border">
+            <label class="form-label small fw-bold text-secondary text-uppercase mb-2">Classificação de Pessoa</label>
+            <div class="d-flex gap-3">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="contact_type" id="type_company" value="COMPANY" {% if form.contact_type.value == 'COMPANY' or not form.contact_type.value %}checked{% endif %}>
+                    <label class="form-check-label fw-bold text-dark" for="type_company">
+                        <i class="bi bi-building text-primary me-1"></i> Pessoa Jurídica (Empresa)
+                    </label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="contact_type" id="type_individual" value="INDIVIDUAL" {% if form.contact_type.value == 'INDIVIDUAL' %}checked{% endif %}>
+                    <label class="form-check-label fw-bold text-dark" for="type_individual">
+                        <i class="bi bi-person text-info me-1"></i> Pessoa Física (Individual)
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Identificação Principal -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-7">
+                <label for="{{ form.name.id_for_label }}" class="form-label small fw-semibold text-dark">
+                    Nome / Razão Social <span class="text-danger">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-5" id="tradeNameGroup">
+                <label for="{{ form.trade_name.id_for_label }}" class="form-label small fw-semibold text-dark">
+                    Nome Fantasia
+                </label>
+                {{ form.trade_name }}
+            </div>
+
+            <!-- Campo Vinculo com Empresa (Exibido apenas em Pessoa Fisica) -->
+            <div class="col-md-6" id="parentGroup" style="display: none;">
+                <label for="{{ form.parent.id_for_label }}" class="form-label small fw-semibold text-dark">
+                    <i class="bi bi-diagram-2 me-1 text-primary"></i> Empresa Vinculada (Empresa-Mãe)
+                </label>
+                {{ form.parent }}
+                <div class="form-text text-muted small" style="font-size: 0.75rem;">
+                    Selecione a empresa à qual este indivíduo pertence como funcionário, diretor ou preposto.
+                </div>
+            </div>
+
+            <!-- Campo Cargo (Exibido apenas em Pessoa Fisica) -->
+            <div class="col-md-6" id="jobTitleGroup" style="display: none;">
+                <label for="{{ form.job_title.id_for_label }}" class="form-label small fw-semibold text-dark">
+                    Cargo / Especialidade Técnica
+                </label>
+                {{ form.job_title }}
+            </div>
+        </div>
+
+        <!-- 3. Identificação Fiscal Brasileira & Validacao Assincrona HTMX -->
+        <div class="p-3 bg-light rounded-3 border mb-4">
+            <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
+                <i class="bi bi-shield-check me-1 text-primary"></i> Identificação Fiscal & Tributária
+            </h6>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="{{ form.doc_type.id_for_label }}" class="form-label small fw-semibold text-dark">
+                        Tipo de Documento
+                    </label>
+                    {{ form.doc_type }}
+                </div>
+
+                <div class="col-md-5">
+                    <label for="id_doc_number" class="form-label small fw-semibold text-dark">
+                        Número do Documento (CNPJ / CPF)
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white text-secondary"><i class="bi bi-credit-card-2-front"></i></span>
+                        <input type="text"
+                               name="doc_number"
+                               id="id_doc_number"
+                               value="{{ form.doc_number.value|default:'' }}"
+                               class="form-control"
+                               placeholder="Digite CNPJ ou CPF"
+                               hx-post="{% url 'contacts:validate_document' %}"
+                               hx-trigger="blur changed delay:200ms"
+                               hx-target="#docValidationFeedback"
+                               hx-include="[name='doc_type'], [name='contact_id']">
+                    </div>
+                    <!-- Feedback assincrono HTMX -->
+                    <div id="docValidationFeedback">
+                        {% if form.doc_number.errors %}
+                            <div class="text-danger small mt-1">{{ form.doc_number.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.state_registration.id_for_label }}" class="form-label small fw-semibold text-dark">
+                        Inscrição Estadual (IE)
+                    </label>
+                    {{ form.state_registration }}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="{{ form.municipal_registration.id_for_label }}" class="form-label small fw-semibold text-dark">
+                        Inscrição Municipal (IM)
+                    </label>
+                    {{ form.municipal_registration }}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="{{ form.suframa_code.id_for_label }}" class="form-label small fw-semibold text-dark">
+                        Inscrição SUFRAMA
+                    </label>
+                    {{ form.suframa_code }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Endereço Estruturado -->
+        <div class="mb-4">
+            <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
+                <i class="bi bi-geo-alt me-1 text-primary"></i> Endereço Principal
+            </h6>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="id_postal_code" class="form-label small fw-semibold text-dark">CEP</label>
+                    {{ form.postal_code }}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.street.id_for_label }}" class="form-label small fw-semibold text-dark">Logradouro / Rua</label>
+                    {{ form.street }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.number.id_for_label }}" class="form-label small fw-semibold text-dark">Número</label>
+                    {{ form.number }}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.complement.id_for_label }}" class="form-label small fw-semibold text-dark">Complemento</label>
+                    {{ form.complement }}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.neighborhood.id_for_label }}" class="form-label small fw-semibold text-dark">Bairro</label>
+                    {{ form.neighborhood }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.city.id_for_label }}" class="form-label small fw-semibold text-dark">Cidade</label>
+                    {{ form.city }}
+                </div>
+                <div class="col-md-1">
+                    <label for="{{ form.state.id_for_label }}" class="form-label small fw-semibold text-dark">UF</label>
+                    {{ form.state }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Comunicação e Canais -->
+        <div class="mb-4">
+            <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
+                <i class="bi bi-chat-dots me-1 text-primary"></i> Canais de Comunicação
+            </h6>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="{{ form.phone.id_for_label }}" class="form-label small fw-semibold text-dark">Telefone Fixo</label>
+                    {{ form.phone }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.mobile.id_for_label }}" class="form-label small fw-semibold text-dark">Celular / WhatsApp</label>
+                    {{ form.mobile }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label small fw-semibold text-dark">E-mail</label>
+                    {{ form.email }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.website.id_for_label }}" class="form-label small fw-semibold text-dark">Website Oficial</label>
+                    {{ form.website }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Relacionamento Comercial, Marcadores e Foto -->
+        <div class="mb-4">
+            <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
+                <i class="bi bi-briefcase me-1 text-primary"></i> Comercial, Marcadores & Imagem
+            </h6>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="{{ form.salesperson.id_for_label }}" class="form-label small fw-semibold text-dark">Vendedor / Responsável</label>
+                    {{ form.salesperson }}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.payment_terms.id_for_label }}" class="form-label small fw-semibold text-dark">Condições de Pagamento</label>
+                    {{ form.payment_terms }}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.avatar.id_for_label }}" class="form-label small fw-semibold text-dark">Logotipo / Foto</label>
+                    {{ form.avatar }}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="{{ form.tags.id_for_label }}" class="form-label small fw-semibold text-dark">
+                        Marcadores Corporativos (Segure Ctrl para selecionar múltiplos)
+                    </label>
+                    {{ form.tags }}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="{{ form.internal_notes.id_for_label }}" class="form-label small fw-semibold text-dark">Anotações Internas</label>
+                    {{ form.internal_notes }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Botoes de Acao -->
+        <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
+            <a href="{% if form.instance.pk %}{% url 'contacts:detail' form.instance.pk %}{% else %}{% url 'contacts:list' %}{% endif %}" class="btn btn-outline-secondary px-4 fw-semibold">
+                Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                <i class="bi bi-check2-circle me-1"></i> Salvar Cadastro
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const typeCompany = document.getElementById('type_company');
+        const typeIndividual = document.getElementById('type_individual');
+        const parentGroup = document.getElementById('parentGroup');
+        const jobTitleGroup = document.getElementById('jobTitleGroup');
+        const tradeNameGroup = document.getElementById('tradeNameGroup');
+        const docTypeSelect = document.getElementById('id_doc_type');
+        const docNumberInput = document.getElementById('id_doc_number');
+
+        function updateFormByContactType() {
+            if (typeIndividual.checked) {
+                parentGroup.style.display = 'block';
+                jobTitleGroup.style.display = 'block';
+                tradeNameGroup.style.display = 'none';
+                if (!docNumberInput.value) {
+                    docTypeSelect.value = 'CPF';
+                }
+            } else {
+                parentGroup.style.display = 'none';
+                jobTitleGroup.style.display = 'none';
+                tradeNameGroup.style.display = 'block';
+                if (!docNumberInput.value) {
+                    docTypeSelect.value = 'CNPJ';
+                }
+            }
+        }
+
+        typeCompany.addEventListener('change', updateFormByContactType);
+        typeIndividual.addEventListener('change', updateFormByContactType);
+        updateFormByContactType();
+
+        // Máscaras de entrada (CNPJ, CPF, CEP)
+        if (docNumberInput) {
+            docNumberInput.addEventListener('input', function (e) {
+                let v = e.target.value.replace(/\D/g, '');
+                const dType = docTypeSelect.value;
+                if (dType === 'CPF') {
+                    if (v.length > 11) v = v.slice(0, 11);
+                    if (v.length > 9) {
+                        e.target.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+                    } else if (v.length > 6) {
+                        e.target.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+                    } else if (v.length > 3) {
+                        e.target.value = `${v.slice(0, 3)}.${v.slice(3)}`;
+                    } else {
+                        e.target.value = v;
+                    }
+                } else {
+                    if (v.length > 14) v = v.slice(0, 14);
+                    if (v.length > 12) {
+                        e.target.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`;
+                    } else if (v.length > 8) {
+                        e.target.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8)}`;
+                    } else if (v.length > 5) {
+                        e.target.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5)}`;
+                    } else if (v.length > 2) {
+                        e.target.value = `${v.slice(0, 2)}.${v.slice(2)}`;
+                    } else {
+                        e.target.value = v;
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

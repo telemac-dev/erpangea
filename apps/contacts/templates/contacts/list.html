@@ -1,0 +1,484 @@
+{% extends 'base.html' %}
+{% load phone_filters %}
+
+{% block title %}Contatos - ERPangea{% endblock %}
+
+{% block content %}
+<!-- Painel de Controle Superior -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-2 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="bi bi-people-fill text-primary me-2"></i>Contatos
+            </h3>
+            <p class="text-muted small mb-0">Gestão unificada de clientes, fornecedores, parceiros e órgãos reguladores.</p>
+        </div>
+        <a href="{% url 'contacts:create' %}" class="btn btn-primary px-3 py-2 fw-semibold shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Novo Contato
+        </a>
+    </div>
+
+    <!-- Barra de Ações Rápidas, Busca e Modos de Visualização -->
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- Barra de Busca -->
+        <form method="get" class="d-flex align-items-center m-0">
+            <input type="hidden" name="view" value="{{ view_mode }}">
+            {% if current_filter %}<input type="hidden" name="filter" value="{{ current_filter }}">{% endif %}
+            {% if current_group %}<input type="hidden" name="group_by" value="{{ current_group }}">{% endif %}
+            <div class="input-group input-group-sm" style="width: 260px;">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="search" name="q" value="{{ query }}" class="form-control border-start-0" placeholder="Buscar contatos, CNPJ/CPF...">
+                {% if query %}
+                    <a href="?view={{ view_mode }}{% if current_filter %}&filter={{ current_filter }}{% endif %}" class="btn btn-outline-secondary border-start-0 bg-white text-muted" title="Limpar busca">
+                        <i class="bi bi-x"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Dropdown de Filtros -->
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle shadow-sm d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-funnel"></i>
+                <span>Filtros</span>
+                {% if current_filter %}
+                    <span class="badge bg-primary ms-1">1</span>
+                {% endif %}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm small py-2">
+                <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.68rem;">Tipo de Entidade</h6></li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if not current_filter %}active{% endif %}" href="?view={{ view_mode }}&q={{ query }}">
+                        <i class="bi bi-check2 me-1 {% if current_filter %}opacity-0{% endif %}"></i> Todos Ativos
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if current_filter == 'company' %}active{% endif %}" href="?view={{ view_mode }}&filter=company&q={{ query }}">
+                        <i class="bi bi-building me-1"></i> Empresas (Pessoa Jurídica)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if current_filter == 'individual' %}active{% endif %}" href="?view={{ view_mode }}&filter=individual&q={{ query }}">
+                        <i class="bi bi-person me-1"></i> Pessoas Físicas (Indivíduos)
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><h6 class="dropdown-header text-uppercase fw-bold text-muted" style="font-size: 0.68rem;">Status</h6></li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if current_filter == 'archived' %}active{% endif %} text-warning" href="?view={{ view_mode }}&filter=archived&q={{ query }}">
+                        <i class="bi bi-archive me-1"></i> Contatos Arquivados
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Dropdown de Agrupamento -->
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle shadow-sm d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-layers"></i>
+                <span>Agrupar</span>
+                {% if current_group %}
+                    <span class="badge bg-secondary ms-1">1</span>
+                {% endif %}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm small py-2">
+                <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.68rem;">Critérios de Agrupamento</h6></li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if not current_group %}active{% endif %}" href="?view={{ view_mode }}&filter={{ current_filter }}&q={{ query }}">
+                        Sem agrupamento
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if current_group == 'city' %}active{% endif %}" href="?view={{ view_mode }}&group_by=city&filter={{ current_filter }}&q={{ query }}">
+                        <i class="bi bi-geo-alt me-1"></i> Por Cidade
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if current_group == 'state' %}active{% endif %}" href="?view={{ view_mode }}&group_by=state&filter={{ current_filter }}&q={{ query }}">
+                        <i class="bi bi-map me-1"></i> Por Estado (UF)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if current_group == 'parent' %}active{% endif %}" href="?view={{ view_mode }}&group_by=parent&filter={{ current_filter }}&q={{ query }}">
+                        <i class="bi bi-diagram-2 me-1"></i> Por Empresa-Mãe
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-1.5 {% if current_group == 'salesperson' %}active{% endif %}" href="?view={{ view_mode }}&group_by=salesperson&filter={{ current_filter }}&q={{ query }}">
+                        <i class="bi bi-person-check me-1"></i> Por Vendedor / Responsável
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Menu de Ações Globais -->
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-gear me-1"></i> Ações
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm small py-2">
+                <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.68rem;">Importação & Exportação</h6></li>
+                <li>
+                    <a class="dropdown-item py-1.5" href="{% url 'contacts:import' %}">
+                        <i class="bi bi-upload me-1 text-primary"></i> Importar Registros (Excel/CSV)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-1.5" href="{% url 'contacts:export' %}?format=xlsx">
+                        <i class="bi bi-file-earmark-spreadsheet me-1 text-success"></i> Exportar para Excel (.xlsx)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-1.5" href="{% url 'contacts:export' %}?format=csv">
+                        <i class="bi bi-file-earmark-text me-1 text-secondary"></i> Exportar para CSV
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.68rem;">Deduplicação</h6></li>
+                <li>
+                    <button class="dropdown-item py-1.5 text-primary" type="button" id="btnTriggerMerge" disabled title="Selecione contatos na visualização em tabela para mesclar">
+                        <i class="bi bi-union me-1"></i> Mesclar Contatos Selecionados
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="vr my-2 text-secondary opacity-25"></div>
+
+        <!-- Seletor de Modo de Visualizacao (Kanban vs Tabela) -->
+        <div class="btn-group btn-group-sm shadow-sm" role="group">
+            <a href="?view=kanban{% if current_filter %}&filter={{ current_filter }}{% endif %}{% if current_group %}&group_by={{ current_group }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+               class="btn {% if view_mode == 'kanban' %}btn-primary{% else %}btn-outline-secondary bg-white text-muted{% endif %}" 
+               title="Visualização em Grade Kanban">
+                <i class="bi bi-grid-fill"></i>
+            </a>
+            <a href="?view=list{% if current_filter %}&filter={{ current_filter }}{% endif %}{% if current_group %}&group_by={{ current_group }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+               class="btn {% if view_mode == 'list' %}btn-primary{% else %}btn-outline-secondary bg-white text-muted{% endif %}" 
+               title="Visualização em Lista / Tabela">
+                <i class="bi bi-list-ul"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Barra de Resumo e Filtros Ativos -->
+{% if current_filter or current_group or query %}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <span class="small text-muted">Filtros aplicados:</span>
+    {% if query %}
+        <span class="badge bg-light text-dark border px-2 py-1 small">
+            Busca: <strong>"{{ query }}"</strong>
+            <a href="?view={{ view_mode }}{% if current_filter %}&filter={{ current_filter }}{% endif %}" class="text-decoration-none text-muted ms-1">&times;</a>
+        </span>
+    {% endif %}
+    {% if current_filter == 'company' %}
+        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 small">
+            Empresas (PJ)
+            <a href="?view={{ view_mode }}&q={{ query }}" class="text-decoration-none text-primary ms-1">&times;</a>
+        </span>
+    {% elif current_filter == 'individual' %}
+        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1 small">
+            Pessoas Físicas (PF)
+            <a href="?view={{ view_mode }}&q={{ query }}" class="text-decoration-none text-info ms-1">&times;</a>
+        </span>
+    {% elif current_filter == 'archived' %}
+        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 small">
+            Arquivados
+            <a href="?view={{ view_mode }}&q={{ query }}" class="text-decoration-none text-warning ms-1">&times;</a>
+        </span>
+    {% endif %}
+    {% if current_group %}
+        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 small">
+            Agrupado por: <strong>{{ current_group }}</strong>
+            <a href="?view={{ view_mode }}&filter={{ current_filter }}&q={{ query }}" class="text-decoration-none text-secondary ms-1">&times;</a>
+        </span>
+    {% endif %}
+    <span class="text-muted ms-auto small">Total: <strong>{{ total_contacts }}</strong> registros</span>
+</div>
+{% endif %}
+
+<!-- Corpo de Dados: Kanban ou Tabela -->
+{% if contacts %}
+    {% if view_mode == 'list' %}
+        <!-- Visualizacao em Tabela / Grid -->
+        <div class="card card-custom shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="contactsTable">
+                        <thead class="table-light text-secondary" style="font-size: 0.8rem;">
+                            <tr>
+                                <th style="width: 40px;" class="ps-3">
+                                    <input type="checkbox" class="form-check-input" id="checkSelectAll" title="Selecionar todos">
+                                </th>
+                                <th>Nome / Razão Social</th>
+                                <th>Tipo</th>
+                                <th>Documento (CNPJ/CPF)</th>
+                                <th>Telefone / Celular</th>
+                                <th>E-mail</th>
+                                <th>Localização</th>
+                                <th>Marcadores</th>
+                                <th class="text-end pe-3">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 0.85rem;">
+                            {% for c in contacts %}
+                            <tr class="{% if not c.is_active %}table-light opacity-75{% endif %}">
+                                <td class="ps-3">
+                                    <input type="checkbox" class="form-check-input contact-checkbox" value="{{ c.pk }}" data-name="{{ c.name }}">
+                                </td>
+                                <td>
+                                    <a href="{% url 'contacts:detail' c.pk %}" class="fw-bold text-dark text-decoration-none d-flex align-items-center gap-2">
+                                        {% if c.avatar %}
+                                            <img src="{{ c.avatar.url }}" alt="{{ c.name }}" class="rounded-circle border" style="width: 28px; height: 28px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="rounded-circle {% if c.is_company %}bg-primary{% else %}bg-secondary{% endif %} bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center border" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                                <i class="bi {% if c.is_company %}bi-building{% else %}bi-person{% endif %}"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <span>{{ c.name }}</span>
+                                            {% if c.parent %}
+                                                <small class="text-muted d-block" style="font-size: 0.72rem;"><i class="bi bi-arrow-return-right me-1"></i>{{ c.parent.name }}</small>
+                                            {% elif c.trade_name %}
+                                                <small class="text-muted d-block" style="font-size: 0.72rem;">{{ c.trade_name }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if c.is_company %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.7rem;">PJ</span>
+                                    {% else %}
+                                        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.7rem;">PF</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if c.doc_number %}
+                                        <code>{{ c.formatted_doc_number }}</code>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if c.phone %}{{ c.phone|format_phone_br }}{% elif c.mobile %}{{ c.mobile|format_phone_br }}{% else %}<span class="text-muted">-</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if c.email %}
+                                        <a href="mailto:{{ c.email }}" class="text-decoration-none text-secondary">{{ c.email }}</a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if c.city or c.state %}
+                                        <span class="text-dark small">{{ c.city }}{% if c.city and c.state %}/{{ c.state }}{% elif c.state %}{{ c.state }}{% endif %}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for t in c.tags.all %}
+                                            <span class="badge bg-light text-dark border" style="font-size: 0.68rem; border-color: {{ t.color }} !important;">
+                                                <span class="d-inline-block rounded-circle me-1" style="width: 6px; height: 6px; background-color: {{ t.color }};"></span>
+                                                {{ t.name }}
+                                            </span>
+                                        {% empty %}
+                                            <span class="text-muted">-</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'contacts:detail' c.pk %}" class="btn btn-outline-secondary py-0 px-2" title="Visualizar Detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'contacts:edit' c.pk %}" class="btn btn-outline-secondary py-0 px-2" title="Editar Contato">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Visualizacao em Grade Kanban (Padrao Odoo) -->
+        <div class="row g-3">
+            {% for c in contacts %}
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="card card-custom h-100 p-3 shadow-sm hover-shadow transition-all position-relative" style="cursor: pointer;" onclick="window.location.href='{% url 'contacts:detail' c.pk %}'">
+                    <div class="d-flex gap-3">
+                        <!-- Avatar e Sub-Avatar da Empresa Mae -->
+                        <div class="position-relative flex-shrink-0" style="width: 60px; height: 60px;">
+                            {% if c.avatar %}
+                                <img src="{{ c.avatar.url }}" alt="{{ c.name }}" class="rounded-3 border w-100 h-100" style="object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-3 {% if c.is_company %}bg-primary{% else %}bg-secondary{% endif %} bg-opacity-10 text-primary w-100 h-100 d-flex align-items-center justify-content-center border" style="font-size: 1.5rem;">
+                                    <i class="bi {% if c.is_company %}bi-building{% else %}bi-person{% endif %}"></i>
+                                </div>
+                            {% endif %}
+
+                            <!-- Sub-avatar da Empresa Mae no canto inferior direito -->
+                            {% if c.parent and c.parent.avatar %}
+                                <img src="{{ c.parent.avatar.url }}" alt="{{ c.parent.name }}" class="position-absolute bottom-0 end-0 rounded-circle border shadow-sm" style="width: 22px; height: 22px; object-fit: cover; background: #fff;" title="Vinculado a {{ c.parent.name }}">
+                            {% elif c.parent %}
+                                <div class="position-absolute bottom-0 end-0 rounded-circle border bg-white text-secondary d-flex align-items-center justify-content-center shadow-sm" style="width: 22px; height: 22px; font-size: 0.65rem;" title="Vinculado a {{ c.parent.name }}">
+                                    <i class="bi bi-building"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Detalhes do Card -->
+                        <div class="flex-grow-1 min-w-0">
+                            <h6 class="fw-bold text-dark text-truncate mb-1" title="{{ c.name }}">{{ c.name }}</h6>
+                            
+                            {% if c.parent %}
+                                <div class="text-muted small text-truncate mb-1" style="font-size: 0.75rem;">
+                                    <i class="bi bi-arrow-return-right me-1"></i>{{ c.job_title|default:"Colaborador" }} em <strong>{{ c.parent.name }}</strong>
+                                </div>
+                            {% elif c.trade_name %}
+                                <div class="text-muted small text-truncate mb-1" style="font-size: 0.75rem;">{{ c.trade_name }}</div>
+                            {% endif %}
+
+                            {% if c.doc_number %}
+                                <div class="small text-muted mb-1" style="font-size: 0.75rem;">
+                                    <code>{{ c.formatted_doc_number }}</code>
+                                </div>
+                            {% endif %}
+
+                            {% if c.city or c.state %}
+                                <div class="small text-muted text-truncate mb-1" style="font-size: 0.75rem;">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ c.city }}{% if c.city and c.state %}/{{ c.state }}{% elif c.state %}{{ c.state }}{% endif %}
+                                </div>
+                            {% endif %}
+
+                            {% if c.email %}
+                                <div class="small text-muted text-truncate" style="font-size: 0.75rem;">
+                                    <i class="bi bi-envelope me-1"></i>{{ c.email }}
+                                </div>
+                            {% endif %}
+
+                            <!-- Marcadores / Tags -->
+                            {% if c.tags.exists %}
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                {% for t in c.tags.all %}
+                                    <span class="badge bg-light text-dark border" style="font-size: 0.65rem; border-color: {{ t.color }} !important;">
+                                        {{ t.name }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Paginacao -->
+    {% if is_paginated %}
+    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+        <span class="small text-muted">Mostrando página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ({{ total_contacts }} registros)</span>
+        <nav>
+            <ul class="pagination pagination-sm m-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&view={{ view_mode }}&filter={{ current_filter }}&group_by={{ current_group }}&q={{ query }}">Anterior</a>
+                    </li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&view={{ view_mode }}&filter={{ current_filter }}&group_by={{ current_group }}&q={{ query }}">Próximo</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+
+{% else %}
+    <!-- Estado Vazio (Empty State) -->
+    <div class="card card-custom p-5 text-center my-4">
+        <div class="d-inline-flex align-items-center justify-content-center bg-light text-muted rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-person-x fs-1 opacity-50"></i>
+        </div>
+        <h5 class="fw-bold text-dark mb-1">Nenhum contato encontrado</h5>
+        <p class="text-muted small mb-3">
+            {% if query or current_filter %}
+                Não há registros que correspondam aos filtros ou termo de busca informado.
+            {% else %}
+                Sua base de contatos ainda está vazia. Comece cadastrando sua primeira empresa ou cliente parceiro.
+            {% endif %}
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+            {% if query or current_filter %}
+                <a href="{% url 'contacts:list' %}" class="btn btn-outline-secondary btn-sm">Limpar Filtros</a>
+            {% else %}
+                <a href="{% url 'contacts:create' %}" class="btn btn-primary btn-sm px-3 fw-semibold">
+                    <i class="bi bi-plus-lg me-1"></i> Cadastrar Primeiro Contato
+                </a>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+
+<!-- Modal Container generico para HTMX (Subordinados e Mesclagem) -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="contactModalContent"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAll = document.getElementById('checkSelectAll');
+        const checkboxes = document.querySelectorAll('.contact-checkbox');
+        const btnMerge = document.getElementById('btnTriggerMerge');
+
+        function updateMergeState() {
+            const checked = Array.from(checkboxes).filter(c => c.checked);
+            if (btnMerge) {
+                if (checked.length >= 2) {
+                    btnMerge.removeAttribute('disabled');
+                    btnMerge.title = `Mesclar ${checked.length} contatos selecionados`;
+                } else {
+                    btnMerge.setAttribute('disabled', 'true');
+                    btnMerge.title = "Selecione pelo menos 2 contatos para mesclar";
+                }
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                updateMergeState();
+            });
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateMergeState);
+        });
+
+        if (btnMerge) {
+            btnMerge.addEventListener('click', function () {
+                const ids = Array.from(checkboxes).filter(c => c.checked).map(c => c.value).join(',');
+                if (ids) {
+                    const modalEl = new bootstrap.Modal(document.getElementById('contactModal'));
+                    htmx.ajax('GET', `{% url 'contacts:merge' %}?ids=${ids}`, {
+                        target: '#contactModalContent',
+                        swap: 'innerHTML'
+                    }).then(() => {
+                        modalEl.show();
+                    });
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

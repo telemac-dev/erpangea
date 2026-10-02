@@ -78,6 +78,9 @@
                 <a href="/" class="{% if request.path == '/' %}active{% endif %}">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
+                <a href="/contacts/" class="{% if '/contacts/' in request.path %}active{% endif %}">
+                    <i class="bi bi-people"></i> Contatos
+                </a>
                 <a href="/accounts/profile/" class="{% if '/accounts/profile/' in request.path %}active{% endif %}">
                     <i class="bi bi-person-badge"></i> Meu Perfil & CREA
                 </a>
