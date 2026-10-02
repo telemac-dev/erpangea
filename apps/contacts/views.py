@@ -421,3 +421,84 @@ class ContactImportView(LoginRequiredMixin, View):
         except Exception as exc:
             messages.error(request, _(f"Erro ao ler o arquivo de dados: {str(exc)}"))
             return render(request, 'contacts/import.html', {'form': form})
+
+import json
+import urllib.request
+from django.core.cache import cache
+
+class ContactCEPLookupView(LoginRequiredMixin, View):
+    """
+    Endpoint corporativo para consulta de CEP via API do ViaCEP com cache inteligente em Redis/Memoria
+    e tratamento de erros de conexao e timeout.
+    """
+    def get(self, request):
+        raw_cep = request.GET.get('cep', '')
+        digits = clean_doc_digits(raw_cep)
+
+        if len(digits) != 8:
+            return JsonResponse({
+                'found': False,
+                'message': _('CEP inválido. O formato deve conter 8 dígitos.')
+            }, status=400)
+
+        cache_key = f"viacep_{digits}"
+        try:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return JsonResponse(cached_data)
+        except Exception:
+            pass
+
+        url = f"https://viacep.com.br/ws/{digits}/json/"
+        req = urllib.request.Request(
+            url,
+            headers={'User-Agent': 'ERPangea/2.0 (Pangea Engenharia; contatos@pangea.eng.br)'}
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=4.0) as response:
+                if response.status != 200:
+                    return JsonResponse({
+                        'found': False,
+                        'message': _('Serviço de CEP indisponível no momento.')
+                    }, status=502)
+                
+                body = response.read().decode('utf-8')
+                data = json.loads(body)
+
+                if data.get('erro') in (True, 'true', '1'):
+                    return JsonResponse({
+                        'found': False,
+                        'message': _('CEP não localizado na base dos Correios. Preencha os campos manualmente.')
+                    })
+
+                result = {
+                    'found': True,
+                    'cep': data.get('cep', ''),
+                    'street': data.get('logradouro', ''),
+                    'complement': data.get('complemento', ''),
+                    'neighborhood': data.get('bairro', ''),
+                    'city': data.get('localidade', ''),
+                    'state': data.get('uf', ''),
+                    'country': 'Brasil'
+                }
+
+                # Salva em cache por 24 horas (86400s)
+                try:
+                    cache.set(cache_key, result, timeout=86400)
+                except Exception:
+                    pass
+                return JsonResponse(result)
+
+        except urllib.error.URLError:
+            return JsonResponse({
+                'found': False,
+                'error': True,
+                'message': _('Falha de conexão com o serviço de CEP. Você pode preencher os campos manualmente.')
+            }, status=503)
+        except Exception as e:
+            return JsonResponse({
+                'found': False,
+                'error': True,
+                'message': _('Não foi possível obter os dados do CEP no momento. Preencha manualmente.')
+            }, status=500)

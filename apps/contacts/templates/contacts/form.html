@@ -183,16 +183,30 @@
             </div>
         </div>
 
-        <!-- 4. Endereço Estruturado -->
+        <!-- 4. Endereço Estruturado com Consulta ViaCEP -->
         <div class="mb-4">
-            <h6 class="text-uppercase text-secondary fw-bold small mb-3 tracking-wider">
-                <i class="bi bi-geo-alt me-1 text-primary"></i> Endereço Principal
-            </h6>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <h6 class="text-uppercase text-secondary fw-bold small mb-0 tracking-wider">
+                    <i class="bi bi-geo-alt me-1 text-primary"></i> Endereço Principal
+                </h6>
+                <div id="cepFeedback" class="small"></div>
+            </div>
 
             <div class="row g-3">
-                <div class="col-md-2">
-                    <label for="id_postal_code" class="form-label small fw-semibold text-dark">CEP</label>
-                    {{ form.postal_code }}
+                <div class="col-md-3">
+                    <label for="id_postal_code" class="form-label small fw-semibold text-dark">
+                        CEP <small class="text-muted fw-normal">(Busca automática)</small>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white text-secondary"><i class="bi bi-search"></i></span>
+                        {{ form.postal_code }}
+                        <button class="btn btn-outline-secondary btn-sm bg-white" type="button" id="btnSearchCep" title="Consultar CEP agora">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="form-text text-muted" style="font-size: 0.72rem;">
+                        Preenchimento automático via ViaCEP (opcional).
+                    </div>
                 </div>
                 <div class="col-md-5">
                     <label for="{{ form.street.id_for_label }}" class="form-label small fw-semibold text-dark">Logradouro / Rua</label>
@@ -202,7 +216,7 @@
                     <label for="{{ form.number.id_for_label }}" class="form-label small fw-semibold text-dark">Número</label>
                     {{ form.number }}
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="{{ form.complement.id_for_label }}" class="form-label small fw-semibold text-dark">Complemento</label>
                     {{ form.complement }}
                 </div>
@@ -335,7 +349,7 @@
             updateFormByContactType();
         }
 
-        // Máscaras de entrada (CNPJ, CPF, CEP)
+        // Máscaras de entrada (CNPJ, CPF)
         if (docNumberInput) {
             docNumberInput.addEventListener('input', function (e) {
                 let v = e.target.value.replace(/\D/g, '');
@@ -368,7 +382,107 @@
             });
         }
 
+        // Consulta Automática ao ViaCEP com tratamento de falhas e preenchimento opcional
         const postalCodeInput = document.getElementById('id_postal_code');
+        const btnSearchCep = document.getElementById('btnSearchCep');
+        const cepFeedback = document.getElementById('cepFeedback');
+        const streetInput = document.getElementById('id_street');
+        const numberInput = document.getElementById('id_number');
+        const complementInput = document.getElementById('id_complement');
+        const neighborhoodInput = document.getElementById('id_neighborhood');
+        const cityInput = document.getElementById('id_city');
+        const stateInput = document.getElementById('id_state');
+
+        let lastSearchedCep = '';
+
+        async function performCepLookup(force = false) {
+            if (!postalCodeInput) return;
+            const digits = postalCodeInput.value.replace(/\D/g, '');
+
+            if (digits.length !== 8) {
+                if (force && cepFeedback) {
+                    cepFeedback.innerHTML = '<span class="text-danger small"><i class="bi bi-x-circle me-1"></i>O CEP deve conter exatamente 8 dígitos numéricos.</span>';
+                }
+                return;
+            }
+
+            if (!force && digits === lastSearchedCep) {
+                return;
+            }
+
+            lastSearchedCep = digits;
+
+            if (cepFeedback) {
+                cepFeedback.innerHTML = '<span class="text-primary small d-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" role="status"></span> Buscando endereço no ViaCEP...</span>';
+            }
+
+            try {
+                let data = null;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+                try {
+                    const resp = await fetch(`/contacts/cep-lookup/?cep=${digits}`, { credentials: 'same-origin', signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (resp.ok) {
+                        data = await resp.json();
+                    }
+                } catch (internalErr) {
+                    // Fallback para ViaCEP direto em caso de falha no endpoint interno
+                    try {
+                        const directResp = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+                        if (directResp.ok) {
+                            const rawData = await directResp.json();
+                            if (rawData.erro) {
+                                data = { found: false, message: 'CEP não localizado na base dos Correios.' };
+                            } else {
+                                data = {
+                                    found: true,
+                                    street: rawData.logradouro || '',
+                                    neighborhood: rawData.bairro || '',
+                                    city: rawData.localidade || '',
+                                    state: rawData.uf || '',
+                                    complement: rawData.complemento || ''
+                                };
+                            }
+                        }
+                    } catch (directErr) {
+                        // Rede indisponivel
+                    }
+                }
+
+                if (data && data.found) {
+                    // Preenche campos retornados mantendo-os 100% editáveis pelo usuário
+                    if (data.street && streetInput) streetInput.value = data.street;
+                    if (data.neighborhood && neighborhoodInput) neighborhoodInput.value = data.neighborhood;
+                    if (data.city && cityInput) cityInput.value = data.city;
+                    if (data.state && stateInput) stateInput.value = data.state;
+                    if (data.complement && complementInput && !complementInput.value) complementInput.value = data.complement;
+
+                    if (cepFeedback) {
+                        cepFeedback.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2"><i class="bi bi-check-circle me-1"></i>Endereço preenchido via ViaCEP</span>';
+                    }
+
+                    // Foco no número para agilidade de preenchimento
+                    if (numberInput && !numberInput.value) {
+                        numberInput.focus();
+                    }
+                } else if (data && data.found === false) {
+                    if (cepFeedback) {
+                        cepFeedback.innerHTML = `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 py-1 px-2"><i class="bi bi-exclamation-triangle me-1"></i>${data.message || 'CEP não localizado. Preencha os campos manualmente.'}</span>`;
+                    }
+                } else {
+                    if (cepFeedback) {
+                        cepFeedback.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border py-1 px-2"><i class="bi bi-wifi-off me-1"></i>Serviço de CEP indisponível. Preenchimento manual liberado.</span>';
+                    }
+                }
+            } catch (err) {
+                if (cepFeedback) {
+                    cepFeedback.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border py-1 px-2"><i class="bi bi-info-circle me-1"></i>Preenchimento manual disponível.</span>';
+                }
+            }
+        }
+
         if (postalCodeInput) {
             postalCodeInput.addEventListener('input', function (e) {
                 let v = e.target.value.replace(/\D/g, '');
@@ -378,6 +492,24 @@
                 } else {
                     e.target.value = v;
                 }
+
+                // Dispara busca automática assim que atinge os 8 dígitos
+                if (v.length === 8) {
+                    performCepLookup(false);
+                }
+            });
+
+            postalCodeInput.addEventListener('blur', function () {
+                const v = postalCodeInput.value.replace(/\D/g, '');
+                if (v.length === 8) {
+                    performCepLookup(false);
+                }
+            });
+        }
+
+        if (btnSearchCep) {
+            btnSearchCep.addEventListener('click', function () {
+                performCepLookup(true);
             });
         }
     });

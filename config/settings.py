@@ -108,14 +108,22 @@ AUTH_PASSWORD_VALIDATORS = [
 # Cache Configuration (Redis 7)
 REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/1')
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': REDIS_URL,
-        'TIMEOUT': 300,
-        'KEY_PREFIX': 'erpangea_cache',
+if USE_SQLITE:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'erpangea-local-cache',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': 300,
+            'KEY_PREFIX': 'erpangea_cache',
+        }
+    }
 
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')

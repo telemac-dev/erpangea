@@ -212,3 +212,45 @@ class ContactsModuleTestCase(TestCase):
 
         # Verifica se gerou registro UPDATE
         self.assertTrue(logs_after_create.filter(action=AuditActionChoices.UPDATE).exists())
+
+    # Cenário 8: Integração com API ViaCEP e Preenchimento Automático Opcional
+    def test_cep_lookup_view_and_manual_editability(self):
+        # 8.1 CEP Válido
+        res_valid = self.client.get('/contacts/cep-lookup/?cep=01310-100')
+        self.assertEqual(res_valid.status_code, 200)
+        data = res_valid.json()
+        self.assertTrue(data['found'])
+        self.assertIn('Paulista', data['street'])
+        self.assertEqual(data['city'], 'São Paulo')
+        self.assertEqual(data['state'], 'SP')
+
+        # 8.2 CEP com Formato Inválido (< 8 dígitos)
+        res_invalid = self.client.get('/contacts/cep-lookup/?cep=123')
+        self.assertEqual(res_invalid.status_code, 400)
+        self.assertFalse(res_invalid.json()['found'])
+
+        # 8.3 CEP Inexistente na Base dos Correios
+        res_notfound = self.client.get('/contacts/cep-lookup/?cep=00000-000')
+        self.assertEqual(res_notfound.status_code, 200)
+        data_nf = res_notfound.json()
+        self.assertFalse(data_nf['found'])
+        self.assertIn('não localizado', data_nf['message'])
+
+        # 8.4 Caráter Opcional e Edição Manual Plena
+        # O usuário pode salvar um endereço totalmente manual, sem CEP ou com dados customizados
+        custom_contact = Contact(
+            name='Canteiro Remoto Sem CEP',
+            contact_type=ContactTypeChoices.COMPANY,
+            street='Estrada Vicinal da Mina Velha',
+            number='Km 12',
+            neighborhood='Zona Rural',
+            city='Itabira',
+            state='MG',
+            postal_code='' # Sem CEP
+        )
+        custom_contact.full_clean()
+        custom_contact.save()
+
+        self.assertEqual(custom_contact.street, 'Estrada Vicinal da Mina Velha')
+        self.assertEqual(custom_contact.postal_code, '')
+        self.assertIn('Km 12', custom_contact.display_address)

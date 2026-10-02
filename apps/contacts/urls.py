@@ -10,6 +10,7 @@ urlpatterns = [
     path('<uuid:pk>/edit/', views.ContactUpdateView.as_view(), name='edit'),
     path('<uuid:pk>/archive-toggle/', views.ContactArchiveToggleView.as_view(), name='archive_toggle'),
     path('validate-document/', views.ContactValidateDocumentView.as_view(), name='validate_document'),
+    path('cep-lookup/', views.ContactCEPLookupView.as_view(), name='cep_lookup'),
     path('<uuid:parent_id>/subordinate/add/', views.SubordinateContactCreateView.as_view(), name='add_subordinate'),
     path('merge/', views.ContactMergeView.as_view(), name='merge'),
     path('export/', views.ContactExportView.as_view(), name='export'),
