@@ -78,6 +78,9 @@
                             <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1 small">
                                 <i class="bi bi-building me-1"></i> Pessoa Jurídica (Empresa)
                             </span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 small">
+                                {{ contact.get_company_subtype_display }}
+                            </span>
                         {% else %}
                             <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2.5 py-1 small">
                                 <i class="bi bi-person me-1"></i> Pessoa Física (Individual)
@@ -85,8 +88,10 @@
                         {% endif %}
 
                         {% if contact.parent %}
-                            <span class="badge bg-light text-dark border small">
-                                <i class="bi bi-diagram-2 me-1"></i> Vinculado a: <strong>{{ contact.parent.name }}</strong>
+                            <span class="badge bg-light text-dark border small" title="Holding / Controladora Vinculada">
+                                <i class="bi bi-diagram-2 me-1 text-primary"></i> 
+                                {% if contact.is_company %}Controlada por: {% else %}Vinculado a: {% endif %}
+                                <a href="{% url 'contacts:detail' contact.parent.pk %}" class="fw-bold text-decoration-none text-dark">{{ contact.parent.name }}</a>
                             </span>
                         {% endif %}
                     </div>
@@ -165,7 +170,7 @@
             <ul class="nav nav-tabs mb-4" id="contactTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active fw-semibold" id="subordinates-tab" data-bs-toggle="tab" data-bs-target="#subordinates" type="button" role="tab">
-                        <i class="bi bi-people me-1"></i> Contatos e Endereços
+                        <i class="bi bi-people me-1"></i> Empreendimentos (SPEs), Contatos & Endereços
                         <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1">{{ subordinates|length }}</span>
                     </button>
                 </li>

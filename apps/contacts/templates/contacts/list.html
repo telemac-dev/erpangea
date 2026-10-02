@@ -247,7 +247,9 @@
                                 </td>
                                 <td>
                                     {% if c.is_company %}
-                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.7rem;">PJ</span>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.7rem;">
+                                            PJ{% if c.company_subtype and c.company_subtype != 'MATRIZ' %} &bull; {{ c.company_subtype }}{% endif %}
+                                        </span>
                                     {% else %}
                                         <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.7rem;">PF</span>
                                     {% endif %}
@@ -339,8 +341,14 @@
                             </h6>
                             
                             {% if c.parent %}
-                                <div class="text-muted small text-truncate mb-1" style="font-size: 0.75rem;" title="{{ c.job_title|default:'Colaborador' }} em {{ c.parent.name }}">
-                                    <i class="bi bi-arrow-return-right me-1"></i>{{ c.job_title|default:"Colaborador" }} em <strong>{{ c.parent.name }}</strong>
+                                <div class="text-muted small text-truncate mb-1" style="font-size: 0.75rem;" title="{% if c.is_company %}Controlada por: {{ c.parent.name }}{% else %}{{ c.job_title|default:'Colaborador' }} em {{ c.parent.name }}{% endif %}">
+                                    <i class="bi bi-arrow-return-right me-1"></i>
+                                    {% if c.is_company %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1" style="font-size: 0.65rem;">{{ c.get_company_subtype_display }}</span> 
+                                        Controlada por: <strong>{{ c.parent.name }}</strong>
+                                    {% else %}
+                                        {{ c.job_title|default:"Colaborador" }} em <strong>{{ c.parent.name }}</strong>
+                                    {% endif %}
                                 </div>
                             {% elif c.trade_name %}
                                 <div class="text-muted small text-truncate mb-1" style="font-size: 0.75rem;" title="{{ c.trade_name }}">{{ c.trade_name }}</div>

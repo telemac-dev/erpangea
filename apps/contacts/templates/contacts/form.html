@@ -50,6 +50,8 @@
                                 {% elif field == 'name' %}Nome / Razão Social
                                 {% elif field == 'doc_number' %}Número do Documento
                                 {% elif field == 'doc_type' %}Tipo de Documento
+                                {% elif field == 'parent' %}Empresa Vinculada (Holding / Controladora)
+                                {% elif field == 'company_subtype' %}Subtipo Empresarial
                                 {% elif field == 'country' %}País
                                 {% elif field == 'email' %}E-mail
                                 {% elif field == 'phone' %}Telefone
@@ -70,7 +72,7 @@
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" type="radio" name="contact_type" id="type_company" value="COMPANY" {% if form.contact_type.value == 'COMPANY' or not form.contact_type.value %}checked{% endif %}>
                     <label class="form-check-label fw-bold text-dark" for="type_company">
-                        <i class="bi bi-building text-primary me-1"></i> Pessoa Jurídica (Empresa)
+                        <i class="bi bi-building text-primary me-1"></i> Pessoa Jurídica (Empresa / SPE)
                     </label>
                 </div>
                 <div class="form-check form-check-inline">
@@ -101,15 +103,29 @@
                 {{ form.trade_name }}
             </div>
 
-            <!-- Campo Vínculo com Empresa (Exibido apenas em Pessoa Física) -->
-            <div class="col-md-6" id="parentGroup" style="display: none;">
-                <label for="{{ form.parent.id_for_label }}" class="form-label small fw-semibold text-dark">
-                    <i class="bi bi-diagram-2 me-1 text-primary"></i> Empresa Vinculada (Empresa-Mãe)
+            <!-- Subtipo Empresarial (Aparece para Empresas: Matriz, SPE, Filial, Consórcio) -->
+            <div class="col-md-5" id="companySubtypeGroup">
+                <label for="{{ form.company_subtype.id_for_label }}" class="form-label small fw-semibold text-dark">
+                    <i class="bi bi-tag text-primary me-1"></i> Subtipo Empresarial
+                </label>
+                {{ form.company_subtype }}
+                <div class="form-text text-muted small" style="font-size: 0.75rem;">
+                    Classifique como Matriz/Holding, SPE (Empreendimento de obra), Filial ou Consórcio.
+                </div>
+            </div>
+
+            <!-- Campo Vínculo com Empresa (Exibido para Empresas SPE/Filiais e Indivíduos) -->
+            <div class="col-md-7" id="parentGroup">
+                <label for="{{ form.parent.id_for_label }}" class="form-label small fw-semibold text-dark" id="parentLabel">
+                    <i class="bi bi-diagram-2 me-1 text-primary"></i> Holding / Empresa Controladora (Opcional - para SPEs ou Filiais)
                 </label>
                 {{ form.parent }}
-                <div class="form-text text-muted small" style="font-size: 0.75rem;">
-                    Selecione a empresa à qual este indivíduo pertence como funcionário, diretor ou preposto.
+                <div class="form-text text-muted small" id="parentHelp" style="font-size: 0.75rem;">
+                    Se for um empreendimento (SPE) ou filial regional, vincule aqui à Construtora / Holding Matriz.
                 </div>
+                {% if form.parent.errors %}
+                    <div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ form.parent.errors.0 }}</div>
+                {% endif %}
             </div>
 
             <!-- Campo Cargo (Exibido apenas em Pessoa Física) -->
@@ -319,7 +335,10 @@
     document.addEventListener('DOMContentLoaded', function () {
         const typeCompany = document.getElementById('type_company');
         const typeIndividual = document.getElementById('type_individual');
+        const companySubtypeGroup = document.getElementById('companySubtypeGroup');
         const parentGroup = document.getElementById('parentGroup');
+        const parentLabel = document.getElementById('parentLabel');
+        const parentHelp = document.getElementById('parentHelp');
         const jobTitleGroup = document.getElementById('jobTitleGroup');
         const tradeNameGroup = document.getElementById('tradeNameGroup');
         const docTypeSelect = document.getElementById('id_doc_type');
@@ -327,16 +346,22 @@
 
         function updateFormByContactType() {
             if (typeIndividual.checked) {
+                if (companySubtypeGroup) companySubtypeGroup.style.display = 'none';
                 if (parentGroup) parentGroup.style.display = 'block';
                 if (jobTitleGroup) jobTitleGroup.style.display = 'block';
                 if (tradeNameGroup) tradeNameGroup.style.display = 'none';
+                if (parentLabel) parentLabel.innerHTML = '<i class="bi bi-diagram-2 me-1 text-primary"></i> Empresa Vinculada (Empregadora)';
+                if (parentHelp) parentHelp.innerText = 'Selecione a empresa à qual este indivíduo pertence como funcionário, diretor ou preposto.';
                 if (!docNumberInput.value && docTypeSelect) {
                     docTypeSelect.value = 'CPF';
                 }
             } else {
-                if (parentGroup) parentGroup.style.display = 'none';
+                if (companySubtypeGroup) companySubtypeGroup.style.display = 'block';
+                if (parentGroup) parentGroup.style.display = 'block';
                 if (jobTitleGroup) jobTitleGroup.style.display = 'none';
                 if (tradeNameGroup) tradeNameGroup.style.display = 'block';
+                if (parentLabel) parentLabel.innerHTML = '<i class="bi bi-diagram-2 me-1 text-primary"></i> Holding / Empresa Controladora (Opcional - para SPEs ou Filiais)';
+                if (parentHelp) parentHelp.innerText = 'Se for um empreendimento (SPE), filial regional ou consórcio, vincule aqui à Construtora / Holding Matriz.';
                 if (!docNumberInput.value && docTypeSelect) {
                     docTypeSelect.value = 'CNPJ';
                 }
@@ -428,7 +453,6 @@
                         data = await resp.json();
                     }
                 } catch (internalErr) {
-                    // Fallback para ViaCEP direto em caso de falha no endpoint interno
                     try {
                         const directResp = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
                         if (directResp.ok) {
@@ -452,7 +476,6 @@
                 }
 
                 if (data && data.found) {
-                    // Preenche campos retornados mantendo-os 100% editáveis pelo usuário
                     if (data.street && streetInput) streetInput.value = data.street;
                     if (data.neighborhood && neighborhoodInput) neighborhoodInput.value = data.neighborhood;
                     if (data.city && cityInput) cityInput.value = data.city;
@@ -463,7 +486,6 @@
                         cepFeedback.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2"><i class="bi bi-check-circle me-1"></i>Endereço preenchido via ViaCEP</span>';
                     }
 
-                    // Foco no número para agilidade de preenchimento
                     if (numberInput && !numberInput.value) {
                         numberInput.focus();
                     }
@@ -493,7 +515,6 @@
                     e.target.value = v;
                 }
 
-                // Dispara busca automática assim que atinge os 8 dígitos
                 if (v.length === 8) {
                     performCepLookup(false);
                 }

@@ -7,7 +7,7 @@ class ContactForm(forms.ModelForm):
     class Meta:
         model = Contact
         fields = [
-            'contact_type', 'name', 'trade_name', 'parent',
+            'contact_type', 'company_subtype', 'name', 'trade_name', 'parent',
             'doc_type', 'doc_number', 'state_registration', 'municipal_registration', 'suframa_code',
             'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'postal_code', 'country',
             'phone', 'mobile', 'email', 'website', 'job_title',
@@ -18,6 +18,7 @@ class ContactForm(forms.ModelForm):
             'contact_type': forms.RadioSelect(attrs={'class': 'btn-check'}),
             'name': forms.TextInput(attrs={'class': 'form-control form-control-lg', 'placeholder': 'ex.: Pangea Engenharia Ltda. ou Dr. Carlos Silva', 'autofocus': True}),
             'trade_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome Fantasia corporativo'}),
+            'company_subtype': forms.Select(attrs={'class': 'form-select', 'id': 'id_company_subtype'}),
             'parent': forms.Select(attrs={'class': 'form-select'}),
             'doc_type': forms.Select(attrs={'class': 'form-select', 'id': 'id_doc_type'}),
             'doc_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apenas números ou formatado', 'id': 'id_doc_number'}),
@@ -51,7 +52,7 @@ class ContactForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             company_qs = company_qs.exclude(pk=self.instance.pk)
         self.fields['parent'].queryset = company_qs
-        self.fields['parent'].empty_label = _("(Nenhuma empresa vinculada - Contato Independente)")
+        self.fields['parent'].empty_label = _("(Nenhuma - Empresa Matriz Independente)")
 
         # País default Brasil
         self.fields['country'].required = False

@@ -254,3 +254,78 @@ class ContactsModuleTestCase(TestCase):
         self.assertEqual(custom_contact.street, 'Estrada Vicinal da Mina Velha')
         self.assertEqual(custom_contact.postal_code, '')
         self.assertIn('Km 12', custom_contact.display_address)
+
+    # Cenário 9: Empreendimentos (SPE/Filiais) Vinculados à Empresa-Mãe com CNPJ Próprio e Prevenção de Ciclos
+    def test_company_parent_spe_and_cycle_prevention(self):
+        from apps.contacts.models import CompanySubtypeChoices
+
+        # 9.1 Criação da Empresa-Mãe (Holding / Construtora Matriz) com CNPJ
+        # CNPJ Matriz: 33.444.555/0001-22
+        cnpj_holding = '47118938000174'
+        holding = Contact.objects.create(
+            name='Cyrela Empreendimentos e Participações S.A.',
+            trade_name='Cyrela Holding',
+            contact_type=ContactTypeChoices.COMPANY,
+            company_subtype=CompanySubtypeChoices.MATRIZ,
+            doc_type=DocTypeChoices.CNPJ,
+            doc_number=cnpj_holding,
+            city='São Paulo',
+            state='SP'
+        )
+        self.assertEqual(holding.subordinates.count(), 0)
+
+        # 9.2 Criação de Empreendimento SPE com CNPJ próprio vinculado à Holding
+        # CNPJ SPE: 44.555.666/0001-70
+        cnpj_spe = '12043479000122'
+        spe_empreendimento = Contact(
+            name='Residencial Grand Tower Jardins SPE Ltda.',
+            trade_name='Grand Tower Jardins',
+            parent=holding,
+            contact_type=ContactTypeChoices.COMPANY,
+            company_subtype=CompanySubtypeChoices.SPE,
+            doc_type=DocTypeChoices.CNPJ,
+            doc_number=cnpj_spe,
+            city='São Paulo',
+            state='SP'
+        )
+        spe_empreendimento.full_clean()
+        spe_empreendimento.save()
+
+        # Valida propriedades e relacionamentos
+        self.assertEqual(spe_empreendimento.parent, holding)
+        self.assertEqual(spe_empreendimento.complete_name, 'Cyrela Empreendimentos e Participações S.A. / Residencial Grand Tower Jardins SPE Ltda.')
+        self.assertIn(spe_empreendimento, holding.subordinates.all())
+        self.assertEqual(spe_empreendimento.doc_number, cnpj_spe)
+
+        # 9.3 Criação de Filial Regional com CNPJ de filial (/0002-XX)
+        # CNPJ Filial: 33.444.555/0002-03
+        cnpj_filial = '47118938000255'
+        filial = Contact(
+            name='Cyrela Construtora - Filial Campinas',
+            parent=holding,
+            contact_type=ContactTypeChoices.COMPANY,
+            company_subtype=CompanySubtypeChoices.FILIAL,
+            doc_type=DocTypeChoices.CNPJ,
+            doc_number=cnpj_filial,
+            city='Campinas',
+            state='SP'
+        )
+        filial.full_clean()
+        filial.save()
+
+        self.assertEqual(holding.subordinates.filter(contact_type=ContactTypeChoices.COMPANY).count(), 2)
+
+        # 9.4 Prevenção de Ciclos Hierárquicos (Holding tentar ter como parent sua própria SPE)
+        holding.parent = spe_empreendimento
+        with self.assertRaises(ValidationError) as cm:
+            holding.clean()
+        self.assertIn('parent', cm.exception.message_dict)
+        self.assertIn('Ciclo hierárquico detectado', cm.exception.message_dict['parent'][0])
+
+        # 9.5 Teste de Renderização Web do Detalhe da SPE (exibe badge de controladora e CNPJ)
+        res = self.client.get(f'/contacts/{spe_empreendimento.pk}/')
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode('utf-8')
+        self.assertIn('Controlada por:', html)
+        self.assertIn('Cyrela Empreendimentos e Participações S.A.', html)
+        self.assertIn('SPE / Empreendimento', html)

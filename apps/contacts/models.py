@@ -9,6 +9,13 @@ class ContactTypeChoices(models.TextChoices):
     COMPANY = 'COMPANY', _('Pessoa Jurídica (Empresa)')
     INDIVIDUAL = 'INDIVIDUAL', _('Pessoa Física (Individual)')
 
+class CompanySubtypeChoices(models.TextChoices):
+    MATRIZ = 'MATRIZ', _('Matriz / Holding Controladora')
+    SPE = 'SPE', _('Sociedade de Propósito Específico (SPE / Empreendimento)')
+    FILIAL = 'FILIAL', _('Filial / Unidade Regional')
+    CONSORCIO = 'CONSORCIO', _('Consórcio de Empresas')
+    OUTRO = 'OUTRO', _('Outro')
+
 class AddressTypeChoices(models.TextChoices):
     CONTACT = 'CONTACT', _('Contato')
     INVOICE = 'INVOICE', _('Endereço de Cobrança')
@@ -43,6 +50,15 @@ class Contact(models.Model):
         default=ContactTypeChoices.COMPANY,
         db_index=True
     )
+    company_subtype = models.CharField(
+        _('Subtipo Empresarial'),
+        max_length=20,
+        choices=CompanySubtypeChoices.choices,
+        default=CompanySubtypeChoices.MATRIZ,
+        blank=True,
+        db_index=True,
+        help_text=_('Classificação jurídica: Matriz, SPE, Filial ou Consórcio.')
+    )
     address_type = models.CharField(
         _('Tipo de Endereço / Vínculo'),
         max_length=15,
@@ -60,7 +76,7 @@ class Contact(models.Model):
         null=True,
         blank=True,
         related_name='subordinates',
-        verbose_name=_('Empresa Vinculada')
+        verbose_name=_('Empresa Vinculada (Holding / Controladora)')
     )
 
     # Identificacao fiscal brasileira
@@ -120,6 +136,7 @@ class Contact(models.Model):
             models.Index(fields=['name', 'is_active']),
             models.Index(fields=['doc_number', 'is_active']),
             models.Index(fields=['city', 'state']),
+            models.Index(fields=['contact_type', 'company_subtype']),
         ]
 
     @property
@@ -134,6 +151,8 @@ class Contact(models.Model):
     def complete_name(self):
         try:
             if self.parent_id and self.parent:
+                if self.is_company:
+                    return f"{self.parent.name} / {self.name}"
                 return f"{self.parent.name}, {self.name}"
         except Exception:
             pass
@@ -167,15 +186,24 @@ class Contact(models.Model):
     def clean(self):
         super().clean()
         
-        # 1. Impede auto-referência na empresa mãe
-        if self.parent_id and self.pk and self.parent_id == self.pk:
-            raise ValidationError({'parent': _("Um contato não pode ser sua própria empresa vinculada.")})
+        # 1. Impede auto-referência e ciclos na empresa mãe
+        if self.parent_id:
+            if self.pk and self.parent_id == self.pk:
+                raise ValidationError({'parent': _("Um contato não pode ser sua própria empresa vinculada.")})
+            
+            if self.pk:
+                current_parent = self.parent
+                visited = {self.pk}
+                while current_parent:
+                    if current_parent.pk in visited:
+                        raise ValidationError({'parent': _("Ciclo hierárquico detectado: a empresa vinculada já descende deste contato.")})
+                    visited.add(current_parent.pk)
+                    current_parent = current_parent.parent
 
         # 2. Validação e normalização de CNPJ / CPF
         if self.doc_number:
             raw_digits = clean_doc_digits(self.doc_number)
             
-            # Validação do tipo de documento
             if self.doc_type == DocTypeChoices.CPF:
                 validate_cpf(raw_digits)
             elif self.doc_type == DocTypeChoices.CNPJ:
