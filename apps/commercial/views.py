@@ -353,3 +353,59 @@ class ContractMiseEnServiceTriggerView(LoginRequiredMixin, View):
             messages.error(request, str(e.message_dict.get('status', [str(e)])[0]))
 
         return redirect('commercial:contract_detail', pk=contract.pk)
+
+from apps.contacts.models import Contact
+
+class ContactAutocompleteView(LoginRequiredMixin, View):
+    """
+    Endpoint JSON para busca preditiva rápida e sugestões automáticas de Clientes / Contratantes
+    (Pessoas Jurídicas, SPEs, Filiais e Pessoas Físicas) com metadados estruturados.
+    """
+    def get(self, request):
+        contact_id = request.GET.get('id', '').strip()
+        if contact_id:
+            c = Contact.objects.filter(pk=contact_id, is_active=True).select_related('parent').first()
+            if not c:
+                return JsonResponse({'found': False}, status=404)
+            return JsonResponse({
+                'found': True,
+                'id': str(c.pk),
+                'name': c.name,
+                'trade_name': c.trade_name,
+                'is_company': c.is_company,
+                'type_display': c.get_contact_type_display(),
+                'company_subtype': c.get_company_subtype_display() if c.is_company else '',
+                'parent_name': c.parent.name if c.parent else '',
+                'doc_number': c.formatted_doc_number,
+                'city': c.city,
+                'state': c.state,
+                'location': f"{c.city}/{c.state}" if c.city and c.state else (c.city or c.state or ''),
+                'avatar_url': c.avatar.url if c.avatar else None,
+            })
+
+        q = request.GET.get('q', '').strip()
+        qs = Contact.objects.filter(is_active=True).select_related('parent').order_by('name')
+
+        if q:
+            clean_digits = ''.join(ch for ch in q if ch.isdigit())
+            query = Q(name__icontains=q) | Q(trade_name__icontains=q) | Q(city__icontains=q) | Q(parent__name__icontains=q)
+            if clean_digits:
+                query |= Q(doc_number__icontains=clean_digits)
+            qs = qs.filter(query)
+
+        results = []
+        for c in qs[:15]:
+            results.append({
+                'id': str(c.pk),
+                'name': c.name,
+                'trade_name': c.trade_name,
+                'is_company': c.is_company,
+                'type_display': c.get_contact_type_display(),
+                'company_subtype': c.get_company_subtype_display() if c.is_company else '',
+                'parent_name': c.parent.name if c.parent else '',
+                'doc_number': c.formatted_doc_number,
+                'location': f"{c.city}/{c.state}" if c.city and c.state else (c.city or c.state or ''),
+                'avatar_url': c.avatar.url if c.avatar else None,
+            })
+
+        return JsonResponse({'results': results, 'total': len(results)})

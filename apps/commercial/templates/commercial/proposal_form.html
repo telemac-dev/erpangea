@@ -35,10 +35,13 @@
             {% if form.errors %}
             <div class="alert alert-danger py-2 px-3 small mb-4">
                 <i class="bi bi-exclamation-triangle-fill me-1"></i> Corrija os erros indicados abaixo para continuar.
+                {% if form.client.errors %}
+                    <div class="fw-bold mt-1">Cliente / Contratante: {{ form.client.errors.0 }}</div>
+                {% endif %}
             </div>
             {% endif %}
 
-            <form method="post" novalidate>
+            <form method="post" novalidate id="proposalForm">
                 {% csrf_token %}
 
                 <!-- 1. Contratante e Identificação da Obra -->
@@ -47,14 +50,75 @@
                         <i class="bi bi-building me-1 text-primary"></i> 1. Contratante & Obra
                     </h6>
                     <div class="row g-3">
+                        <!-- Campo Cliente / Contratante com Busca Inteligente e Autocomplete Preditivo -->
                         <div class="col-md-6">
-                            <label for="{{ form.client.id_for_label }}" class="form-label small fw-semibold text-dark">
+                            <label class="form-label small fw-semibold text-dark">
                                 Cliente / Contratante (PJ ou PF) <span class="text-danger">*</span>
                             </label>
-                            {{ form.client }}
-                            <div class="form-text text-muted small" style="font-size: 0.72rem;">
-                                Selecione uma construtora, incorporadora, SPE ou cliente pessoa física.
+                            
+                            <!-- Campo oculto submetido para validação do Django -->
+                            <input type="hidden" name="client" id="id_client" value="{{ form.client.value|default:'' }}">
+
+                            <!-- 1.1 Card do Cliente Selecionado -->
+                            <div id="selectedClientCard" class="card bg-light border p-3 rounded-3 shadow-none mb-1" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-2.5 min-w-0" style="min-width: 0;">
+                                        <div id="selectedClientAvatar" class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center border flex-shrink-0" style="width: 40px; height: 40px;">
+                                            <i class="bi bi-building"></i>
+                                        </div>
+                                        <div class="min-w-0 ms-2" style="overflow: hidden;">
+                                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                                <strong id="selectedClientName" class="text-dark small text-truncate"></strong>
+                                                <span id="selectedClientBadge"></span>
+                                            </div>
+                                            <div class="text-muted small text-truncate" style="font-size: 0.73rem;">
+                                                <span id="selectedClientDoc" class="font-monospace me-2 text-dark"></span>
+                                                <span id="selectedClientLoc"></span>
+                                            </div>
+                                            <div id="selectedClientParent" class="text-secondary small text-truncate" style="font-size: 0.7rem; display: none;"></div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 flex-shrink-0 ms-2 shadow-sm" id="btnChangeClient" title="Trocar de cliente / buscar outro contato">
+                                        <i class="bi bi-arrow-left-right me-1"></i> Trocar
+                                    </button>
+                                </div>
                             </div>
+
+                            <!-- 1.2 Caixa de Busca Preditiva com Autocomplete -->
+                            <div id="clientSearchContainer" class="position-relative">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                                    <input type="text" 
+                                           id="clientSearchInput" 
+                                           class="form-control border-start-0" 
+                                           placeholder="Buscar por Razão Social, CNPJ, CPF, SPE ou Cidade..." 
+                                           autocomplete="off">
+                                    <button class="btn btn-outline-secondary border-start-0 bg-white text-muted" type="button" id="btnClearClientSearch" style="display: none;" title="Limpar">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Menu Flutuante de Sugestões -->
+                                <div id="clientSuggestionsDropdown" 
+                                     class="dropdown-menu w-100 shadow-lg border mt-1 p-0" 
+                                     style="display: none; max-height: 290px; overflow-y: auto; z-index: 1050; border-radius: 8px;">
+                                    <div id="clientSuggestionsList" class="list-group list-group-flush small"></div>
+                                </div>
+
+                                <div class="form-text text-muted d-flex flex-wrap justify-content-between align-items-center mt-1" style="font-size: 0.72rem;">
+                                    <span>Digite para ver sugestões em tempo real.</span>
+                                    <span class="text-secondary">Sugestões rápidas:
+                                        <a href="javascript:void(0)" class="text-decoration-none text-primary fw-semibold" onclick="quickFilterClientSearch('Aliança')">Aliança</a>,
+                                        <a href="javascript:void(0)" class="text-decoration-none text-primary fw-semibold" onclick="quickFilterClientSearch('SPE')">SPEs</a>,
+                                        <a href="javascript:void(0)" class="text-decoration-none text-primary fw-semibold" onclick="quickFilterClientSearch('Manaus')">Manaus</a>,
+                                        <a href="javascript:void(0)" class="text-decoration-none text-primary fw-semibold" onclick="quickFilterClientSearch('Camargo')">Camargo</a>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {% if form.client.errors %}
+                                <div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ form.client.errors.0 }}</div>
+                            {% endif %}
                         </div>
 
                         <div class="col-md-6">
@@ -69,6 +133,9 @@
                                 Localização Geográfica da Obra
                             </label>
                             {{ form.project_location }}
+                            <div class="form-text text-muted small" style="font-size: 0.72rem;">
+                                É atualizada automaticamente caso você selecione um cliente com endereço cadastrado.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -156,4 +223,217 @@
         </div>
     </div>
 </div>
+
+<script>
+    const idClientInput = document.getElementById('id_client');
+    const selectedClientCard = document.getElementById('selectedClientCard');
+    const selectedClientName = document.getElementById('selectedClientName');
+    const selectedClientBadge = document.getElementById('selectedClientBadge');
+    const selectedClientDoc = document.getElementById('selectedClientDoc');
+    const selectedClientLoc = document.getElementById('selectedClientLoc');
+    const selectedClientParent = document.getElementById('selectedClientParent');
+    const selectedClientAvatar = document.getElementById('selectedClientAvatar');
+    const btnChangeClient = document.getElementById('btnChangeClient');
+
+    const clientSearchContainer = document.getElementById('clientSearchContainer');
+    const clientSearchInput = document.getElementById('clientSearchInput');
+    const btnClearClientSearch = document.getElementById('btnClearClientSearch');
+    const clientSuggestionsDropdown = document.getElementById('clientSuggestionsDropdown');
+    const clientSuggestionsList = document.getElementById('clientSuggestionsList');
+    const projectLocationInput = document.getElementById('id_project_location');
+
+    let searchDebounceTimeout = null;
+
+    function renderSelectedClientCard(data) {
+        if (!data || !data.id) return;
+        selectedClientName.textContent = data.name;
+        selectedClientDoc.textContent = data.doc_number || 'Sem documento';
+        selectedClientLoc.textContent = data.location ? `• ${data.location}` : '';
+
+        // Badge de tipo e subtipo
+        if (data.is_company) {
+            let badgeHtml = '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">PJ</span>';
+            if (data.company_subtype && data.company_subtype !== 'Matriz / Holding Controladora') {
+                badgeHtml += ` <span class="badge bg-secondary bg-opacity-10 text-secondary border ms-1" style="font-size: 0.68rem;">${data.company_subtype}</span>`;
+            }
+            selectedClientBadge.innerHTML = badgeHtml;
+            selectedClientAvatar.innerHTML = '<i class="bi bi-building"></i>';
+        } else {
+            selectedClientBadge.innerHTML = '<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">PF</span>';
+            selectedClientAvatar.innerHTML = '<i class="bi bi-person"></i>';
+        }
+
+        // Holding controladora
+        if (data.parent_name) {
+            selectedClientParent.style.display = 'block';
+            selectedClientParent.innerHTML = `<i class="bi bi-arrow-return-right me-1"></i>Controlada por: <strong>${data.parent_name}</strong>`;
+        } else {
+            selectedClientParent.style.display = 'none';
+        }
+
+        selectedClientCard.style.display = 'block';
+        clientSearchContainer.style.display = 'none';
+        closeSuggestions();
+
+        // Sugestão automática de localização caso esteja vazia ou padrão
+        if (projectLocationInput && data.location && (!projectLocationInput.value || projectLocationInput.value === 'Manaus/AM')) {
+            projectLocationInput.value = data.location;
+        }
+    }
+
+    function selectClientItem(item) {
+        idClientInput.value = item.id;
+        renderSelectedClientCard(item);
+    }
+
+    function openClientSearch() {
+        selectedClientCard.style.display = 'none';
+        clientSearchContainer.style.display = 'block';
+        clientSearchInput.value = '';
+        if (btnClearClientSearch) btnClearClientSearch.style.display = 'none';
+        clientSearchInput.focus();
+        fetchSuggestions('');
+    }
+
+    function closeSuggestions() {
+        if (clientSuggestionsDropdown) clientSuggestionsDropdown.style.display = 'none';
+    }
+
+    async function fetchSuggestions(term) {
+        try {
+            const url = `{% url 'commercial:contact_autocomplete' %}?q=${encodeURIComponent(term)}`;
+            const response = await fetch(url, { credentials: 'same-origin' });
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const results = data.results || [];
+
+            if (results.length === 0) {
+                clientSuggestionsList.innerHTML = `
+                    <div class="p-3 text-center text-muted small">
+                        <i class="bi bi-search me-1"></i> Nenhum contato encontrado para "${term}".
+                    </div>
+                `;
+            } else {
+                clientSuggestionsList.innerHTML = results.map((item, idx) => {
+                    const iconClass = item.is_company ? 'bi-building text-primary' : 'bi-person text-info';
+                    const typeBadge = item.is_company ? 
+                        `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.65rem;">PJ</span>` : 
+                        `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.65rem;">PF</span>`;
+                    
+                    const subBadge = item.company_subtype && item.company_subtype !== 'Matriz / Holding Controladora' ? 
+                        `<span class="badge bg-secondary bg-opacity-10 text-secondary border ms-1" style="font-size: 0.65rem;">${item.company_subtype}</span>` : '';
+
+                    const parentLine = item.parent_name ? 
+                        `<div class="text-secondary small text-truncate" style="font-size: 0.7rem;"><i class="bi bi-arrow-return-right me-1"></i>Controlada por: ${item.parent_name}</div>` : '';
+
+                    return `
+                        <button type="button" 
+                                class="list-group-item list-group-item-action p-2.5 d-flex align-items-center gap-2.5 border-0 border-bottom client-suggestion-item" 
+                                data-index="${idx}">
+                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border flex-shrink-0" style="width: 32px; height: 32px;">
+                                <i class="bi ${iconClass}"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0" style="overflow: hidden;">
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                    <strong class="text-dark small text-truncate">${item.name}</strong>
+                                    ${typeBadge}
+                                    ${subBadge}
+                                </div>
+                                <div class="text-muted small text-truncate" style="font-size: 0.72rem;">
+                                    <span class="font-monospace text-dark me-2">${item.doc_number || 'Sem documento'}</span>
+                                    <span>${item.location || ''}</span>
+                                </div>
+                                ${parentLine}
+                            </div>
+                        </button>
+                    `;
+                }).join('');
+
+                // Adiciona listener de clique para cada sugestão
+                const itemsEls = clientSuggestionsList.querySelectorAll('.client-suggestion-item');
+                itemsEls.forEach((el, index) => {
+                    el.addEventListener('click', () => {
+                        selectClientItem(results[index]);
+                    });
+                });
+            }
+
+            clientSuggestionsDropdown.style.display = 'block';
+        } catch (e) {
+            console.error("Erro ao buscar sugestões de clientes:", e);
+        }
+    }
+
+    function quickFilterClientSearch(query) {
+        if (selectedClientCard.style.display === 'block') {
+            openClientSearch();
+        }
+        clientSearchInput.value = query;
+        if (btnClearClientSearch) btnClearClientSearch.style.display = 'block';
+        fetchSuggestions(query);
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        // Se já houver cliente selecionado (edição ou erro de formulário com cliente preservado)
+        const initialClientId = idClientInput.value;
+        if (initialClientId) {
+            try {
+                const res = await fetch(`{% url 'commercial:contact_autocomplete' %}?id=${initialClientId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.found) {
+                        renderSelectedClientCard(data);
+                    } else {
+                        openClientSearch();
+                    }
+                }
+            } catch (e) {
+                openClientSearch();
+            }
+        } else {
+            openClientSearch();
+        }
+
+        // Listener de digitação na busca com debounce
+        if (clientSearchInput) {
+            clientSearchInput.addEventListener('input', function (e) {
+                const term = e.target.value;
+                if (btnClearClientSearch) {
+                    btnClearClientSearch.style.display = term ? 'block' : 'none';
+                }
+                clearTimeout(searchDebounceTimeout);
+                searchDebounceTimeout = setTimeout(() => {
+                    fetchSuggestions(term);
+                }, 180);
+            });
+
+            clientSearchInput.addEventListener('focus', function () {
+                if (clientSuggestionsDropdown.style.display !== 'block') {
+                    fetchSuggestions(clientSearchInput.value);
+                }
+            });
+        }
+
+        if (btnClearClientSearch) {
+            btnClearClientSearch.addEventListener('click', function () {
+                clientSearchInput.value = '';
+                btnClearClientSearch.style.display = 'none';
+                clientSearchInput.focus();
+                fetchSuggestions('');
+            });
+        }
+
+        if (btnChangeClient) {
+            btnChangeClient.addEventListener('click', openClientSearch);
+        }
+
+        // Fechar dropdown ao clicar fora
+        document.addEventListener('click', function (e) {
+            if (!clientSearchContainer.contains(e.target)) {
+                closeSuggestions();
+            }
+        });
+    });
+</script>
 {% endblock %}
