@@ -1,0 +1,46 @@
+<div class="modal-header bg-light">
+    <h5 class="modal-title fw-bold text-dark">
+        <i class="bi bi-check2-square text-primary me-2"></i>Parecer Técnico do Insumo
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<form hx-post="{% url 'commercial:validate_input' proposal.pk req_item.pk %}" hx-target="#modalValidateContent" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="modal-body p-4">
+        <div class="card bg-light border-0 p-3 mb-3">
+            <h6 class="fw-bold text-dark mb-1">{{ req_item.get_required_item_type_display }}</h6>
+            <small class="text-muted d-block mb-2">{{ req_item.description }}</small>
+            {% if req_item.uploaded_file %}
+                <div class="small">
+                    Arquivo Atual: <a href="{{ req_item.uploaded_file.url }}" target="_blank" class="fw-bold">{{ req_item.uploaded_file.name }}</a>
+                </div>
+            {% else %}
+                <span class="text-danger small fst-italic">Nenhum arquivo anexado ainda pelo cliente.</span>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">Situação do Insumo</label>
+            {{ form.status }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">Anexar ou Substituir Arquivo (Laudo, DWG ou Planta)</label>
+            {{ form.uploaded_file }}
+        </div>
+
+        <div class="mb-2">
+            <label class="form-label small fw-semibold">Parecer Técnico do Engenheiro Geotécnico</label>
+            {{ form.technical_notes }}
+            <div class="form-text text-muted small" style="font-size: 0.72rem;">
+                Indique a conformidade com as normas ABNT aplicáveis (ex: NBR 6484 para SPT).
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+        <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold">Salvar Parecer</button>
+    </div>
+</form>

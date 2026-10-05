@@ -9,6 +9,7 @@ urlpatterns = [
     path('health/', health_check, name='health_check'),
     path('accounts/', include('apps.accounts.urls')),
     path('contacts/', include('apps.contacts.urls')),
+    path('commercial/', include('apps.commercial.urls')),
     path('admin/', admin.site.urls),
 ]
 

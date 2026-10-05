@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Propostas Comerciais - ERPangea{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-2 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="bi bi-briefcase-fill text-primary me-2"></i>Propostas Comerciais & Técnicas
+            </h3>
+            <p class="text-muted small mb-0">Gestão do pipeline comercial, propostas técnicas de engenharia e contratos.</p>
+        </div>
+        <a href="{% url 'commercial:proposal_create' %}" class="btn btn-primary px-3 py-2 fw-semibold shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Nova Proposta
+        </a>
+    </div>
+
+    <!-- Filtros e Busca -->
+    <div class="d-flex align-items-center gap-2">
+        <form method="get" class="d-flex align-items-center m-0">
+            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+            <div class="input-group input-group-sm" style="width: 260px;">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="search" name="q" value="{{ q }}" class="form-control border-start-0" placeholder="Buscar por código, cliente ou obra...">
+            </div>
+        </form>
+
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-funnel me-1"></i> Status
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
+                <li><a class="dropdown-item {% if not status_filter %}active{% endif %}" href="?q={{ q }}">Todos os Status</a></li>
+                <li><hr class="dropdown-divider"></li>
+                {% for val, label in statuses %}
+                    <li><a class="dropdown-item {% if status_filter == val %}active{% endif %}" href="?status={{ val }}&q={{ q }}">{{ label }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% if proposals %}
+<div class="card card-custom shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light text-secondary" style="font-size: 0.78rem;">
+                    <tr>
+                        <th class="ps-3">Código</th>
+                        <th>Empreendimento / Obra</th>
+                        <th>Cliente / Contratante</th>
+                        <th>Valor Global</th>
+                        <th>Validade</th>
+                        <th>Status</th>
+                        <th>Consultor</th>
+                        <th class="text-end pe-3">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in proposals %}
+                    <tr>
+                        <td class="ps-3 fw-bold">
+                            <a href="{% url 'commercial:proposal_detail' p.pk %}" class="text-primary text-decoration-none">
+                                {{ p.proposal_code }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="fw-semibold text-dark">{{ p.project_name }}</span>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">{{ p.project_location }}</small>
+                        </td>
+                        <td>
+                            <a href="{% url 'contacts:detail' p.client.pk %}" class="text-dark text-decoration-none">
+                                {{ p.client.name }}
+                            </a>
+                        </td>
+                        <td class="fw-bold text-dark">R$ {{ p.total_value|floatformat:2 }}</td>
+                        <td>
+                            {% if p.expires_at %}
+                                <span class="{% if p.is_expired %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                    {{ p.expires_at|date:"d/m/Y" }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">{{ p.validity_days }} dias</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.status == 'ACEITA' %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                    <i class="bi bi-check-circle me-1"></i> Aceita
+                                </span>
+                            {% elif p.status == 'ENVIADA' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                    <i class="bi bi-send me-1"></i> Enviada
+                                </span>
+                            {% elif p.status == 'EM_REVISAO' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Em Revisão
+                                </span>
+                            {% elif p.status == 'DECLINADA' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
+                                    <i class="bi bi-x-circle me-1"></i> Recusada
+                                </span>
+                            {% elif p.status == 'EXPIRADA' %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1">
+                                    Expirada
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-muted border px-2 py-1">Rascunho</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">{{ p.salesperson.get_full_name|default:p.salesperson.email }}</td>
+                        <td class="text-end pe-3">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'commercial:proposal_detail' p.pk %}" class="btn btn-outline-secondary py-1 px-2" title="Abrir Área da Proposta">
+                                    <i class="bi bi-folder2-open"></i>
+                                </a>
+                                <a href="{% url 'commercial:proposal_print' p.pk %}" target="_blank" class="btn btn-outline-secondary py-1 px-2" title="Visualizar / Imprimir PDF">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                                <a href="{% url 'commercial:public_portal' p.public_token %}" target="_blank" class="btn btn-outline-primary py-1 px-2" title="Acessar Portal do Cliente">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card card-custom p-5 text-center my-4">
+    <div class="d-inline-flex align-items-center justify-content-center bg-light text-muted rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+        <i class="bi bi-briefcase fs-1 opacity-50"></i>
+    </div>
+    <h5 class="fw-bold text-dark mb-1">Nenhuma proposta comercial encontrada</h5>
+    <p class="text-muted small mb-3">Cadastre a primeira proposta técnica parametrizada da Pangea Engenharia.</p>
+    <div>
+        <a href="{% url 'commercial:proposal_create' %}" class="btn btn-primary btn-sm px-3 fw-semibold">
+            <i class="bi bi-plus-lg me-1"></i> Elaborar Proposta
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Contrato {{ contract.contract_code }} - ERPangea{% endblock %}
+
+{% block content %}
+<!-- Cabecalho do Contrato -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-2 border-bottom">
+    <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'commercial:proposal_detail' contract.proposal.pk %}" class="btn btn-outline-secondary btn-sm shadow-sm" title="Voltar à proposta vinculada">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="{% url 'commercial:proposal_list' %}" class="text-decoration-none">Comercial</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'commercial:proposal_detail' contract.proposal.pk %}" class="text-decoration-none">{{ contract.proposal.proposal_code }}</a></li>
+                    <li class="breadcrumb-item active">{{ contract.contract_code }}</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-lock-fill text-success me-1"></i> Contrato {{ contract.contract_code }}
+                {% if contract.status == 'MISE_EN_SERVICE' %}
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-7">
+                        <i class="bi bi-play-circle-fill me-1"></i> Mise en Service Ativo (D0 Fixado)
+                    </span>
+                {% elif contract.status == 'ASSINADO' %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 fs-7">
+                        <i class="bi bi-pen-fill me-1"></i> Assinado
+                    </span>
+                {% else %}
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 fs-7">
+                        {{ contract.get_status_display }}
+                    </span>
+                {% endif %}
+            </h4>
+        </div>
+    </div>
+
+    <!-- Acoes do Contrato -->
+    <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'commercial:contract_edit' contract.pk %}" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
+            <i class="bi bi-pencil me-1"></i> Editar Cláusulas / Anexos
+        </a>
+    </div>
+</div>
+
+<!-- Painel de Governanca: Entrada em Servico (Mise en Service) -->
+<div class="card card-custom shadow-sm mb-4 border-start border-4 {% if contract.status == 'MISE_EN_SERVICE' %}border-success{% elif can_start_mise_en_service %}border-primary{% else %}border-warning{% endif %}">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="bi bi-flag-fill text-primary me-2"></i>Painel de Entrada em Serviço (*Mise en Service* & $D_0$)
+            </h5>
+            <small class="text-muted">A contagem do cronograma contratual ($D_0$) só é autorizada mediante o cumprimento estrito das 3 pré-condições</small>
+        </div>
+        {% if contract.status == 'MISE_EN_SERVICE' %}
+            <span class="badge bg-success fs-6 px-3 py-2"><i class="bi bi-check-all me-1"></i> Projeto em Execução</span>
+        {% endif %}
+    </div>
+
+    <div class="card-body p-4">
+        <!-- Checklist das 3 Condicoes Mandatorias -->
+        <div class="row g-3 mb-4">
+            <!-- 1. Contrato Assinado -->
+            <div class="col-md-4">
+                <div class="p-3 border rounded-3 {% if contract.signed_pdf or contract.status == 'ASSINADO' or contract.status == 'MISE_EN_SERVICE' %}bg-success bg-opacity-10 border-success{% else %}bg-light border-warning{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong class="text-dark small">1. Contrato Assinado</strong>
+                        {% if contract.signed_pdf or contract.status == 'ASSINADO' or contract.status == 'MISE_EN_SERVICE' %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Conforme</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendente</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted d-block">
+                        {% if contract.signed_pdf %}
+                            PDF assinado anexado (<a href="{{ contract.signed_pdf.url }}" target="_blank" class="fw-bold">Visualizar</a>).
+                        {% else %}
+                            Anexe o PDF assinado pelas partes na edição do contrato.
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+
+            <!-- 2. Insumos Tecnicos Obrigatorios -->
+            <div class="col-md-4">
+                {% with unapproved=contract.proposal.input_requirements.filter.is_mandatory %}
+                <div class="p-3 border rounded-3 {% if not mise_en_service_pendencias.1 and not mise_en_service_pendencias.0 %}bg-success bg-opacity-10 border-success{% else %}bg-light border-warning{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong class="text-dark small">2. Insumos da Contratante</strong>
+                        {% if not mise_en_service_pendencias %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Homologados</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Em Análise</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted d-block">
+                        Sondagens SPT, Plantas de Cargas e DWG validados pelo engenheiro geotécnico.
+                    </small>
+                </div>
+                {% endwith %}
+            </div>
+
+            <!-- 3. ART no CREA-AM -->
+            <div class="col-md-4">
+                <div class="p-3 border rounded-3 {% if contract.crea_art_number %}bg-success bg-opacity-10 border-success{% else %}bg-light border-warning{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong class="text-dark small">3. ART no CREA-AM</strong>
+                        {% if contract.crea_art_number %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Registrada</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendente</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted d-block">
+                        {% if contract.crea_art_number %}
+                            Registro Nº: <code>{{ contract.crea_art_number }}</code>
+                        {% else %}
+                            Informe o número da ART recolhida na edição.
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botao de Acionamento ou Metricas de Cronograma -->
+        {% if contract.status == 'MISE_EN_SERVICE' %}
+            <div class="p-3 bg-light rounded-3 border d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <span class="text-muted small d-block">MARCO ZERO (D0 - INÍCIO EFETIVO):</span>
+                    <h5 class="fw-bold text-success mb-0"><i class="bi bi-calendar-check me-1"></i> {{ contract.d0_trigger_date|date:"d/m/Y" }}</h5>
+                </div>
+                <div>
+                    <span class="text-muted small d-block">PRAZO TOTAL PACTUADO:</span>
+                    <h5 class="fw-bold text-dark mb-0">{{ contract.proposal.execution_lead_time_days }} dias corridos</h5>
+                </div>
+                <div>
+                    <span class="text-muted small d-block">DATA LIMITE FINAL DE ENTREGA:</span>
+                    <h5 class="fw-bold text-primary mb-0"><i class="bi bi-flag me-1"></i> {{ contract.deadline_date|date:"d/m/Y" }}</h5>
+                </div>
+            </div>
+        {% else %}
+            {% if can_start_mise_en_service %}
+                <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 border">
+                    <div>
+                        <h6 class="fw-bold text-success mb-1"><i class="bi bi-check-circle-fill me-1"></i> Todas as 3 condições satisfeitas!</h6>
+                        <small class="text-muted">O gatilho de execução pode ser disparado para fixar a data $D_0$ e iniciar a contagem do prazo.</small>
+                    </div>
+                    <form method="post" action="{% url 'commercial:trigger_mise_en_service' contract.pk %}" class="m-0" onsubmit="return confirm('Confirmar Entrada em Serviço (Mise en Service)? O marco zero D0 será formalizado.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success fw-semibold px-4 shadow-sm">
+                            <i class="bi bi-play-circle me-1"></i> Acionar Entrada em Serviço (D0)
+                        </button>
+                    </form>
+                </div>
+            {% else %}
+                <div class="alert alert-warning mb-0 small">
+                    <h6 class="fw-bold mb-1"><i class="bi bi-shield-lock me-1"></i> Bloqueio de Entrada em Serviço Ativo</h6>
+                    As seguintes pendências impedem o acionamento do cronograma:
+                    <ul class="mb-0 ps-3 mt-1">
+                        {% for pend in mise_en_service_pendencias %}
+                            <li>{{ pend }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Secao 2: Texto das Clausulas Contratuais -->
+<div class="card card-custom shadow-sm mb-4">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold text-dark mb-0"><i class="bi bi-card-text text-secondary me-2"></i>Cláusulas e Texto Jurídico da Minuta</h5>
+            <small class="text-muted">Modelo: {{ contract.get_contract_type_display }}</small>
+        </div>
+        <a href="{% url 'commercial:contract_edit' contract.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-pencil me-1"></i> Editar Cláusulas
+        </a>
+    </div>
+    <div class="card-body p-4 bg-light bg-opacity-25">
+        <div class="p-4 bg-white border rounded-3" style="font-size: 0.92rem; line-height: 1.6;">
+            {{ contract.contract_html_body|safe }}
+        </div>
+    </div>
+</div>
+{% endblock %}

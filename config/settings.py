@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.audit_log',
     'apps.contacts',
+    'apps.commercial',
 ]
 
 MIDDLEWARE = [
