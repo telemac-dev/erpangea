@@ -11,7 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init-extensions.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql:ro
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pangea_user} -d ${POSTGRES_DB:-erpangea_v2}"]
       interval: 5s
@@ -28,7 +28,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:-6380}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -43,17 +43,26 @@ services:
       dockerfile: Dockerfile
     container_name: erpangea_web
     restart: unless-stopped
-    command: python manage.py runserver 0.0.0.0:8000
+    command: docker/scripts/start-web.sh
     volumes:
       - .:/app
       - media_data:/app/media
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
       - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-erpangea_v2}
+      - POSTGRES_USER=${POSTGRES_USER:-pangea_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pangea_secure_pass}
       - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - ALLOWED_HOSTS=*
+      - CSRF_TRUSTED_ORIGINS=http://192.168.10.250:8000,http://localhost:8000,http://127.0.0.1:8000
+      - USE_SQLITE=False
+      - ADMIN_EMAIL=admin@pangea.eng.br
+      - ADMIN_PASSWORD=Pangea#2026
     depends_on:
       db:
         condition: service_healthy
@@ -72,11 +81,16 @@ services:
     volumes:
       - .:/app
       - media_data:/app/media
-    env_file:
-      - .env
     environment:
       - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-erpangea_v2}
+      - POSTGRES_USER=${POSTGRES_USER:-pangea_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pangea_secure_pass}
       - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - USE_SQLITE=False
     depends_on:
       db:
         condition: service_healthy
@@ -94,11 +108,16 @@ services:
     command: docker/scripts/start-beat.sh
     volumes:
       - .:/app
-    env_file:
-      - .env
     environment:
       - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-erpangea_v2}
+      - POSTGRES_USER=${POSTGRES_USER:-pangea_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pangea_secure_pass}
       - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - USE_SQLITE=False
     depends_on:
       db:
         condition: service_healthy
