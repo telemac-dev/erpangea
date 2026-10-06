@@ -42,5 +42,8 @@ if Contact.objects.count() == 0:
     call_command('seed_commercial_demo')
 " || true
 
+echo "==> [ERPangea] Coletando arquivos estáticos para WhiteNoise..."
+python manage.py collectstatic --noinput || true
+
 echo "==> [ERPangea] Iniciando Gunicorn WSGI Server em 0.0.0.0:8000..."
 exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4} --threads ${GUNICORN_THREADS:-2}

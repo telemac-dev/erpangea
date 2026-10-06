@@ -25,9 +25,10 @@ RUN useradd -m -u 1000 appuser && \
     mkdir -p /app/media /app/staticfiles && \
     chown -R appuser:appuser /app
 
-# Copia codigo da aplicacao e ajusta permissoes
+# Copia codigo da aplicacao, compila arquivos estaticos e ajusta permissoes
 COPY . .
-RUN chmod +x /app/docker/scripts/*.sh && \
+RUN SECRET_KEY=build-time-static-key USE_SQLITE=True uv run python manage.py collectstatic --noinput && \
+    chmod +x /app/docker/scripts/*.sh && \
     chown -R appuser:appuser /app
 
 USER appuser
