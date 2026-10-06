@@ -25,13 +25,14 @@ RUN useradd -m -u 1000 appuser && \
     mkdir -p /app/media /app/staticfiles && \
     chown -R appuser:appuser /app
 
-# Copia codigo da aplicacao
+# Copia codigo da aplicacao e ajusta permissoes
 COPY . .
-RUN chown -R appuser:appuser /app
+RUN chmod +x /app/docker/scripts/*.sh && \
+    chown -R appuser:appuser /app
 
 USER appuser
 
 EXPOSE 8000
 
-ENTRYPOINT ["docker/scripts/entrypoint.sh"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2"]
+ENTRYPOINT ["/app/docker/scripts/entrypoint.sh"]
+CMD ["/app/docker/scripts/start-web.sh"]

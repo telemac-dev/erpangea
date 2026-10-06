@@ -9,7 +9,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pangea_secure_pass}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init-extensions.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql:ro
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     healthcheck:
@@ -43,9 +42,8 @@ services:
       dockerfile: Dockerfile
     container_name: erpangea_web
     restart: unless-stopped
-    command: docker/scripts/start-web.sh
+    command: /app/docker/scripts/start-web.sh
     volumes:
-      - .:/app
       - media_data:/app/media
     ports:
       - "8000:8000"
@@ -77,9 +75,8 @@ services:
       dockerfile: Dockerfile
     container_name: erpangea_worker
     restart: unless-stopped
-    command: docker/scripts/start-worker.sh
+    command: /app/docker/scripts/start-worker.sh
     volumes:
-      - .:/app
       - media_data:/app/media
     environment:
       - POSTGRES_HOST=db
@@ -105,9 +102,7 @@ services:
       dockerfile: Dockerfile
     container_name: erpangea_beat
     restart: unless-stopped
-    command: docker/scripts/start-beat.sh
-    volumes:
-      - .:/app
+    command: /app/docker/scripts/start-beat.sh
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
