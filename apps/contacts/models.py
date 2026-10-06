@@ -94,7 +94,7 @@ class Contact(models.Model):
 
     # Endereco estruturado
     street = models.CharField(_('Logradouro'), max_length=200, blank=True)
-    number = models.CharField(_('Número'), max_length=20, blank=True)
+    number = models.CharField(_('Número'), max_length=50, blank=True)
     complement = models.CharField(_('Complemento'), max_length=100, blank=True)
     neighborhood = models.CharField(_('Bairro'), max_length=100, blank=True)
     city = models.CharField(_('Cidade'), max_length=100, blank=True, db_index=True)

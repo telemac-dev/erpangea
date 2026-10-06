@@ -123,7 +123,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class UserProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    phone = models.CharField(_('telefone'), max_length=20, blank=True)
+    phone = models.CharField(_('telefone'), max_length=30, blank=True)
     job_title = models.CharField(_('cargo'), max_length=100, blank=True)
     crea_number = models.CharField(
         _('número CREA/UF'),
