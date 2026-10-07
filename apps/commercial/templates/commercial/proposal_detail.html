@@ -120,7 +120,7 @@
             <span class="text-muted small fw-bold text-uppercase">Valor Global Fixo e Irreajustável</span>
             <h2 class="fw-bold text-dark my-2">{{ proposal.total_value|currency_br }}</h2>
             <div class="small text-muted mb-2">
-                <i class="bi bi-calendar-event me-1"></i> 
+                <i class="bi bi-calendar-event me-1"></i>
                 Válida até: <strong>{{ proposal.expires_at|date:"d/m/Y" }}</strong> ({{ proposal.validity_days }} dias)
             </div>
             {% if proposal.is_expired and proposal.status != 'ACEITA' %}
@@ -374,7 +374,7 @@
 
 <!-- Modal: Adicionar Item de Escopo -->
 <div class="modal fade" id="modalAddScope" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-light">
                 <h5 class="modal-title fw-bold text-dark">
@@ -389,25 +389,71 @@
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-dark">
                                 Tipo de Serviço / Escopo <span class="text-danger">*</span>
-                                <span class="text-muted fw-normal">(selecione ou digite novo)</span>
+                                <span class="text-muted fw-normal">(selecione da lista abaixo ou digite um novo)</span>
                             </label>
-                            {{ scope_form.service_type_name }}
-                            <datalist id="datalist_service_types">
-                                {% for s in service_types %}
-                                <option value="{{ s.name }}" data-nbr="{{ s.default_nbr_references }}" data-desc="{{ s.default_description }}"></option>
-                                {% endfor %}
-                            </datalist>
+                            <div class="dropdown position-relative">
+                                <div class="input-group">
+                                    {{ scope_form.service_type_name }}
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleServiceTypes" title="Ver catálogo de serviços técnicos">
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_service_types" style="min-width: 100%; max-height: 360px; overflow-y: auto; z-index: 1060;">
+                                        <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
+                                            <i class="bi bi-search me-1"></i>Catálogo de Serviços Técnicos da Engenharia ({{ service_types|length }} disponíveis)
+                                        </li>
+                                        {% for s in service_types %}
+                                        <li>
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap service-type-item" href="#" 
+                                               data-name="{{ s.name }}" 
+                                               data-discipline="{{ s.discipline.name|default:'' }}" 
+                                               data-nbr="{{ s.default_nbr_references }}" 
+                                               data-desc="{{ s.default_description }}">
+                                                <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">{{ s.name }}</div>
+                                                <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                                    {% if s.discipline %}
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">
+                                                        {{ s.discipline.name }}
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if s.default_nbr_references %}
+                                                    <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">
+                                                        {{ s.default_nbr_references }}
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-dark">
                                 Disciplina Técnica <span class="text-muted fw-normal">(opcional ou digite nova)</span>
                             </label>
-                            {{ scope_form.discipline_name }}
-                            <datalist id="datalist_disciplines">
-                                {% for d in disciplines %}
-                                <option value="{{ d.name }}"></option>
-                                {% endfor %}
-                            </datalist>
+                            <div class="dropdown position-relative">
+                                <div class="input-group">
+                                    {{ scope_form.discipline_name }}
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleDisciplines" title="Ver catálogo de disciplinas">
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_disciplines" style="min-width: 100%; max-height: 280px; overflow-y: auto; z-index: 1060;">
+                                        <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
+                                            <i class="bi bi-collection me-1"></i>Disciplinas Técnicas de Engenharia ({{ disciplines|length }} disponíveis)
+                                        </li>
+                                        {% for d in disciplines %}
+                                        <li>
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap discipline-item" href="#" data-name="{{ d.name }}">
+                                                <div class="fw-bold text-dark" style="font-size: 0.88rem;">{{ d.name }}</div>
+                                                {% if d.description %}
+                                                <small class="text-muted d-block text-truncate" style="max-width: 550px; font-size: 0.75rem;">{{ d.description }}</small>
+                                                {% endif %}
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-dark">Normas ABNT Aplicáveis</label>
@@ -487,7 +533,7 @@
 
 <!-- Modal Container para Edição de Item de Escopo (HTMX) -->
 <div class="modal fade" id="modalEditScope" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content" id="modalEditScopeContent"></div>
     </div>
 </div>
@@ -501,29 +547,109 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-preenchimento ao selecionar tipo de servico no modal de adicao
+    // 1. Dropdown interativo de Tipos de Servicos Tecnicos
     const serviceInput = document.getElementById('id_service_type_name');
-    if (serviceInput) {
+    const serviceDropdownMenu = document.getElementById('dropdown_service_types');
+    const toggleServiceBtn = document.getElementById('btnToggleServiceTypes');
+
+    if (serviceInput && serviceDropdownMenu) {
+        const serviceItems = serviceDropdownMenu.querySelectorAll('.service-type-item');
+
+        // Ao digitar no campo: filtra os itens em tempo real e abre o menu se fechado
         serviceInput.addEventListener('input', function() {
-            const val = this.value;
-            const datalist = document.getElementById('datalist_service_types');
-            if (datalist) {
-                const opt = Array.from(datalist.options).find(o => o.value === val);
-                if (opt) {
-                    const nbrField = document.getElementById('id_nbr_references');
-                    const descField = document.getElementById('id_description');
-                    if (nbrField && (!nbrField.value || nbrField.value === 'NBR 6122 / NBR 6118') && opt.dataset.nbr) {
-                        nbrField.value = opt.dataset.nbr;
-                    }
-                    if (descField && !descField.value && opt.dataset.desc) {
-                        descField.value = opt.dataset.desc;
-                    }
+            const filter = this.value.toLowerCase().trim();
+            let matches = 0;
+
+            serviceItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    item.closest('li').style.display = '';
+                    matches++;
+                } else {
+                    item.closest('li').style.display = 'none';
                 }
+            });
+
+            // Garante que o dropdown esteja visível ao digitar
+            if (toggleServiceBtn && !serviceDropdownMenu.classList.contains('show')) {
+                const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn);
+                bsDropdown.show();
             }
+        });
+
+        // Ao clicar em qualquer item do dropdown de serviços
+        serviceItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const name = this.dataset.name;
+                const discipline = this.dataset.discipline;
+                const nbr = this.dataset.nbr;
+                const desc = this.dataset.desc;
+
+                serviceInput.value = name;
+
+                const discField = document.getElementById('id_discipline_name');
+                if (discField && discipline) {
+                    discField.value = discipline;
+                }
+
+                const nbrField = document.getElementById('id_nbr_references');
+                if (nbrField && nbr) {
+                    nbrField.value = nbr;
+                }
+
+                const descField = document.getElementById('id_description');
+                if (descField && desc) {
+                    descField.value = desc;
+                }
+
+                // Fecha o dropdown
+                if (toggleServiceBtn) {
+                    const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn);
+                    bsDropdown.hide();
+                }
+            });
         });
     }
 
-    // Auto-preenchimento ao selecionar tipo de insumo no modal de insumo
+    // 2. Dropdown interativo de Disciplinas
+    const discInput = document.getElementById('id_discipline_name');
+    const discDropdownMenu = document.getElementById('dropdown_disciplines');
+    const toggleDiscBtn = document.getElementById('btnToggleDisciplines');
+
+    if (discInput && discDropdownMenu) {
+        const discItems = discDropdownMenu.querySelectorAll('.discipline-item');
+
+        discInput.addEventListener('input', function() {
+            const filter = this.value.toLowerCase().trim();
+            discItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    item.closest('li').style.display = '';
+                } else {
+                    item.closest('li').style.display = 'none';
+                }
+            });
+
+            if (toggleDiscBtn && !discDropdownMenu.classList.contains('show')) {
+                const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn);
+                bsDropdown.show();
+            }
+        });
+
+        discItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                discInput.value = this.dataset.name;
+                if (toggleDiscBtn) {
+                    const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn);
+                    bsDropdown.hide();
+                }
+            });
+        });
+    }
+
+    // 3. Auto-preenchimento ao selecionar tipo de insumo no modal de insumo
     const inputTypeInput = document.getElementById('id_input_type_name');
     if (inputTypeInput) {
         inputTypeInput.addEventListener('input', function() {

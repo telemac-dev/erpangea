@@ -17,18 +17,48 @@
         <div class="alert alert-danger py-2 px-3 small mb-3">
             {% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}
         </div>
+        {% endif %}
         <div class="row g-3">
             <div class="col-12">
                 <label class="form-label small fw-semibold text-dark">
                     Tipo de Serviço / Escopo <span class="text-danger">*</span>
-                    <span class="text-muted fw-normal">(selecione ou digite novo)</span>
+                    <span class="text-muted fw-normal">(selecione da lista abaixo ou digite um novo)</span>
                 </label>
-                {{ form.service_type_name }}
-                <datalist id="datalist_service_types">
-                    {% for s in service_types %}
-                    <option value="{{ s.name }}" data-nbr="{{ s.default_nbr_references }}" data-desc="{{ s.default_description }}"></option>
-                    {% endfor %}
-                </datalist>
+                <div class="dropdown position-relative">
+                    <div class="input-group">
+                        {{ form.service_type_name }}
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleEditServiceTypes" title="Ver catálogo de serviços técnicos">
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_edit_service_types" style="min-width: 100%; max-height: 360px; overflow-y: auto; z-index: 1060;">
+                            <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
+                                <i class="bi bi-search me-1"></i>Catálogo de Serviços Técnicos da Engenharia ({{ service_types|length }} disponíveis)
+                            </li>
+                            {% for s in service_types %}
+                            <li>
+                                <a class="dropdown-item py-2 px-3 rounded text-wrap edit-service-type-item" href="#" 
+                                   data-name="{{ s.name }}" 
+                                   data-discipline="{{ s.discipline.name|default:'' }}" 
+                                   data-nbr="{{ s.default_nbr_references }}" 
+                                   data-desc="{{ s.default_description }}">
+                                    <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">{{ s.name }}</div>
+                                    <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                        {% if s.discipline %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">
+                                            {{ s.discipline.name }}
+                                        </span>
+                                        {% endif %}
+                                        {% if s.default_nbr_references %}
+                                        <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">
+                                            {{ s.default_nbr_references }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
                 {% if form.service_type_name.errors %}
                 <div class="text-danger small mt-1">{{ form.service_type_name.errors.0 }}</div>
                 {% endif %}
@@ -36,15 +66,30 @@
 
             <div class="col-12">
                 <label class="form-label small fw-semibold text-dark">
-                    Disciplina Técnica
-                    <span class="text-muted fw-normal">(opcional ou digite nova)</span>
+                    Disciplina Técnica <span class="text-muted fw-normal">(opcional ou digite nova)</span>
                 </label>
-                {{ form.discipline_name }}
-                <datalist id="datalist_disciplines">
-                    {% for d in disciplines %}
-                    <option value="{{ d.name }}"></option>
-                    {% endfor %}
-                </datalist>
+                <div class="dropdown position-relative">
+                    <div class="input-group">
+                        {{ form.discipline_name }}
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleEditDisciplines" title="Ver catálogo de disciplinas">
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_edit_disciplines" style="min-width: 100%; max-height: 280px; overflow-y: auto; z-index: 1060;">
+                            <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
+                                <i class="bi bi-collection me-1"></i>Disciplinas Técnicas de Engenharia ({{ disciplines|length }} disponíveis)
+                            </li>
+                            {% for d in disciplines %}
+                            <li>
+                                <a class="dropdown-item py-2 px-3 rounded text-wrap edit-discipline-item" href="#" data-name="{{ d.name }}">
+                                    <div class="fw-bold text-dark" style="font-size: 0.88rem;">{{ d.name }}</div>
+                                    {% if d.description %}
+                                    <small class="text-muted d-block text-truncate" style="max-width: 550px; font-size: 0.75rem;">{{ d.description }}</small>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
                 {% if form.discipline_name.errors %}
                 <div class="text-danger small mt-1">{{ form.discipline_name.errors.0 }}</div>
                 {% endif %}
@@ -53,6 +98,7 @@
             <div class="col-12">
                 <label class="form-label small fw-semibold text-dark">Normas ABNT Aplicáveis</label>
                 {{ form.nbr_references }}
+                {% if form.nbr_references.errors %}
                 <div class="text-danger small mt-1">{{ form.nbr_references.errors.0 }}</div>
                 {% endif %}
             </div>
@@ -85,3 +131,67 @@
         </button>
     </div>
 </form>
+
+<script>
+(function() {
+    const modalContent = document.getElementById('modalEditScopeContent');
+    if (!modalContent) return;
+
+    const editServiceInput = modalContent.querySelector('#id_service_type_name');
+    const editServiceDropdown = modalContent.querySelector('#dropdown_edit_service_types');
+    const toggleServiceBtn = modalContent.querySelector('#btnToggleEditServiceTypes');
+
+    if (editServiceInput && editServiceDropdown) {
+        const items = editServiceDropdown.querySelectorAll('.edit-service-type-item');
+        editServiceInput.addEventListener('input', function() {
+            const filter = this.value.toLowerCase().trim();
+            items.forEach(it => {
+                const text = it.textContent.toLowerCase();
+                it.closest('li').style.display = text.includes(filter) ? '' : 'none';
+            });
+            if (toggleServiceBtn && !editServiceDropdown.classList.contains('show')) {
+                bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).show();
+            }
+        });
+
+        items.forEach(it => {
+            it.addEventListener('click', function(e) {
+                e.preventDefault();
+                editServiceInput.value = this.dataset.name;
+                const discField = modalContent.querySelector('#id_discipline_name');
+                if (discField && this.dataset.discipline) discField.value = this.dataset.discipline;
+                const nbrField = modalContent.querySelector('#id_nbr_references');
+                if (nbrField && this.dataset.nbr) nbrField.value = this.dataset.nbr;
+                const descField = modalContent.querySelector('#id_description');
+                if (descField && this.dataset.desc) descField.value = this.dataset.desc;
+                if (toggleServiceBtn) bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).hide();
+            });
+        });
+    }
+
+    const editDiscInput = modalContent.querySelector('#id_discipline_name');
+    const editDiscDropdown = modalContent.querySelector('#dropdown_edit_disciplines');
+    const toggleDiscBtn = modalContent.querySelector('#btnToggleEditDisciplines');
+
+    if (editDiscInput && editDiscDropdown) {
+        const items = editDiscDropdown.querySelectorAll('.edit-discipline-item');
+        editDiscInput.addEventListener('input', function() {
+            const filter = this.value.toLowerCase().trim();
+            items.forEach(it => {
+                it.closest('li').style.display = it.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+            if (toggleDiscBtn && !editDiscDropdown.classList.contains('show')) {
+                bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).show();
+            }
+        });
+
+        items.forEach(it => {
+            it.addEventListener('click', function(e) {
+                e.preventDefault();
+                editDiscInput.value = this.dataset.name;
+                if (toggleDiscBtn) bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).hide();
+            });
+        });
+    }
+})();
+</script>
