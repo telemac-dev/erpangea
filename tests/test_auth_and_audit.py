@@ -132,3 +132,36 @@ class AuditTrailImmutabilityTestCase(TestCase):
         last_log = AuditLog.objects.first()
         self.assertEqual(last_log.action, AuditActionChoices.EXPORT)
         self.assertEqual(last_log.ip_address, '192.168.1.50')
+
+    def test_django_admin_user_creation(self):
+        admin = User.objects.create_superuser(
+            email='admin.gestao@pangea.eng.br',
+            password='AdminPassword#2026'
+        )
+        client = Client()
+        client.force_login(admin)
+
+        # GET na tela de adicionar
+        res_get = client.get('/admin/accounts/user/add/')
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, 'password1')
+        self.assertContains(res_get, 'password2')
+
+        # POST criando novo colaborador
+        res_post = client.post('/admin/accounts/user/add/', {
+            'email': 'novo.engenheiro.admin@pangea.eng.br',
+            'password1': 'SenhaSegura#2026',
+            'password2': 'SenhaSegura#2026',
+            'first_name': 'Juliana',
+            'last_name': 'Costas',
+            'is_staff': True,
+            'is_active': True,
+            '_save': 'Salvar'
+        })
+        self.assertEqual(res_post.status_code, 302)
+
+        new_user = User.objects.filter(email='novo.engenheiro.admin@pangea.eng.br').first()
+        self.assertIsNotNone(new_user)
+        self.assertTrue(new_user.check_password('SenhaSegura#2026'))
+        self.assertTrue(hasattr(new_user, 'profile'))
+        self.assertTrue(new_user.sector_assignments.exists())
