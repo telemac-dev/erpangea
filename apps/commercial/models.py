@@ -372,7 +372,8 @@ class ProposalScopeItem(models.Model):
     nbr_references = models.CharField(
         _('Normas ABNT Aplicáveis'),
         max_length=150,
-        default='NBR 6122 / NBR 6118',
+        blank=True,
+        default='',
         help_text=_('Ex: ABNT NBR 6122:2019 e NBR 6118:2023')
     )
     description = models.TextField(_('Memorial Descritivo do Escopo'))
@@ -398,8 +399,7 @@ class ProposalScopeItem(models.Model):
         if self.service_type_ref:
             return self.service_type_ref.name
         choices_map = dict(ServiceTypeChoices.choices)
-        return choices_map.get(self.service_type, self.service_type or _('Serviço Técnico'))
-
+        return choices_map.get(self.service_type, self.service_type or '')
     def __str__(self):
         return f"{self.get_service_type_display()} - R$ {self.subtotal_value}"
 

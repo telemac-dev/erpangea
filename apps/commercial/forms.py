@@ -108,14 +108,25 @@ class ProposalScopeItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
+        if self.instance and not self.instance._state.adding:
             self.fields['service_type_name'].initial = self.instance.get_service_type_display()
             if self.instance.discipline:
                 self.fields['discipline_name'].initial = self.instance.discipline.name
             elif self.instance.service_type_ref and self.instance.service_type_ref.discipline:
                 self.fields['discipline_name'].initial = self.instance.service_type_ref.discipline.name
             self.fields['subtotal_value'].initial = number_br(self.instance.subtotal_value)
-
+        else:
+            # No modo de adição: todos os campos iniciam estritamente vazios, exibindo apenas o placeholder
+            self.initial['service_type_name'] = ''
+            self.initial['discipline_name'] = ''
+            self.initial['nbr_references'] = ''
+            self.initial['description'] = ''
+            self.initial['subtotal_value'] = ''
+            self.fields['service_type_name'].initial = ''
+            self.fields['discipline_name'].initial = ''
+            self.fields['nbr_references'].initial = ''
+            self.fields['description'].initial = ''
+            self.fields['subtotal_value'].initial = ''
     def clean_subtotal_value(self):
         raw = self.cleaned_data.get('subtotal_value')
         dec = parse_decimal_br(raw)
@@ -192,9 +203,13 @@ class ProposalInputRequirementForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
+        if self.instance and not self.instance._state.adding:
             self.fields['input_type_name'].initial = self.instance.get_required_item_type_display()
-
+        else:
+            self.initial['input_type_name'] = ''
+            self.initial['description'] = ''
+            self.fields['input_type_name'].initial = ''
+            self.fields['description'].initial = ''
     def save(self, commit=True):
         req_item = super().save(commit=False)
         input_name = self.cleaned_data.get('input_type_name', '').strip()
