@@ -24,7 +24,10 @@ from .models import (
     InputStatusChoices,
     InputItemTypeChoices,
     ServiceTypeChoices,
-    ContractTypeChoices
+    ContractTypeChoices,
+    TechnicalDiscipline,
+    TechnicalServiceType,
+    TechnicalInputType
 )
 from .forms import (
     ProposalForm,
@@ -122,8 +125,10 @@ class ProposalDetailView(LoginRequiredMixin, DetailView):
         context['contract'] = getattr(self.object, 'contract', None)
         context['scope_form'] = ProposalScopeItemForm()
         context['input_form'] = ProposalInputRequirementForm()
+        context['disciplines'] = TechnicalDiscipline.objects.filter(is_active=True).order_by('name')
+        context['service_types'] = TechnicalServiceType.objects.filter(is_active=True).order_by('name')
+        context['input_types'] = TechnicalInputType.objects.filter(is_active=True).order_by('name')
         return context
-
 class ProposalAddScopeItemView(LoginRequiredMixin, View):
     def post(self, request, pk):
         proposal = get_object_or_404(CommercialProposal, pk=pk)
@@ -138,8 +143,60 @@ class ProposalAddScopeItemView(LoginRequiredMixin, View):
             item.save()
             messages.success(request, _(f"Item de escopo '{item.get_service_type_display()}' adicionado."))
         else:
-            messages.error(request, _("Erro ao adicionar item de escopo. Verifique os campos."))
+            err_msg = "; ".join([f"{f}: {e[0]}" for f, e in form.errors.items()])
+            messages.error(request, _(f"Erro ao adicionar item de escopo: {err_msg}"))
         return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+
+class ProposalEditScopeItemView(LoginRequiredMixin, View):
+    """
+    Permite modificar um item de escopo técnico parametrizado da proposta.
+    """
+    def get(self, request, pk, item_id):
+        proposal = get_object_or_404(CommercialProposal, pk=pk)
+        if proposal.status == ProposalStatusChoices.ACEITA:
+            messages.error(request, _("Proposta já aceita. O escopo e valores estão travados para alteração."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        item = get_object_or_404(ProposalScopeItem, pk=item_id, proposal=proposal)
+        form = ProposalScopeItemForm(instance=item)
+        disciplines = TechnicalDiscipline.objects.filter(is_active=True).order_by('name')
+        service_types = TechnicalServiceType.objects.filter(is_active=True).order_by('name')
+        return render(request, 'commercial/partials/edit_scope_item_modal.html', {
+            'proposal': proposal,
+            'item': item,
+            'form': form,
+            'disciplines': disciplines,
+            'service_types': service_types,
+        })
+
+    def post(self, request, pk, item_id):
+        proposal = get_object_or_404(CommercialProposal, pk=pk)
+        if proposal.status == ProposalStatusChoices.ACEITA:
+            messages.error(request, _("Proposta já aceita. O escopo e valores estão travados para alteração."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        item = get_object_or_404(ProposalScopeItem, pk=item_id, proposal=proposal)
+        form = ProposalScopeItemForm(request.POST, instance=item)
+        if form.is_valid():
+            item = form.save(commit=True)
+            messages.success(request, _(f"Item de escopo '{item.get_service_type_display()}' modificado com sucesso."))
+            if request.headers.get('HX-Request'):
+                response = HttpResponse("")
+                response['HX-Refresh'] = 'true'
+                return response
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        disciplines = TechnicalDiscipline.objects.filter(is_active=True).order_by('name')
+        service_types = TechnicalServiceType.objects.filter(is_active=True).order_by('name')
+        return render(request, 'commercial/partials/edit_scope_item_modal.html', {
+            'proposal': proposal,
+            'item': item,
+            'form': form,
+            'disciplines': disciplines,
+            'service_types': service_types,
+        }, status=422)
+
 
 class ProposalDeleteScopeItemView(LoginRequiredMixin, View):
     def post(self, request, pk, item_id):
@@ -153,6 +210,7 @@ class ProposalDeleteScopeItemView(LoginRequiredMixin, View):
         messages.warning(request, _("Item de escopo removido da proposta."))
         return redirect('commercial:proposal_detail', pk=proposal.pk)
 
+
 class ProposalAddInputRequirementView(LoginRequiredMixin, View):
     def post(self, request, pk):
         proposal = get_object_or_404(CommercialProposal, pk=pk)
@@ -161,7 +219,10 @@ class ProposalAddInputRequirementView(LoginRequiredMixin, View):
             req_item = form.save(commit=False)
             req_item.proposal = proposal
             req_item.save()
-            messages.success(request, _("Insumo técnico adicionado ao checklist de responsabilidade do cliente."))
+            messages.success(request, _(f"Insumo técnico '{req_item.get_required_item_type_display()}' adicionado ao checklist."))
+        else:
+            err_msg = "; ".join([f"{f}: {e[0]}" for f, e in form.errors.items()])
+            messages.error(request, _(f"Erro ao adicionar insumo técnico: {err_msg}"))
         return redirect('commercial:proposal_detail', pk=proposal.pk)
 
 class ProposalValidateInputView(LoginRequiredMixin, View):

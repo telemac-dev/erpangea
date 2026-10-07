@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load currency_filters %}
 
 {% block title %}{{ proposal.proposal_code }} - Proposta Comercial | ERPangea{% endblock %}
 
@@ -117,7 +118,7 @@
     <div class="col-lg-4">
         <div class="card card-custom p-4 shadow-sm h-100 border-start border-4 border-primary bg-light bg-opacity-25">
             <span class="text-muted small fw-bold text-uppercase">Valor Global Fixo e Irreajustável</span>
-            <h2 class="fw-bold text-dark my-2">R$ {{ proposal.total_value|floatformat:2 }}</h2>
+            <h2 class="fw-bold text-dark my-2">{{ proposal.total_value|currency_br }}</h2>
             <div class="small text-muted mb-2">
                 <i class="bi bi-calendar-event me-1"></i> 
                 Válida até: <strong>{{ proposal.expires_at|date:"d/m/Y" }}</strong> ({{ proposal.validity_days }} dias)
@@ -159,7 +160,7 @@
                         <th>Normas ABNT Aplicáveis</th>
                         <th>Memorial Descritivo do Escopo</th>
                         <th class="text-end">Subtotal (R$)</th>
-                        {% if proposal.status != 'ACEITA' %}<th class="text-end pe-3" style="width: 60px;">Ação</th>{% endif %}
+                        {% if proposal.status != 'ACEITA' %}<th class="text-end pe-3" style="width: 90px;">Ações</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -171,13 +172,24 @@
                         </td>
                         <td><span class="badge bg-light text-dark border font-monospace">{{ item.nbr_references }}</span></td>
                         <td class="text-secondary small" style="white-space: pre-line; max-width: 450px;">{{ item.description }}</td>
-                        <td class="text-end fw-bold text-dark">R$ {{ item.subtotal_value|floatformat:2 }}</td>
+                        <td class="text-end fw-bold text-dark">{{ item.subtotal_value|currency_br }}</td>
                         {% if proposal.status != 'ACEITA' %}
                         <td class="text-end pe-3">
-                            <form method="post" action="{% url 'commercial:delete_scope_item' proposal.pk item.pk %}" class="m-0" onsubmit="return confirm('Remover este item de escopo?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-link text-danger p-0" title="Remover item"><i class="bi bi-trash"></i></button>
-                            </form>
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary py-0 px-2"
+                                        title="Modificar item de escopo"
+                                        hx-get="{% url 'commercial:edit_scope_item' proposal.pk item.pk %}"
+                                        hx-target="#modalEditScopeContent"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalEditScope">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" action="{% url 'commercial:delete_scope_item' proposal.pk item.pk %}" class="m-0" onsubmit="return confirm('Remover este item de escopo?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Remover item"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
                         </td>
                         {% endif %}
                     </tr>
@@ -192,7 +204,7 @@
                 <tfoot class="table-light">
                     <tr>
                         <td colspan="3" class="text-end fw-bold ps-3">Total Consolidado da Proposta:</td>
-                        <td class="text-end fw-bold fs-6 text-primary">R$ {{ proposal.total_value|floatformat:2 }}</td>
+                        <td class="text-end fw-bold fs-6 text-primary">{{ proposal.total_value|currency_br }}</td>
                         {% if proposal.status != 'ACEITA' %}<td></td>{% endif %}
                     </tr>
                 </tfoot>
@@ -365,7 +377,9 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold text-dark">Adicionar Disciplina ao Escopo da Proposta</h5>
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="bi bi-plus-circle text-primary me-2"></i>Adicionar Item de Escopo à Proposta
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="post" action="{% url 'commercial:add_scope_item' proposal.pk %}">
@@ -373,26 +387,51 @@
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Disciplina / Tipo de Serviço</label>
-                            {{ scope_form.service_type }}
+                            <label class="form-label small fw-semibold text-dark">
+                                Disciplina Técnica <span class="text-muted fw-normal">(opcional ou digite nova)</span>
+                            </label>
+                            {{ scope_form.discipline_name }}
+                            <datalist id="datalist_disciplines">
+                                {% for d in disciplines %}
+                                <option value="{{ d.name }}"></option>
+                                {% endfor %}
+                            </datalist>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Normas ABNT Aplicáveis</label>
+                            <label class="form-label small fw-semibold text-dark">
+                                Tipo de Serviço / Escopo <span class="text-danger">*</span>
+                                <span class="text-muted fw-normal">(selecione ou digite novo)</span>
+                            </label>
+                            {{ scope_form.service_type_name }}
+                            <datalist id="datalist_service_types">
+                                {% for s in service_types %}
+                                <option value="{{ s.name }}" data-nbr="{{ s.default_nbr_references }}" data-desc="{{ s.default_description }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-dark">Normas ABNT Aplicáveis</label>
                             {{ scope_form.nbr_references }}
                         </div>
                         <div class="col-12">
-                            <label class="form-label small fw-semibold">Memorial Descritivo do Escopo</label>
+                            <label class="form-label small fw-semibold text-dark">Memorial Descritivo do Escopo <span class="text-danger">*</span></label>
                             {{ scope_form.description }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Subtotal Precificado (R$)</label>
-                            {{ scope_form.subtotal_value }}
+                            <label class="form-label small fw-semibold text-dark">Subtotal Precificado (R$) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted fw-bold">R$</span>
+                                {{ scope_form.subtotal_value }}
+                            </div>
+                            <div class="form-text small text-muted">Use vírgula para centavos e ponto para milhares (ex: 42.000,00)</div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold">Adicionar ao Escopo</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
+                        <i class="bi bi-plus-lg me-1"></i>Adicionar ao Escopo
+                    </button>
                 </div>
             </form>
         </div>
@@ -404,18 +443,28 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold text-dark">Adicionar Insumo Obrigatório</h5>
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="bi bi-file-earmark-plus text-primary me-2"></i>Adicionar Insumo Técnico Obrigatório
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="post" action="{% url 'commercial:add_input_requirement' proposal.pk %}">
                 {% csrf_token %}
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Tipo do Insumo</label>
-                        {{ input_form.required_item_type }}
+                        <label class="form-label small fw-semibold text-dark">
+                            Tipo do Insumo <span class="text-danger">*</span>
+                            <span class="text-muted fw-normal">(selecione ou digite novo)</span>
+                        </label>
+                        {{ input_form.input_type_name }}
+                        <datalist id="datalist_input_types">
+                            {% for inp in input_types %}
+                            <option value="{{ inp.name }}" data-desc="{{ inp.default_description }}"></option>
+                            {% endfor %}
+                        </datalist>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Especificação Técnica Exigida</label>
+                        <label class="form-label small fw-semibold text-dark">Especificação Técnica Exigida</label>
                         {{ input_form.description }}
                     </div>
                     <div class="form-check">
@@ -427,10 +476,19 @@
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold">Adicionar ao Checklist</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
+                        <i class="bi bi-plus-lg me-1"></i>Adicionar ao Checklist
+                    </button>
                 </div>
             </form>
         </div>
+    </div>
+</div>
+
+<!-- Modal Container para Edição de Item de Escopo (HTMX) -->
+<div class="modal fade" id="modalEditScope" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="modalEditScopeContent"></div>
     </div>
 </div>
 
@@ -440,4 +498,48 @@
         <div class="modal-content" id="modalValidateContent"></div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-preenchimento ao selecionar tipo de servico no modal de adicao
+    const serviceInput = document.getElementById('id_service_type_name');
+    if (serviceInput) {
+        serviceInput.addEventListener('input', function() {
+            const val = this.value;
+            const datalist = document.getElementById('datalist_service_types');
+            if (datalist) {
+                const opt = Array.from(datalist.options).find(o => o.value === val);
+                if (opt) {
+                    const nbrField = document.getElementById('id_nbr_references');
+                    const descField = document.getElementById('id_description');
+                    if (nbrField && (!nbrField.value || nbrField.value === 'NBR 6122 / NBR 6118') && opt.dataset.nbr) {
+                        nbrField.value = opt.dataset.nbr;
+                    }
+                    if (descField && !descField.value && opt.dataset.desc) {
+                        descField.value = opt.dataset.desc;
+                    }
+                }
+            }
+        });
+    }
+
+    // Auto-preenchimento ao selecionar tipo de insumo no modal de insumo
+    const inputTypeInput = document.getElementById('id_input_type_name');
+    if (inputTypeInput) {
+        inputTypeInput.addEventListener('input', function() {
+            const val = this.value;
+            const datalist = document.getElementById('datalist_input_types');
+            if (datalist) {
+                const opt = Array.from(datalist.options).find(o => o.value === val);
+                if (opt) {
+                    const descField = document.getElementById('id_input_description');
+                    if (descField && (!descField.value || descField.value.includes('Fornecimento obrigatório')) && opt.dataset.desc) {
+                        descField.value = opt.dataset.desc;
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

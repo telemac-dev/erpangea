@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load currency_filters %}
 
 {% block title %}Propostas Comerciais - ERPangea{% endblock %}
 
@@ -75,7 +76,7 @@
                                 {{ p.client.name }}
                             </a>
                         </td>
-                        <td class="fw-bold text-dark">R$ {{ p.total_value|floatformat:2 }}</td>
+                        <td class="fw-bold text-dark">{{ p.total_value|currency_br }}</td>
                         <td>
                             {% if p.expires_at %}
                                 <span class="{% if p.is_expired %}text-danger fw-bold{% else %}text-muted{% endif %}">

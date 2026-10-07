@@ -14,7 +14,10 @@ from apps.commercial.models import (
     InputStatusChoices,
     InputItemTypeChoices,
     ServiceTypeChoices,
-    ContractTypeChoices
+    ContractTypeChoices,
+    TechnicalDiscipline,
+    TechnicalServiceType,
+    TechnicalInputType
 )
 
 User = get_user_model()
@@ -55,25 +58,36 @@ class Command(BaseCommand):
             }
         )
         if not hasattr(p1, "contract"):
+            st_cont = TechnicalServiceType.objects.filter(name__icontains="Contenções").first()
+            st_talu = TechnicalServiceType.objects.filter(name__icontains="Taludes").first()
+
             ProposalScopeItem.objects.create(
                 proposal=p1,
-                service_type=ServiceTypeChoices.CONTENCOES,
+                service_type_ref=st_cont,
+                discipline=st_cont.discipline if st_cont else None,
+                service_type=st_cont.name if st_cont else ServiceTypeChoices.CONTENCOES,
                 nbr_references="ABNT NBR 11682:2009 e NBR 6118:2023",
                 description="Projeto executivo de contenção em cortina de solo grampeado com concreto projetado e drenagem profunda subsuperficial.",
                 subtotal_value=Decimal('42000.00')
             )
             ProposalScopeItem.objects.create(
                 proposal=p1,
-                service_type=ServiceTypeChoices.ESTABILIDADE_TALUDES,
+                service_type_ref=st_talu,
+                discipline=st_talu.discipline if st_talu else None,
+                service_type=st_talu.name if st_talu else ServiceTypeChoices.ESTABILIDADE_TALUDES,
                 nbr_references="ABNT NBR 11682:2009",
                 description="Análise de estabilidade global de talude com cálculo de fatores de segurança (Bishop simplificado e Morgenstern-Price).",
                 subtotal_value=Decimal('18000.00')
             )
-
             # Insumos técnicos
+            inp_spt = TechnicalInputType.objects.filter(name__icontains="Sondagem SPT").first()
+            inp_arq = TechnicalInputType.objects.filter(name__icontains="Arquitetônicos").first()
+            inp_carg = TechnicalInputType.objects.filter(name__icontains="Cargas").first()
+
             ProposalInputRequirement.objects.create(
                 proposal=p1,
-                required_item_type=InputItemTypeChoices.SONDAGEM_SPT,
+                input_type_ref=inp_spt,
+                required_item_type=inp_spt.name if inp_spt else InputItemTypeChoices.SONDAGEM_SPT,
                 description="Laudo de Sondagem SPT com 4 furos segundo NBR 6484",
                 is_mandatory=True,
                 status=InputStatusChoices.APROVADO,
@@ -83,7 +97,8 @@ class Command(BaseCommand):
             )
             ProposalInputRequirement.objects.create(
                 proposal=p1,
-                required_item_type=InputItemTypeChoices.ARQUITETURA_DWG,
+                input_type_ref=inp_arq,
+                required_item_type=inp_arq.name if inp_arq else InputItemTypeChoices.ARQUITETURA_DWG,
                 description="Plantas em formato DWG com curvas de nível e implantação",
                 is_mandatory=True,
                 status=InputStatusChoices.APROVADO,
@@ -93,7 +108,8 @@ class Command(BaseCommand):
             )
             ProposalInputRequirement.objects.create(
                 proposal=p1,
-                required_item_type=InputItemTypeChoices.PLANTA_CARGAS,
+                input_type_ref=inp_carg,
+                required_item_type=inp_carg.name if inp_carg else InputItemTypeChoices.PLANTA_CARGAS,
                 description="Planta de cargas axiais e momentos do pátio",
                 is_mandatory=True,
                 status=InputStatusChoices.APROVADO,
@@ -101,7 +117,6 @@ class Command(BaseCommand):
                 validated_at=timezone.now() - timedelta(days=2),
                 technical_notes="Esforços estruturais verificados."
             )
-
             # Aceite formal do cliente
             p1.status = ProposalStatusChoices.ACEITA
             p1.accepted_at = timezone.now() - timedelta(days=3)

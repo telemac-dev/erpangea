@@ -264,10 +264,111 @@ class CommercialProposal(models.Model):
     def __str__(self):
         return f"{self.proposal_code} - {self.client.name} ({self.get_status_display()})"
 
+class TechnicalDiscipline(models.Model):
+    """
+    Disciplina técnica de engenharia (Geotecnia, Fundações, Estruturas, Contenções, Obras de Terra, etc.)
+    Permite criação dinâmica no banco e inline na proposta.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(_('Nome da Disciplina'), max_length=120, unique=True)
+    description = models.TextField(_('Descrição'), blank=True)
+    is_active = models.BooleanField(_('Ativo'), default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Disciplina Técnica')
+        verbose_name_plural = _('Disciplinas Técnicas')
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class TechnicalServiceType(models.Model):
+    """
+    Tipo de Serviço técnico prestado pela Pangea Engenharia.
+    Permite criação dinâmica no banco e inline na proposta.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    discipline = models.ForeignKey(
+        TechnicalDiscipline,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='service_types',
+        verbose_name=_('Disciplina')
+    )
+    name = models.CharField(_('Tipo de Serviço'), max_length=180, unique=True)
+    code = models.CharField(_('Código de Referência'), max_length=50, blank=True)
+    default_nbr_references = models.CharField(
+        _('Normas ABNT Padrão'),
+        max_length=150,
+        blank=True,
+        help_text=_('Ex: ABNT NBR 6122:2019 e NBR 6118:2023')
+    )
+    default_description = models.TextField(_('Memorial Descritivo Padrão'), blank=True)
+    is_active = models.BooleanField(_('Ativo'), default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Tipo de Serviço Técnico')
+        verbose_name_plural = _('Tipos de Serviços Técnicos')
+        ordering = ['name']
+
+    def __str__(self):
+        if self.discipline:
+            return f"{self.discipline.name} - {self.name}"
+        return self.name
+
+
+class TechnicalInputType(models.Model):
+    """
+    Tipo de insumo técnico de fornecimento obrigatório pela Contratante (Mise en Service / D0).
+    Permite criação dinâmica no banco e inline na proposta.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(_('Tipo de Insumo'), max_length=180, unique=True)
+    code = models.CharField(_('Código de Referência'), max_length=50, blank=True)
+    default_description = models.CharField(
+        _('Especificação Técnica Mínima'),
+        max_length=255,
+        blank=True,
+        default='Fornecimento obrigatório pela contratante conforme normas técnicas.'
+    )
+    is_mandatory_default = models.BooleanField(_('Bloqueia D0 por Padrão'), default=True)
+    is_active = models.BooleanField(_('Ativo'), default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Tipo de Insumo Técnico')
+        verbose_name_plural = _('Tipos de Insumos Técnicos')
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class ProposalScopeItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     proposal = models.ForeignKey(CommercialProposal, on_delete=models.CASCADE, related_name='scope_items')
-    service_type = models.CharField(_('Disciplina / Serviço'), max_length=30, choices=ServiceTypeChoices.choices)
+    
+    discipline = models.ForeignKey(
+        TechnicalDiscipline,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='scope_items',
+        verbose_name=_('Disciplina')
+    )
+    service_type_ref = models.ForeignKey(
+        TechnicalServiceType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='scope_items',
+        verbose_name=_('Tipo de Serviço')
+    )
+    service_type = models.CharField(_('Disciplina / Serviço'), max_length=180, blank=True)
     nbr_references = models.CharField(
         _('Normas ABNT Aplicáveis'),
         max_length=150,
@@ -283,6 +384,8 @@ class ProposalScopeItem(models.Model):
         ordering = ['service_type']
 
     def save(self, *args, **kwargs):
+        if self.service_type_ref and not self.service_type:
+            self.service_type = self.service_type_ref.name
         super().save(*args, **kwargs)
         self.proposal.calculate_totals()
 
@@ -291,13 +394,29 @@ class ProposalScopeItem(models.Model):
         super().delete(*args, **kwargs)
         proposal.calculate_totals()
 
+    def get_service_type_display(self):
+        if self.service_type_ref:
+            return self.service_type_ref.name
+        choices_map = dict(ServiceTypeChoices.choices)
+        return choices_map.get(self.service_type, self.service_type or _('Serviço Técnico'))
+
     def __str__(self):
         return f"{self.get_service_type_display()} - R$ {self.subtotal_value}"
+
 
 class ProposalInputRequirement(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     proposal = models.ForeignKey(CommercialProposal, on_delete=models.CASCADE, related_name='input_requirements')
-    required_item_type = models.CharField(_('Insumo Obrigatório'), max_length=30, choices=InputItemTypeChoices.choices)
+    
+    input_type_ref = models.ForeignKey(
+        TechnicalInputType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='requirements',
+        verbose_name=_('Tipo do Insumo')
+    )
+    required_item_type = models.CharField(_('Insumo Obrigatório'), max_length=180, blank=True)
     description = models.CharField(
         _('Especificação Técnica Mínima'),
         max_length=255,
@@ -324,6 +443,17 @@ class ProposalInputRequirement(models.Model):
         verbose_name_plural = _('Insumos Técnicos Obrigatórios')
         ordering = ['required_item_type']
 
+    def save(self, *args, **kwargs):
+        if self.input_type_ref and not self.required_item_type:
+            self.required_item_type = self.input_type_ref.name
+        super().save(*args, **kwargs)
+
+    def get_required_item_type_display(self):
+        if self.input_type_ref:
+            return self.input_type_ref.name
+        choices_map = dict(InputItemTypeChoices.choices)
+        return choices_map.get(self.required_item_type, self.required_item_type or _('Insumo Técnico'))
+
     def approve_input(self, engineer_user, notes='Conforme com as normas ABNT aplicáveis.'):
         self.status = InputStatusChoices.APROVADO
         self.validated_by = engineer_user
@@ -340,7 +470,6 @@ class ProposalInputRequirement(models.Model):
 
     def __str__(self):
         return f"[{self.get_status_display()}] {self.get_required_item_type_display()}"
-
 class LegalContract(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     proposal = models.OneToOneField(CommercialProposal, on_delete=models.PROTECT, related_name='contract')

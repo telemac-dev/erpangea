@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from .models import (
@@ -8,11 +9,25 @@ from .models import (
     ServiceTypeChoices,
     InputItemTypeChoices,
     InputStatusChoices,
-    ContractTypeChoices
+    ContractTypeChoices,
+    TechnicalDiscipline,
+    TechnicalServiceType,
+    TechnicalInputType
 )
 from apps.contacts.models import Contact
+from .templatetags.currency_filters import parse_decimal_br, number_br
 
 class ProposalForm(forms.ModelForm):
+    total_value = forms.CharField(
+        label=_('Valor Estimado da Proposta (R$)'),
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control text-end font-monospace',
+            'id': 'id_total_value',
+            'placeholder': '0,00'
+        })
+    )
+
     class Meta:
         model = CommercialProposal
         fields = [
@@ -29,35 +44,179 @@ class ProposalForm(forms.ModelForm):
             'technical_responsible': forms.Select(attrs={'class': 'form-select'}),
             'validity_days': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 90}),
             'execution_lead_time_days': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 365}),
-            'total_value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'id': 'id_total_value'}),
             'payment_terms_desc': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'ex.: 50% de entrada no aceite e 50% na entrega final do projeto executivo.'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['client'].queryset = Contact.objects.filter(is_active=True).order_by('name')
+        if self.instance and self.instance.pk:
+            self.fields['total_value'].initial = number_br(self.instance.total_value)
+
+    def clean_total_value(self):
+        raw = self.cleaned_data.get('total_value')
+        return parse_decimal_br(raw)
+
 
 class ProposalScopeItemForm(forms.ModelForm):
+    discipline_name = forms.CharField(
+        label=_('Disciplina Técnica'),
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'list': 'datalist_disciplines',
+            'placeholder': 'Selecione ou digite uma nova disciplina...',
+            'id': 'id_discipline_name'
+        })
+    )
+    service_type_name = forms.CharField(
+        label=_('Tipo de Serviço / Escopo'),
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'list': 'datalist_service_types',
+            'placeholder': 'Selecione ou digite um novo tipo de serviço...',
+            'id': 'id_service_type_name'
+        })
+    )
+    subtotal_value = forms.CharField(
+        label=_('Subtotal Precificado (R$)'),
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control text-end font-monospace',
+            'placeholder': '0,00',
+            'id': 'id_subtotal_value'
+        })
+    )
+
     class Meta:
         model = ProposalScopeItem
-        fields = ['service_type', 'nbr_references', 'description', 'subtotal_value']
+        fields = ['nbr_references', 'description']
         widgets = {
-            'service_type': forms.Select(attrs={'class': 'form-select', 'id': 'id_service_type'}),
-            'nbr_references': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ex.: ABNT NBR 6122:2019 e NBR 6118:2023'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Memorial descritivo detalhado do escopo a ser entregue...'}),
-            'subtotal_value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
+            'nbr_references': forms.TextInput(attrs={
+                'class': 'form-control',
+                'id': 'id_nbr_references',
+                'placeholder': 'ex.: ABNT NBR 6122:2019 e NBR 6118:2023'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'id': 'id_description',
+                'rows': 3,
+                'placeholder': 'Memorial descritivo detalhado do escopo a ser entregue...'
+            }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['service_type_name'].initial = self.instance.get_service_type_display()
+            if self.instance.discipline:
+                self.fields['discipline_name'].initial = self.instance.discipline.name
+            elif self.instance.service_type_ref and self.instance.service_type_ref.discipline:
+                self.fields['discipline_name'].initial = self.instance.service_type_ref.discipline.name
+            self.fields['subtotal_value'].initial = number_br(self.instance.subtotal_value)
+
+    def clean_subtotal_value(self):
+        raw = self.cleaned_data.get('subtotal_value')
+        dec = parse_decimal_br(raw)
+        if dec < Decimal('0.00'):
+            raise forms.ValidationError(_("O valor do subtotal não pode ser negativo."))
+        return dec
+
+    def save(self, commit=True):
+        item = super().save(commit=False)
+        disc_name = self.cleaned_data.get('discipline_name', '').strip()
+        disc_obj = None
+        if disc_name:
+            disc_obj, _ = TechnicalDiscipline.objects.get_or_create(
+                name=disc_name,
+                defaults={'is_active': True}
+            )
+
+        serv_name = self.cleaned_data.get('service_type_name', '').strip()
+        if not serv_name and self.data.get('service_type'):
+            legacy_choice = self.data.get('service_type')
+            serv_name = dict(ServiceTypeChoices.choices).get(legacy_choice, legacy_choice)
+
+        if serv_name:
+            serv_obj, _ = TechnicalServiceType.objects.get_or_create(
+                name=serv_name,
+                defaults={
+                    'discipline': disc_obj,
+                    'default_nbr_references': self.cleaned_data.get('nbr_references', ''),
+                    'default_description': self.cleaned_data.get('description', ''),
+                    'is_active': True
+                }
+            )
+            if disc_obj and not serv_obj.discipline:
+                serv_obj.discipline = disc_obj
+                serv_obj.save()
+
+            item.service_type_ref = serv_obj
+            item.service_type = serv_obj.name
+            item.discipline = disc_obj or (serv_obj.discipline if serv_obj else None)
+
+        item.subtotal_value = self.cleaned_data.get('subtotal_value')
+
+        if commit:
+            item.save()
+        return item
+
 
 class ProposalInputRequirementForm(forms.ModelForm):
+    input_type_name = forms.CharField(
+        label=_('Tipo do Insumo Obrigatório'),
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'list': 'datalist_input_types',
+            'placeholder': 'Selecione ou digite um novo tipo de insumo...',
+            'id': 'id_input_type_name'
+        })
+    )
+
     class Meta:
         model = ProposalInputRequirement
-        fields = ['required_item_type', 'description', 'is_mandatory']
+        fields = ['description', 'is_mandatory']
         widgets = {
-            'required_item_type': forms.Select(attrs={'class': 'form-select'}),
-            'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Especificação técnica mínima necessária'}),
-            'is_mandatory': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'description': forms.TextInput(attrs={
+                'class': 'form-control',
+                'id': 'id_input_description',
+                'placeholder': 'Especificação técnica mínima necessária'
+            }),
+            'is_mandatory': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+                'id': 'id_is_mandatory'
+            }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['input_type_name'].initial = self.instance.get_required_item_type_display()
+
+    def save(self, commit=True):
+        req_item = super().save(commit=False)
+        input_name = self.cleaned_data.get('input_type_name', '').strip()
+        if not input_name and self.data.get('required_item_type'):
+            legacy_choice = self.data.get('required_item_type')
+            input_name = dict(InputItemTypeChoices.choices).get(legacy_choice, legacy_choice)
+
+        if input_name:
+            inp_obj, _ = TechnicalInputType.objects.get_or_create(
+                name=input_name,
+                defaults={
+                    'default_description': self.cleaned_data.get('description', ''),
+                    'is_mandatory_default': self.cleaned_data.get('is_mandatory', True),
+                    'is_active': True
+                }
+            )
+            req_item.input_type_ref = inp_obj
+            req_item.required_item_type = inp_obj.name
+
+        if commit:
+            req_item.save()
+        return req_item
 class TechnicalInputValidationForm(forms.ModelForm):
     """
     Formulário para o engenheiro geotécnico anexar arquivos ou emitir parecer de aprovação/rejeição.

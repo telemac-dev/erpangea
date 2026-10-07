@@ -17,6 +17,7 @@ urlpatterns = [
 
     # Itens de Escopo e Insumos Tecnicos
     path('proposals/<uuid:pk>/scope/add/', views.ProposalAddScopeItemView.as_view(), name='add_scope_item'),
+    path('proposals/<uuid:pk>/scope/<uuid:item_id>/edit/', views.ProposalEditScopeItemView.as_view(), name='edit_scope_item'),
     path('proposals/<uuid:pk>/scope/<uuid:item_id>/delete/', views.ProposalDeleteScopeItemView.as_view(), name='delete_scope_item'),
     path('proposals/<uuid:pk>/inputs/add/', views.ProposalAddInputRequirementView.as_view(), name='add_input_requirement'),
     path('proposals/<uuid:pk>/inputs/<uuid:req_id>/validate/', views.ProposalValidateInputView.as_view(), name='validate_input'),

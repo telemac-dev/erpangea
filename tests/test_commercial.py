@@ -20,8 +20,12 @@ from apps.commercial.models import (
     InputItemTypeChoices,
     ServiceTypeChoices,
     ContractTypeChoices,
-    generate_proposal_code
+    generate_proposal_code,
+    TechnicalDiscipline,
+    TechnicalServiceType,
+    TechnicalInputType
 )
+from apps.commercial.templatetags.currency_filters import currency_br, number_br, parse_decimal_br
 from apps.audit_log.models import AuditLog, AuditActionChoices
 
 User = get_user_model()
@@ -282,3 +286,166 @@ class CommercialModuleTestCase(TestCase):
 
         logs_prop = AuditLog.objects.filter(model_name='commercialproposal', object_id=str(prop.pk))
         self.assertTrue(logs_prop.filter(action=AuditActionChoices.CREATE).exists())
+
+    # 8. Modificação/Edição de Itens de Escopo Técnico Parametrizado
+    def test_edit_scope_item_and_total_recalculation(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Edifício Mirante da Colina',
+            salesperson=self.user,
+            validity_days=30
+        )
+
+        # Adiciona item inicial: R$ 20.000,00
+        item = ProposalScopeItem.objects.create(
+            proposal=proposal,
+            service_type='Dimensionamento de Fundações',
+            nbr_references='NBR 6122',
+            description='Fundações em estacas cravadas',
+            subtotal_value=Decimal('20000.00')
+        )
+        proposal.refresh_from_db()
+        self.assertEqual(proposal.total_value, Decimal('20000.00'))
+
+        # GET no modal de edição
+        url_edit = f'/commercial/proposals/{proposal.pk}/scope/{item.pk}/edit/'
+        res_get = self.client_auth.get(url_edit)
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, 'Modificar Item de Escopo Técnico')
+        self.assertContains(res_get, '20.000,00')
+
+        # POST modificando valores e textos (passando valor em padrão brasileiro 35.500,50)
+        res_post = self.client_auth.post(url_edit, {
+            'discipline_name': 'Fundações e Geotecnia',
+            'service_type_name': 'Dimensionamento de Fundações Superficiais e Profundas (NBR 6122 / NBR 6118)',
+            'nbr_references': 'ABNT NBR 6122:2019 e NBR 6118:2023',
+            'description': 'Dimensionamento atualizado para estacas hélice contínua',
+            'subtotal_value': '35.500,50'
+        })
+        self.assertEqual(res_post.status_code, 302)
+
+        # Verifica recálculo automático do total da proposta
+        item.refresh_from_db()
+        proposal.refresh_from_db()
+        self.assertEqual(item.subtotal_value, Decimal('35500.50'))
+        self.assertEqual(proposal.total_value, Decimal('35500.50'))
+        self.assertEqual(item.nbr_references, 'ABNT NBR 6122:2019 e NBR 6118:2023')
+
+    def test_cannot_edit_scope_item_when_proposal_accepted(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Galpão Logístico Tarumã',
+            salesperson=self.user,
+            validity_days=30
+        )
+        item = ProposalScopeItem.objects.create(
+            proposal=proposal,
+            service_type='Contenções de Divisa',
+            subtotal_value=Decimal('15000.00')
+        )
+        # Agora aceita a proposta
+        proposal.status = ProposalStatusChoices.ACEITA
+        proposal.save(update_fields=['status'])
+
+        url_edit = f'/commercial/proposals/{proposal.pk}/scope/{item.pk}/edit/'
+        # GET deve redirecionar com mensagem de erro
+        res_get = self.client_auth.get(url_edit)
+        self.assertEqual(res_get.status_code, 302)
+
+        # POST também não deve permitir alteração
+        res_post = self.client_auth.post(url_edit, {
+            'service_type_name': 'Novo Serviço',
+            'subtotal_value': '50.000,00'
+        })
+        self.assertEqual(res_post.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.subtotal_value, Decimal('15000.00'))
+
+    # 9. Criação Dinâmica Inline de Disciplina e Tipo de Serviço
+    def test_dynamic_discipline_and_service_type_inline_creation(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Ensaio de Placa In Situ',
+            salesperson=self.user,
+            validity_days=15
+        )
+
+        nova_disciplina = 'Geofísica e Ensaios Especiais'
+        novo_servico = 'Ensaio de Prova de Carga Estática sobre Placa (NBR 6489)'
+
+        self.assertFalse(TechnicalDiscipline.objects.filter(name=nova_disciplina).exists())
+        self.assertFalse(TechnicalServiceType.objects.filter(name=novo_servico).exists())
+
+        # Envia formulário adicionando item com disciplina e serviço inéditos
+        url_add = f'/commercial/proposals/{proposal.pk}/scope/add/'
+        res = self.client_auth.post(url_add, {
+            'discipline_name': nova_disciplina,
+            'service_type_name': novo_servico,
+            'nbr_references': 'ABNT NBR 6489:2019',
+            'description': 'Execução de ensaios com placa de reação e extensômetros digitais',
+            'subtotal_value': '18.750,00'
+        })
+        self.assertEqual(res.status_code, 302)
+
+        # Confirma que a nova Disciplina e o novo Tipo de Serviço foram persistidos no banco
+        disc = TechnicalDiscipline.objects.filter(name=nova_disciplina).first()
+        self.assertIsNotNone(disc)
+        self.assertTrue(disc.is_active)
+
+        serv = TechnicalServiceType.objects.filter(name=novo_servico).first()
+        self.assertIsNotNone(serv)
+        self.assertEqual(serv.discipline, disc)
+        self.assertEqual(serv.default_nbr_references, 'ABNT NBR 6489:2019')
+
+        # Confirma item da proposta vinculado
+        item = proposal.scope_items.first()
+        self.assertEqual(item.discipline, disc)
+        self.assertEqual(item.service_type_ref, serv)
+        self.assertEqual(item.subtotal_value, Decimal('18750.00'))
+    # 10. Criação Dinâmica Inline de Tipo de Insumo
+    def test_dynamic_input_type_inline_creation(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Píer Fluvial Rio Negro',
+            salesperson=self.user,
+            validity_days=30
+        )
+
+        novo_insumo = 'Batimetria e Perfil Sísmico Contínuo'
+        self.assertFalse(TechnicalInputType.objects.filter(name=novo_insumo).exists())
+
+        url_add_inp = f'/commercial/proposals/{proposal.pk}/inputs/add/'
+        res = self.client_auth.post(url_add_inp, {
+            'input_type_name': novo_insumo,
+            'description': 'Levantamento batimétrico multifeixe com amarração geodésica',
+            'is_mandatory': True
+        })
+        self.assertEqual(res.status_code, 302)
+        # Confirma persistência do novo Tipo de Insumo no banco
+        inp_type = TechnicalInputType.objects.filter(name=novo_insumo).first()
+        self.assertIsNotNone(inp_type)
+        self.assertTrue(inp_type.is_active)
+
+        # Confirma insumo cadastrado na proposta
+        req = proposal.input_requirements.filter(input_type_ref=inp_type).first()
+        self.assertIsNotNone(req)
+        self.assertTrue(req.is_mandatory)
+
+    # 11. Formatação e Parsing de Valores Monetários em R$ (Padrão Brasileiro)
+    def test_brazilian_currency_formatting_and_parsing(self):
+        # Testes de template filter
+        self.assertEqual(currency_br(Decimal('42000.00')), 'R$ 42.000,00')
+        self.assertEqual(currency_br(Decimal('1234.56')), 'R$ 1.234,56')
+        self.assertEqual(currency_br(Decimal('1500000.00')), 'R$ 1.500.000,00')
+        self.assertEqual(currency_br(Decimal('0.00')), 'R$ 0,00')
+        self.assertEqual(currency_br(None), 'R$ 0,00')
+
+        self.assertEqual(number_br(Decimal('42000.00')), '42.000,00')
+        self.assertEqual(number_br(Decimal('1234.56')), '1.234,56')
+
+        # Testes de parsing tolerante
+        self.assertEqual(parse_decimal_br('42.000,00'), Decimal('42000.00'))
+        self.assertEqual(parse_decimal_br('42000,00'), Decimal('42000.00'))
+        self.assertEqual(parse_decimal_br('42000.00'), Decimal('42000.00'))
+        self.assertEqual(parse_decimal_br('R$ 1.234,56'), Decimal('1234.56'))
+        self.assertEqual(parse_decimal_br(''), Decimal('0.00'))

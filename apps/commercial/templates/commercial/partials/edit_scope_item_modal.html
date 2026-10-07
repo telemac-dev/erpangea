@@ -1,0 +1,90 @@
+{% load i18n currency_filters %}
+
+<div class="modal-header bg-light">
+    <div>
+        <h5 class="modal-title fw-bold text-dark mb-0">
+            <i class="bi bi-pencil-square text-primary me-2"></i>Modificar Item de Escopo Técnico
+        </h5>
+        <small class="text-muted">Proposta {{ proposal.proposal_code }} &bull; {{ item.get_service_type_display }}</small>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<form method="post" action="{% url 'commercial:edit_scope_item' proposal.pk item.pk %}" hx-post="{% url 'commercial:edit_scope_item' proposal.pk item.pk %}" hx-target="#modalEditScopeContent">
+    {% csrf_token %}
+    <div class="modal-body p-4">
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger py-2 px-3 small mb-3">
+            {% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold text-dark">
+                    Disciplina Técnica
+                    <span class="text-muted fw-normal">(opcional ou digite nova)</span>
+                </label>
+                {{ form.discipline_name }}
+                <datalist id="datalist_disciplines">
+                    {% for d in disciplines %}
+                    <option value="{{ d.name }}"></option>
+                    {% endfor %}
+                </datalist>
+                {% if form.discipline_name.errors %}
+                <div class="text-danger small mt-1">{{ form.discipline_name.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold text-dark">
+                    Tipo de Serviço / Escopo <span class="text-danger">*</span>
+                    <span class="text-muted fw-normal">(selecione ou digite novo)</span>
+                </label>
+                {{ form.service_type_name }}
+                <datalist id="datalist_service_types">
+                    {% for s in service_types %}
+                    <option value="{{ s.name }}" data-nbr="{{ s.default_nbr_references }}" data-desc="{{ s.default_description }}"></option>
+                    {% endfor %}
+                </datalist>
+                {% if form.service_type_name.errors %}
+                <div class="text-danger small mt-1">{{ form.service_type_name.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-12">
+                <label class="form-label small fw-semibold text-dark">Normas ABNT Aplicáveis</label>
+                {{ form.nbr_references }}
+                {% if form.nbr_references.errors %}
+                <div class="text-danger small mt-1">{{ form.nbr_references.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-12">
+                <label class="form-label small fw-semibold text-dark">Memorial Descritivo do Escopo <span class="text-danger">*</span></label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold text-dark">Subtotal Precificado (R$) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light text-muted fw-bold">R$</span>
+                    {{ form.subtotal_value }}
+                </div>
+                <div class="form-text small text-muted">Use vírgula para centavos e ponto para milhares (ex: 42.000,00)</div>
+                {% if form.subtotal_value.errors %}
+                <div class="text-danger small mt-1">{{ form.subtotal_value.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
+            <i class="bi bi-check-lg me-1"></i>Salvar Alterações
+        </button>
+    </div>
+</form>

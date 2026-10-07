@@ -1,6 +1,6 @@
+{% load currency_filters %}
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proposta Comercial Técnica {{ proposal.proposal_code }} - Pangea Engenharia</title>
@@ -122,7 +122,7 @@
                                 <td class="ps-3 fw-bold text-dark">{{ item.get_service_type_display }}</td>
                                 <td><span class="badge bg-light text-dark border font-monospace">{{ item.nbr_references }}</span></td>
                                 <td class="text-secondary small" style="white-space: pre-line;">{{ item.description }}</td>
-                                <td class="text-end fw-bold text-dark pe-3">R$ {{ item.subtotal_value|floatformat:2 }}</td>
+                                <td class="text-end fw-bold text-dark pe-3">{{ item.subtotal_value|currency_br }}</td>
                             </tr>
                             {% empty %}
                             <tr>
@@ -133,7 +133,7 @@
                         <tfoot class="table-light">
                             <tr>
                                 <td colspan="3" class="text-end fw-bold ps-3">Valor Global Proposto:</td>
-                                <td class="text-end fw-bold text-primary fs-5 pe-3">R$ {{ proposal.total_value|floatformat:2 }}</td>
+                                <td class="text-end fw-bold text-primary fs-5 pe-3">{{ proposal.total_value|currency_br }}</td>
                             </tr>
                         </tfoot>
                     </table>
