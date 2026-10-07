@@ -449,3 +449,54 @@ class CommercialModuleTestCase(TestCase):
         self.assertEqual(parse_decimal_br('42000.00'), Decimal('42000.00'))
         self.assertEqual(parse_decimal_br('R$ 1.234,56'), Decimal('1234.56'))
         self.assertEqual(parse_decimal_br(''), Decimal('0.00'))
+
+    # 12. Filtros, Buscadores e Paginação da Listagem de Propostas
+    def test_proposal_list_filters_search_and_pagination(self):
+        # Cria propostas adicionais com diferentes status e clientes
+        p_enviada = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Ponte Estaiada Rio Solimões',
+            project_location='Manacapuru/AM',
+            salesperson=self.user,
+            status=ProposalStatusChoices.ENVIADA,
+            total_value=Decimal('95000.00'),
+            validity_days=30
+        )
+        p_aceita = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Porto Flutuante Chibatão',
+            project_location='Distrito Industrial, Manaus/AM',
+            salesperson=self.user,
+            status=ProposalStatusChoices.ACEITA,
+            total_value=Decimal('180000.00'),
+            validity_days=30
+        )
+
+        # 1. Teste de Busca Textual (por nome do projeto)
+        res_search = self.client_auth.get('/commercial/?q=Solimões')
+        self.assertEqual(res_search.status_code, 200)
+        self.assertContains(res_search, p_enviada.proposal_code)
+        self.assertNotContains(res_search, p_aceita.proposal_code)
+
+        # 2. Teste de Busca por Localização
+        res_loc = self.client_auth.get('/commercial/?q=Manacapuru')
+        self.assertEqual(res_loc.status_code, 200)
+        self.assertContains(res_loc, p_enviada.proposal_code)
+
+        # 3. Teste de Filtro de Status
+        res_status = self.client_auth.get('/commercial/?status=ACEITA')
+        self.assertEqual(res_status.status_code, 200)
+        self.assertContains(res_status, p_aceita.proposal_code)
+        self.assertNotContains(res_status, p_enviada.proposal_code)
+
+        # 4. Teste de Ordenação por Maior Valor
+        res_order = self.client_auth.get('/commercial/?ordering=-total_value')
+        self.assertEqual(res_order.status_code, 200)
+        props_in_page = list(res_order.context['proposals'])
+        self.assertGreaterEqual(props_in_page[0].total_value, props_in_page[1].total_value)
+
+        # 5. Teste de Preservação de Parâmetros na Paginação
+        res_params = self.client_auth.get('/commercial/?status=ENVIADA&q=Ponte')
+        self.assertEqual(res_params.status_code, 200)
+        self.assertIn('status=ENVIADA', res_params.context['query_params'])
+        self.assertIn('q=Ponte', res_params.context['query_params'])

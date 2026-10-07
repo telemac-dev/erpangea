@@ -6,6 +6,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse, Http404
 from django.urls import reverse_lazy, reverse
@@ -46,30 +47,104 @@ class ProposalListView(LoginRequiredMixin, ListView):
     model = CommercialProposal
     template_name = 'commercial/proposal_list.html'
     context_object_name = 'proposals'
-    paginate_by = 20
+    paginate_by = 10
 
     def get_queryset(self):
         qs = CommercialProposal.objects.select_related('client', 'salesperson', 'technical_responsible')
-        status = self.request.GET.get('status')
-        if status:
-            qs = qs.filter(status=status)
+        
+        # 1. Filtro de Busca Textual Ampla
         q = self.request.GET.get('q', '').strip()
         if q:
             qs = qs.filter(
                 Q(proposal_code__icontains=q) |
                 Q(project_name__icontains=q) |
-                Q(client__name__icontains=q)
+                Q(project_location__icontains=q) |
+                Q(client__name__icontains=q) |
+                Q(client__doc_number__icontains=q) |
+                Q(scope_items__service_type__icontains=q)
+            ).distinct()
+
+        # 2. Filtro de Status da Proposta
+        status = self.request.GET.get('status', '').strip()
+        if status:
+            qs = qs.filter(status=status)
+
+        # 3. Filtro de Consultor / Vendedor
+        salesperson_id = self.request.GET.get('salesperson', '').strip()
+        if salesperson_id:
+            qs = qs.filter(salesperson_id=salesperson_id)
+
+        # 4. Filtro de Responsável Técnico
+        tech_id = self.request.GET.get('technical_responsible', '').strip()
+        if tech_id:
+            qs = qs.filter(technical_responsible_id=tech_id)
+
+        # 5. Filtro de Vigência (Vigentes vs Expiradas)
+        validity = self.request.GET.get('validity', '').strip()
+        today = timezone.now().date()
+        if validity == 'valid':
+            qs = qs.filter(
+                Q(expires_at__gte=today) | Q(expires_at__isnull=True),
+                status__in=[
+                    ProposalStatusChoices.RASCUNHO,
+                    ProposalStatusChoices.ENVIADA,
+                    ProposalStatusChoices.EM_REVISAO,
+                    ProposalStatusChoices.ACEITA
+                ]
             )
+        elif validity == 'expired':
+            qs = qs.filter(
+                Q(expires_at__lt=today) | Q(status=ProposalStatusChoices.EXPIRADA)
+            ).exclude(status=ProposalStatusChoices.ACEITA)
+
+        # 6. Ordenação
+        ordering = self.request.GET.get('ordering', '-created_at').strip()
+        allowed_orderings = {
+            '-created_at': '-created_at',
+            'created_at': 'created_at',
+            '-total_value': '-total_value',
+            'total_value': 'total_value',
+            'proposal_code': 'proposal_code',
+            '-proposal_code': '-proposal_code',
+        }
+        qs = qs.order_by(allowed_orderings.get(ordering, '-created_at'))
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['status_filter'] = self.request.GET.get('status', '')
-        context['q'] = self.request.GET.get('q', '')
+        User = get_user_model()
+        
+        # Parâmetros de filtro ativos
+        context['q'] = self.request.GET.get('q', '').strip()
+        context['status_filter'] = self.request.GET.get('status', '').strip()
+        context['salesperson_filter'] = self.request.GET.get('salesperson', '').strip()
+        context['tech_filter'] = self.request.GET.get('technical_responsible', '').strip()
+        context['validity_filter'] = self.request.GET.get('validity', '').strip()
+        context['ordering'] = self.request.GET.get('ordering', '-created_at').strip()
+        
+        # Opções de dropdown
         context['statuses'] = ProposalStatusChoices.choices
-        context['total_proposals'] = self.get_queryset().count()
-        return context
+        context['salespeople'] = User.objects.filter(is_active=True).order_by('first_name', 'email')
+        context['technicals'] = User.objects.filter(is_active=True).order_by('first_name', 'email')
+        
+        # Métricas consolidadas para os cards do topo
+        base_qs = CommercialProposal.objects.all()
+        total_val = base_qs.filter(status__in=[ProposalStatusChoices.ENVIADA, ProposalStatusChoices.EM_REVISAO]).aggregate(Sum('total_value'))['total_value__sum']
+        context['metrics'] = {
+            'total': base_qs.count(),
+            'negotiation': base_qs.filter(status__in=[ProposalStatusChoices.ENVIADA, ProposalStatusChoices.EM_REVISAO]).count(),
+            'accepted': base_qs.filter(status=ProposalStatusChoices.ACEITA).count(),
+            'pipeline_value': total_val or Decimal('0.00'),
+            'filtered_total': self.get_queryset().count(),
+        }
 
+        # Preservação de parâmetros GET para os links de paginação
+        params = self.request.GET.copy()
+        if 'page' in params:
+            del params['page']
+        context['query_params'] = params.urlencode()
+        
+        return context
 class ProposalCreateView(LoginRequiredMixin, CreateView):
     model = CommercialProposal
     form_class = ProposalForm
