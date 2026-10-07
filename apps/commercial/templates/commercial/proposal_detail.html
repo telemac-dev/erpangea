@@ -386,18 +386,7 @@
                 {% csrf_token %}
                 <div class="modal-body p-4">
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-dark">
-                                Disciplina Técnica <span class="text-muted fw-normal">(opcional ou digite nova)</span>
-                            </label>
-                            {{ scope_form.discipline_name }}
-                            <datalist id="datalist_disciplines">
-                                {% for d in disciplines %}
-                                <option value="{{ d.name }}"></option>
-                                {% endfor %}
-                            </datalist>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <label class="form-label small fw-semibold text-dark">
                                 Tipo de Serviço / Escopo <span class="text-danger">*</span>
                                 <span class="text-muted fw-normal">(selecione ou digite novo)</span>
@@ -406,6 +395,17 @@
                             <datalist id="datalist_service_types">
                                 {% for s in service_types %}
                                 <option value="{{ s.name }}" data-nbr="{{ s.default_nbr_references }}" data-desc="{{ s.default_description }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-dark">
+                                Disciplina Técnica <span class="text-muted fw-normal">(opcional ou digite nova)</span>
+                            </label>
+                            {{ scope_form.discipline_name }}
+                            <datalist id="datalist_disciplines">
+                                {% for d in disciplines %}
+                                <option value="{{ d.name }}"></option>
                                 {% endfor %}
                             </datalist>
                         </div>
