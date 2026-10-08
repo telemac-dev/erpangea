@@ -152,9 +152,20 @@ class CommercialProposal(models.Model):
     rejection_reason = models.TextField(_('Motivo da Recusa'), blank=True)
     revision_notes = models.TextField(_('Comentários de Revisão da Contratante'), blank=True)
 
+    # Desbloqueio por alçada superior
+    unlocked_at = models.DateTimeField(_('Desbloqueada em'), null=True, blank=True)
+    unlocked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='unlocked_proposals',
+        verbose_name=_('Desbloqueada Por')
+    )
+    unlock_reason = models.TextField(_('Justificativa do Desbloqueio'), blank=True)
+
     created_at = models.DateTimeField(_('Criado em'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Atualizado em'), auto_now=True)
-
     class Meta:
         verbose_name = _('Proposta Comercial')
         verbose_name_plural = _('Propostas Comerciais')
@@ -260,6 +271,45 @@ class CommercialProposal(models.Model):
             status=ContractStatusChoices.MINUTA
         )
         return contract
+
+    def unlock(self, user, reason=""):
+        """
+        Desbloqueia uma proposta comercial aceita, retornando-a para o status de EM_REVISAO.
+        Exige autorização de nível elevado (Coordenação/Diretoria ou Superusuário).
+        Registra a auditoria, usuário responsável, data e justificativa.
+        """
+        from apps.accounts.permissions import can_unlock_proposal
+        from apps.audit_log.models import AuditLog, AuditActionChoices
+
+        if self.status != ProposalStatusChoices.ACEITA:
+            raise ValidationError(_("Apenas propostas com status 'Aceita' podem ser desbloqueadas."))
+
+        if not can_unlock_proposal(user):
+            raise PermissionDenied(_("Acesso negado: seu perfil não possui alçada hierárquica suficiente (Coordenação ou Diretoria) para desbloquear uma proposta aceita."))
+
+        reason = (reason or "").strip()
+        if not reason:
+            raise ValidationError({'unlock_reason': _("A justificativa do desbloqueio é obrigatória para fins de governança e auditoria.")})
+
+        self.status = ProposalStatusChoices.EM_REVISAO
+        self.unlocked_at = timezone.now()
+        self.unlocked_by = user
+        self.unlock_reason = reason
+        self.save(update_fields=['status', 'unlocked_at', 'unlocked_by', 'unlock_reason'])
+
+        AuditLog.objects.create(
+            user=user,
+            action=AuditActionChoices.UPDATE,
+            app_label='commercial',
+            model_name='commercialproposal',
+            object_id=str(self.pk),
+            object_repr=f"Desbloqueio de Proposta {self.proposal_code}",
+            changes={
+                'status': [ProposalStatusChoices.ACEITA, ProposalStatusChoices.EM_REVISAO],
+                'unlocked_by': getattr(user, 'email', str(user)),
+                'reason': reason
+            }
+        )
 
     def __str__(self):
         return f"{self.proposal_code} - {self.client.name} ({self.get_status_display()})"

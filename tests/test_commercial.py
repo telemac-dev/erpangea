@@ -27,9 +27,10 @@ from apps.commercial.models import (
 )
 from apps.commercial.templatetags.currency_filters import currency_br, number_br, parse_decimal_br
 from apps.audit_log.models import AuditLog, AuditActionChoices
+from apps.accounts.models import SectorChoices, HierarchyLevel, UserSectorAssignment
+from apps.accounts.permissions import can_unlock_proposal
 
 User = get_user_model()
-
 class CommercialModuleTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_superuser(
@@ -500,3 +501,124 @@ class CommercialModuleTestCase(TestCase):
         self.assertEqual(res_params.status_code, 200)
         self.assertIn('status=ENVIADA', res_params.context['query_params'])
         self.assertIn('q=Ponte', res_params.context['query_params'])
+
+    # 13. Desbloqueio de Proposta Aceita por Alçada Superior (Coordenação / Diretoria)
+    def test_unlock_accepted_proposal_by_higher_level_user(self):
+        # 1. Cria proposta e aceita
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Subestação Fluvial Rio Madeira',
+            salesperson=self.user,
+            validity_days=30,
+            total_value=Decimal('80000.00')
+        )
+        item = ProposalScopeItem.objects.create(
+            proposal=proposal,
+            service_type='Projeto Elétrico de Subestação',
+            subtotal_value=Decimal('80000.00')
+        )
+        proposal.status = ProposalStatusChoices.ACEITA
+        proposal.save(update_fields=['status'])
+
+        # 2. Cria usuário de nível inferior (Assistente Comercial)
+        user_assistente = User.objects.create_user(
+            email='assistente.comercial@pangea.eng.br',
+            password='Password#2026'
+        )
+        user_assistente.sector_assignments.all().delete()
+        UserSectorAssignment.objects.create(
+            user=user_assistente,
+            sector=SectorChoices.COMERCIAL,
+            level=HierarchyLevel.ASSISTENTE,
+            is_primary=True
+        )
+        self.assertFalse(can_unlock_proposal(user_assistente))
+
+        # Tentativa de desbloqueio por Assistente deve falhar
+        client_assistente = Client()
+        client_assistente.force_login(user_assistente)
+        url_unlock = f'/commercial/proposals/{proposal.pk}/unlock/'
+        res_fail = client_assistente.post(url_unlock, {
+            'reason': 'Tentativa de alteração não autorizada'
+        })
+        self.assertEqual(res_fail.status_code, 302)
+        proposal.refresh_from_db()
+        self.assertEqual(proposal.status, ProposalStatusChoices.ACEITA)
+        self.assertIsNone(proposal.unlocked_by)
+
+        # 3. Cria usuário de nível superior (Coordenador Comercial)
+        user_coordenador = User.objects.create_user(
+            email='coordenador.comercial@pangea.eng.br',
+            password='Password#2026'
+        )
+        user_coordenador.sector_assignments.all().delete()
+        UserSectorAssignment.objects.create(
+            user=user_coordenador,
+            sector=SectorChoices.COMERCIAL,
+            level=HierarchyLevel.COORDENACAO,
+            is_primary=True
+        )
+        self.assertTrue(can_unlock_proposal(user_coordenador))
+
+        # Desbloqueio por Coordenador com justificativa formal
+        client_coord = Client()
+        client_coord.force_login(user_coordenador)
+        res_success = client_coord.post(url_unlock, {
+            'reason': 'Cliente solicitou aditivo de escopo com inclusão de laudo geotécnico complementar.'
+        })
+        self.assertEqual(res_success.status_code, 302)
+
+        # Verifica transição de status para EM_REVISAO e metadados de governança
+        proposal.refresh_from_db()
+        self.assertEqual(proposal.status, ProposalStatusChoices.EM_REVISAO)
+        self.assertEqual(proposal.unlocked_by, user_coordenador)
+        self.assertIsNotNone(proposal.unlocked_at)
+        self.assertIn('aditivo de escopo', proposal.unlock_reason)
+
+        # Verifica que itens de escopo podem ser modificados novamente após o desbloqueio
+        url_edit_scope = f'/commercial/proposals/{proposal.pk}/scope/{item.pk}/edit/'
+        res_edit = self.client_auth.post(url_edit_scope, {
+            'service_type_name': 'Projeto Elétrico de Subestação Atualizado',
+            'description': 'Memorial descritivo atualizado com novos circuitos de média tensão',
+            'subtotal_value': '115.000,00'
+        })
+        self.assertEqual(res_edit.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.subtotal_value, Decimal('115000.00'))
+
+        # Verifica registro de auditoria do desbloqueio
+        audit = AuditLog.objects.filter(
+            app_label='commercial',
+            model_name='commercialproposal',
+            object_id=str(proposal.pk),
+            object_repr__icontains='Desbloqueio'
+        ).last()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.user, user_coordenador)
+        self.assertIn('aditivo de escopo', audit.changes['reason'])
+    def test_unlock_requires_justification_reason(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Píer Flutuante Manaus',
+            salesperson=self.user,
+            status=ProposalStatusChoices.ACEITA,
+            validity_days=30
+        )
+        url_unlock = f'/commercial/proposals/{proposal.pk}/unlock/'
+        # Tenta desbloquear com motivo vazio
+        res = self.client_auth.post(url_unlock, {'reason': '   '})
+        self.assertEqual(res.status_code, 302)
+        proposal.refresh_from_db()
+        self.assertEqual(proposal.status, ProposalStatusChoices.ACEITA)
+
+    def test_cannot_edit_locked_proposal_via_proposal_edit(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Projeto Travado Teste',
+            salesperson=self.user,
+            status=ProposalStatusChoices.ACEITA,
+            validity_days=30
+        )
+        # GET em /proposals/<pk>/edit/ deve redirecionar com aviso
+        res = self.client_auth.get(f'/commercial/proposals/{proposal.pk}/edit/')
+        self.assertEqual(res.status_code, 302)

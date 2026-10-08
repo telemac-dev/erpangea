@@ -181,12 +181,23 @@ class ProposalUpdateView(LoginRequiredMixin, UpdateView):
     form_class = ProposalForm
     template_name = 'commercial/proposal_form.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if obj.status == ProposalStatusChoices.ACEITA:
+            messages.error(
+                request,
+                _("Esta proposta já foi aceita e seus parâmetros estão travados. Para editá-la, um usuário de alçada superior (Coordenação ou Diretoria) deve desbloqueá-la primeiro.")
+            )
+            return redirect('commercial:proposal_detail', pk=obj.pk)
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         messages.success(self.request, _("Proposta comercial atualizada com sucesso!"))
         return super().form_valid(form)
 
     def get_success_url(self):
         return reverse('commercial:proposal_detail', kwargs={'pk': self.object.pk})
+
 
 class ProposalDetailView(LoginRequiredMixin, DetailView):
     model = CommercialProposal
@@ -195,6 +206,8 @@ class ProposalDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        from apps.accounts.permissions import can_unlock_proposal
+
         context['scope_items'] = self.object.scope_items.all()
         context['input_requirements'] = self.object.input_requirements.all()
         context['contract'] = getattr(self.object, 'contract', None)
@@ -203,7 +216,43 @@ class ProposalDetailView(LoginRequiredMixin, DetailView):
         context['disciplines'] = TechnicalDiscipline.objects.filter(is_active=True).order_by('name')
         context['service_types'] = TechnicalServiceType.objects.filter(is_active=True).order_by('name')
         context['input_types'] = TechnicalInputType.objects.filter(is_active=True).order_by('name')
+        context['can_unlock'] = can_unlock_proposal(self.request.user)
         return context
+
+
+class ProposalUnlockView(LoginRequiredMixin, View):
+    """
+    Permite que um usuário de alçada superior (Coordenação, Diretoria ou Superusuário)
+    desbloqueie uma proposta comercial aceita, retornando-a para EM_REVISAO para alteração.
+    """
+    def post(self, request, pk):
+        from apps.accounts.permissions import can_unlock_proposal
+
+        proposal = get_object_or_404(CommercialProposal, pk=pk)
+
+        if proposal.status != ProposalStatusChoices.ACEITA:
+            messages.warning(request, _("Apenas propostas aceitas e formalizadas necessitam de desbloqueio."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        if not can_unlock_proposal(request.user):
+            messages.error(request, _("Acesso negado: seu perfil não possui alçada hierárquica suficiente (Coordenação ou Diretoria) para desbloquear propostas aceitas."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            messages.error(request, _("A justificativa técnica/comercial é obrigatória para o desbloqueio da proposta."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        try:
+            proposal.unlock(request.user, reason)
+            messages.success(
+                request,
+                _(f"Proposta {proposal.proposal_code} desbloqueada com sucesso por {request.user.get_full_name() or request.user.email} (Alçada Superior). O status retornou para 'Em Revisão' permitindo modificações de escopo, valores e prazos.")
+            )
+        except (ValidationError, PermissionDenied) as e:
+            messages.error(request, str(e))
+
+        return redirect('commercial:proposal_detail', pk=proposal.pk)
 class ProposalAddScopeItemView(LoginRequiredMixin, View):
     def post(self, request, pk):
         proposal = get_object_or_404(CommercialProposal, pk=pk)

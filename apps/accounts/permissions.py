@@ -84,3 +84,23 @@ class RoleRequiredMixin(AccessMixin):
                 "Acesso negado: seu perfil não possui a alçada ou setor corporativo necessário para esta operação."
             )
         return super().dispatch(request, *args, **kwargs)
+
+
+def can_unlock_proposal(user):
+    """
+    Avalia se o usuário possui alçada de nível elevado para desbloquear propostas aceitas:
+    - Superusuário do sistema
+    - Nível DIRETORIA (4) em qualquer setor corporativo
+    - Nível COORDENACAO (3) ou DIRETORIA (4) no setor COMERCIAL ou ADMINISTRATIVO
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    if has_role(user, SectorChoices.COMERCIAL, min_level=HierarchyLevel.COORDENACAO):
+        return True
+    if has_role(user, SectorChoices.ADMINISTRATIVO, min_level=HierarchyLevel.COORDENACAO):
+        return True
+    if any(a.level >= HierarchyLevel.DIRETORIA for a in user.sector_assignments.all()):
+        return True
+    return False

@@ -48,6 +48,18 @@
 
     <!-- Barra de Ações -->
     <div class="d-flex flex-wrap align-items-center gap-2">
+        {% if proposal.status == 'ACEITA' %}
+            {% if can_unlock %}
+                <button type="button" class="btn btn-warning btn-sm px-3 fw-bold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#modalUnlockProposal">
+                    <i class="bi bi-unlock-fill me-1"></i> Desbloquear Proposta
+                </button>
+            {% else %}
+                <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 align-self-center" title="Apenas usuários com nível de Coordenação ou Diretoria podem desbloquear esta proposta">
+                    <i class="bi bi-lock-fill me-1"></i> Travada (Alçada Superior)
+                </span>
+            {% endif %}
+        {% endif %}
+
         {% if proposal.status == 'RASCUNHO' or proposal.status == 'EM_REVISAO' %}
             <form method="post" action="{% url 'commercial:proposal_send' proposal.pk %}" class="m-0">
                 {% csrf_token %}
@@ -69,6 +81,19 @@
         </a>
     </div>
 </div>
+
+{% if proposal.unlocked_by %}
+<div class="alert alert-warning py-2 px-3 small mb-4 border-start border-4 border-warning shadow-sm d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div>
+        <i class="bi bi-unlock-fill text-warning me-2 fs-6"></i>
+        <strong>Proposta Desbloqueada por Alçada Superior:</strong> em {{ proposal.unlocked_at|date:"d/m/Y H:i" }} por <strong>{{ proposal.unlocked_by.get_full_name|default:proposal.unlocked_by.email }}</strong>.
+        {% if proposal.unlock_reason %}
+            <span class="d-block mt-1 text-dark"><strong>Justificativa do Desbloqueio:</strong> {{ proposal.unlock_reason }}</span>
+        {% endif %}
+    </div>
+    <span class="badge bg-warning bg-opacity-25 text-dark border border-warning fw-semibold">Status Reaberto: Em Revisão</span>
+</div>
+{% endif %}
 
 <div class="row g-4 mb-4">
     <!-- Card de Dados Principais -->
@@ -543,6 +568,46 @@
     <div class="modal-dialog">
         <div class="modal-content" id="modalValidateContent"></div>
     </div>
+
+{% if proposal.status == 'ACEITA' and can_unlock %}
+<!-- Modal: Desbloquear Proposta Aceita (Alçada Superior) -->
+<div class="modal fade" id="modalUnlockProposal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning bg-opacity-10 border-bottom border-warning border-opacity-25">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="bi bi-shield-lock-fill text-warning me-2"></i>Desbloquear Proposta Aceita
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'commercial:proposal_unlock' proposal.pk %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="alert alert-danger py-2 px-3 small mb-3 border-start border-4 border-danger">
+                        <strong><i class="bi bi-exclamation-triangle-fill me-1"></i> Atenção - Governança Corporativa:</strong><br>
+                        Esta proposta já foi formalmente aceita e aprovada pelo cliente. O desbloqueio retornará a proposta para o status <strong>"Em Revisão"</strong>, liberando a adição, alteração e exclusão de itens de escopo técnico, valores e prazos.
+                    </div>
+                    <div class="mb-3">
+                        <label for="unlock_reason_input" class="form-label small fw-semibold text-dark">
+                            Justificativa do Desbloqueio <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="reason" id="unlock_reason_input" rows="3" class="form-control" placeholder="Informe o motivo comercial/técnico que fundamenta o desbloqueio da proposta..." required></textarea>
+                        <div class="form-text small text-muted">
+                            Esta justificativa será registrada na trilha imutável de auditoria vinculada ao seu usuário.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning btn-sm px-4 fw-bold text-dark shadow-sm">
+                        <i class="bi bi-unlock-fill me-1"></i>Confirmar Desbloqueio
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 </div>
 
 <script>

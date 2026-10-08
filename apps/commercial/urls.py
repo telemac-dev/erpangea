@@ -10,8 +10,8 @@ urlpatterns = [
     path('proposals/<uuid:pk>/', views.ProposalDetailView.as_view(), name='proposal_detail'),
     path('proposals/<uuid:pk>/edit/', views.ProposalUpdateView.as_view(), name='proposal_edit'),
     path('proposals/<uuid:pk>/send/', views.ProposalSendView.as_view(), name='proposal_send'),
+    path('proposals/<uuid:pk>/unlock/', views.ProposalUnlockView.as_view(), name='proposal_unlock'),
     path('proposals/<uuid:pk>/print/', views.ProposalPrintView.as_view(), name='proposal_print'),
-    
     # Autocomplete preditivo de clientes
     path('contacts/autocomplete/', views.ContactAutocompleteView.as_view(), name='contact_autocomplete'),
 
