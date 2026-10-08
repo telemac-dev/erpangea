@@ -471,6 +471,7 @@
 </div>
 {% endif %}
 
+
 <!-- Modal: Adicionar Item de Escopo -->
 <div class="modal fade" id="modalAddScope" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
@@ -532,6 +533,7 @@
                                             </button>
                                         </li>
                                     </ul>
+                                </div>
                             </div>
                         </div>
 
@@ -568,16 +570,20 @@
                                             </button>
                                         </li>
                                     </ul>
+                                </div>
                             </div>
                         </div>
+
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-dark">Normas ABNT Aplicáveis</label>
                             {{ scope_form.nbr_references }}
                         </div>
+
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-dark">Memorial Descritivo do Escopo <span class="text-danger">*</span></label>
                             {{ scope_form.description }}
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold text-dark">Subtotal Precificado (R$) <span class="text-danger">*</span></label>
                             <div class="input-group">
@@ -673,6 +679,7 @@
                                             </button>
                                         </li>
                                     </ul>
+                                </div>
                             </div>
                         </div>
 
@@ -758,6 +765,7 @@
         </div>
     </div>
 </div>
+
 <!-- Modal Container para Edição de Item de Escopo (HTMX) -->
 <div class="modal fade" id="modalEditScope" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
@@ -770,6 +778,7 @@
     <div class="modal-dialog">
         <div class="modal-content" id="modalValidateContent"></div>
     </div>
+</div>
 
 {% if proposal.status == 'ACEITA' and can_unlock %}
 <!-- Modal: Desbloquear Proposta Aceita (Alçada Superior) -->
@@ -810,7 +819,7 @@
     </div>
 </div>
 {% endif %}
-</div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
