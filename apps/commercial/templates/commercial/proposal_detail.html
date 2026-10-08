@@ -647,8 +647,16 @@
                                             </a>
                                         </li>
                                         {% endfor %}
+                                        <li id="liNoInputsMatch" class="px-3 py-2 text-muted small fst-italic" style="display: none;">
+                                            Nenhum insumo encontrado no catálogo para o termo pesquisado.
+                                        </li>
+                                        <li id="liQuickCreateInputContainer" class="border-top mt-1 pt-1" style="display: none;">
+                                            <button type="button" class="btn btn-sm btn-outline-success w-100 text-start px-3 py-2 rounded d-flex align-items-center justify-content-between" id="btnTriggerQuickCreateInput">
+                                                <span><i class="bi bi-plus-circle-fill me-1"></i> Cadastrar novo insumo: "<strong id="textNewInputNamePreview"></strong>"</span>
+                                                <span class="badge bg-success">Novo Registro</span>
+                                            </button>
+                                        </li>
                                     </ul>
-                                </div>
                             </div>
                         </div>
 
@@ -892,7 +900,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. Dropdown interativo de Insumos da Contratante (Busca On-The-Fly no Banco e Criação com Confirmação)
+    // 3. Dropdown interativo de Insumos da Contratante (Busca Instantânea Search-As-You-Type + Criação com Confirmação)
     const inputTypeInput = document.getElementById('id_input_type_name');
     const inputDropdownMenu = document.getElementById('dropdown_input_types');
     const toggleInputBtn = document.getElementById('btnToggleInputTypes');
@@ -900,118 +908,104 @@ document.addEventListener('DOMContentLoaded', function() {
     const descInput = document.getElementById('id_input_description');
     const mandatoryInput = document.getElementById('id_is_mandatory');
     const confirmModalEl = document.getElementById('modalConfirmCreateInput');
+    const liNoMatch = document.getElementById('liNoInputsMatch');
+    const liQuickCreate = document.getElementById('liQuickCreateInputContainer');
+    const textNewNamePreview = document.getElementById('textNewInputNamePreview');
+    const btnTriggerQuickCreate = document.getElementById('btnTriggerQuickCreateInput');
 
     if (inputTypeInput && inputDropdownMenu) {
-        let debounceTimer = null;
+        const inputItems = inputDropdownMenu.querySelectorAll('.input-type-item');
         let pendingNewName = '';
 
-        function renderInputItem(inp) {
-            const catBadge = inp.category === 'TECNICO'
-                ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">Técnico</span>'
-                : '<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">Administrativo</span>';
-            const codeBadge = inp.code
-                ? `<span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">${inp.code}</span>`
-                : '';
-            const d0Badge = inp.is_mandatory_default
-                ? '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 ms-1" style="font-size: 0.65rem;">D0 Obrigatório</span>'
-                : '';
+        function filterInputs() {
+            const filter = inputTypeInput.value.toLowerCase().trim();
+            const selectedCat = categorySelect ? categorySelect.value.trim().toUpperCase() : '';
+            let matches = 0;
+            let exactMatch = false;
 
-            return `
-                <li>
-                    <a class="dropdown-item py-2 px-3 rounded text-wrap dynamic-input-item" href="#"
-                       data-name="${inp.name}"
-                       data-category="${inp.category}"
-                       data-desc="${inp.default_description || ''}"
-                       data-mandatory="${inp.is_mandatory_default}">
-                        <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">${inp.name}</div>
-                        <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
-                            ${catBadge}
-                            ${codeBadge}
-                            ${d0Badge}
-                        </div>
-                    </a>
-                </li>
-            `;
-        }
+            inputItems.forEach(item => {
+                const name = (item.dataset.name || '').toLowerCase();
+                const desc = (item.dataset.desc || '').toLowerCase();
+                const code = (item.dataset.code || '').toLowerCase();
+                const itemCat = (item.dataset.category || '').toUpperCase();
 
-        function searchInputsOnTheFly(term) {
-            const cat = categorySelect ? categorySelect.value : '';
-            const url = `/commercial/inputs/autocomplete/?q=${encodeURIComponent(term)}&category=${encodeURIComponent(cat)}`;
+                const catMatch = !selectedCat || itemCat === selectedCat;
+                const textMatch = !filter || name.includes(filter) || desc.includes(filter) || code.includes(filter);
 
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    let html = `
-                        <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-search me-1"></i>Resultados da Busca no Banco (${data.total})</span>
-                            ${cat ? `<span class="badge bg-secondary" style="font-size: 0.65rem;">${cat}</span>` : ''}
-                        </li>
-                    `;
+                if (name === filter) {
+                    exactMatch = true;
+                }
 
-                    if (data.results && data.results.length > 0) {
-                        html += data.results.map(renderInputItem).join('');
-                    } else {
-                        html += `
-                            <li class="px-3 py-2 text-muted small fst-italic">
-                                Nenhum insumo encontrado no catálogo com o termo "${term}".
-                            </li>
-                        `;
-                    }
-
-                    // Se não houver correspondência exata e o termo tiver pelo menos 2 caracteres, exibe opção para criar on-the-fly
-                    if (!data.exact_match && term.trim().length >= 2) {
-                        html += `
-                            <li class="border-top mt-1 pt-1">
-                                <button type="button" class="btn btn-sm btn-outline-success w-100 text-start px-3 py-2 rounded d-flex align-items-center justify-content-between btn-trigger-quick-create-input">
-                                    <span><i class="bi bi-plus-circle-fill me-1"></i> Cadastrar novo insumo: "<strong>${term.trim()}</strong>"</span>
-                                    <span class="badge bg-success">Novo Registro</span>
-                                </button>
-                            </li>
-                        `;
-                    }
-
-                    inputDropdownMenu.innerHTML = html;
-
-                    if (toggleInputBtn && !inputDropdownMenu.classList.contains('show')) {
-                        bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).show();
-                    }
-
-                    bindInputEvents();
-                })
-                .catch(err => console.error('Erro na busca on-the-fly de insumos:', err));
-        }
-
-        function bindInputEvents() {
-            // Clicar em item existente da busca
-            inputDropdownMenu.querySelectorAll('.dynamic-input-item').forEach(el => {
-                el.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    inputTypeInput.value = this.dataset.name;
-
-                    if (categorySelect && this.dataset.category) {
-                        categorySelect.value = this.dataset.category;
-                    }
-                    if (descInput && this.dataset.desc) {
-                        descInput.value = this.dataset.desc;
-                    }
-                    if (mandatoryInput && this.dataset.mandatory) {
-                        mandatoryInput.checked = (this.dataset.mandatory === 'true');
-                    }
-
-                    if (toggleInputBtn) {
-                        bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).hide();
-                    }
-                });
+                if (catMatch && textMatch) {
+                    item.closest('li').style.display = '';
+                    matches++;
+                } else {
+                    item.closest('li').style.display = 'none';
+                }
             });
 
-            // Clicar no botão de criar novo insumo com confirmação
-            const createBtn = inputDropdownMenu.querySelector('.btn-trigger-quick-create-input');
-            if (createBtn) {
-                createBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    openInputConfirmationModal(inputTypeInput.value.trim());
-                });
+            // Exibe mensagem de nenhum encontrado se matches == 0
+            if (liNoMatch) {
+                liNoMatch.style.display = (matches === 0 && filter) ? '' : 'none';
             }
+
+            // Exibe opção de cadastrar novo insumo se não houver correspondência exata e tiver >= 2 caracteres
+            if (liQuickCreate && textNewNamePreview) {
+                if (!exactMatch && filter.length >= 2) {
+                    textNewNamePreview.textContent = inputTypeInput.value.trim();
+                    liQuickCreate.style.display = '';
+                } else {
+                    liQuickCreate.style.display = 'none';
+                }
+            }
+
+            // Abre o dropdown se fechado
+            if (toggleInputBtn && !inputDropdownMenu.classList.contains('show')) {
+                bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).show();
+            }
+        }
+
+        // 1. Filtragem instantânea ao digitar (Search-as-you-Type)
+        inputTypeInput.addEventListener('input', filterInputs);
+
+        // 2. Filtragem ao alterar a categoria
+        if (categorySelect) {
+            categorySelect.addEventListener('change', filterInputs);
+        }
+
+        // 3. Abrir dropdown ao clicar ou focar no campo
+        inputTypeInput.addEventListener('focus', function() {
+            filterInputs();
+        });
+
+        // 4. Clique em qualquer item existente do catálogo
+        inputItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                inputTypeInput.value = this.dataset.name;
+
+                if (categorySelect && this.dataset.category) {
+                    categorySelect.value = this.dataset.category;
+                }
+                if (descInput && this.dataset.desc) {
+                    descInput.value = this.dataset.desc;
+                }
+                if (mandatoryInput && this.dataset.mandatory) {
+                    mandatoryInput.checked = (this.dataset.mandatory === 'true');
+                }
+
+                if (toggleInputBtn) {
+                    bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).hide();
+                }
+            });
+        });
+
+        // 5. Clique no botão de cadastrar novo insumo
+        if (btnTriggerQuickCreate) {
+            btnTriggerQuickCreate.addEventListener('click', function(e) {
+                e.preventDefault();
+                openInputConfirmationModal(inputTypeInput.value.trim());
+            });
         }
 
         function openInputConfirmationModal(name) {
@@ -1047,22 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Event listener de digitação com debounce
-        inputTypeInput.addEventListener('input', function() {
-            const val = this.value.trim();
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                searchInputsOnTheFly(val);
-            }, 250);
-        });
-
-        if (categorySelect) {
-            categorySelect.addEventListener('change', function() {
-                searchInputsOnTheFly(inputTypeInput.value.trim());
-            });
-        }
-
-        // Confirmação e criação via endpoint JSON
+        // 6. Confirmação e criação via endpoint JSON
         const confirmQuickCreateBtn = document.getElementById('btnConfirmQuickCreateInput');
         if (confirmQuickCreateBtn) {
             confirmQuickCreateBtn.onclick = function() {
