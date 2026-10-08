@@ -795,3 +795,82 @@ class TechnicalInputQuickCreateView(LoginRequiredMixin, View):
                 'is_mandatory_default': new_input.is_mandatory_default,
             }
         }, status=201)
+
+
+class TechnicalServiceAutocompleteView(LoginRequiredMixin, View):
+    """
+    Endpoint JSON de alta performance para busca em tempo real no banco de dados de Tipos de Serviços Técnicos.
+    Filtra registros que contêm a cadeia de caracteres digitada (nome, código, normas ABNT e memorial).
+    """
+    def get(self, request):
+        q = request.GET.get('q', '').strip()
+        discipline = request.GET.get('discipline', '').strip()
+
+        qs = TechnicalServiceType.objects.filter(is_active=True).select_related('discipline')
+
+        if discipline:
+            qs = qs.filter(discipline__name__icontains=discipline)
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q) |
+                Q(code__icontains=q) |
+                Q(default_nbr_references__icontains=q) |
+                Q(default_description__icontains=q)
+            )
+
+        results = []
+        for s in qs.order_by('name')[:20]:
+            results.append({
+                'id': str(s.pk),
+                'name': s.name,
+                'code': s.code or '',
+                'discipline_id': str(s.discipline_id) if s.discipline_id else '',
+                'discipline_name': s.discipline.name if s.discipline else '',
+                'default_nbr_references': s.default_nbr_references or '',
+                'default_description': s.default_description or '',
+            })
+
+        exact_match = qs.filter(name__iexact=q).exists() if q else True
+
+        return JsonResponse({
+            'results': results,
+            'total': len(results),
+            'query': q,
+            'exact_match': exact_match,
+        })
+
+
+class TechnicalDisciplineAutocompleteView(LoginRequiredMixin, View):
+    """
+    Endpoint JSON de alta performance para busca em tempo real no banco de dados de Disciplinas Técnicas.
+    Filtra registros que contêm a cadeia de caracteres digitada no nome ou descrição.
+    """
+    def get(self, request):
+        q = request.GET.get('q', '').strip()
+
+        qs = TechnicalDiscipline.objects.filter(is_active=True)
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q) |
+                Q(description__icontains=q)
+            )
+
+        results = []
+        for d in qs.order_by('name')[:20]:
+            results.append({
+                'id': str(d.pk),
+                'name': d.name,
+                'description': d.description or '',
+                'services_count': d.service_types.filter(is_active=True).count(),
+            })
+
+        exact_match = qs.filter(name__iexact=q).exists() if q else True
+
+        return JsonResponse({
+            'results': results,
+            'total': len(results),
+            'query': q,
+            'exact_match': exact_match,
+        })

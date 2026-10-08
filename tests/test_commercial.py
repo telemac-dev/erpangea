@@ -791,3 +791,31 @@ class CommercialModuleTestCase(TestCase):
             content_type='application/json'
         )
         self.assertEqual(res_empty.status_code, 400)
+
+    # 16. Busca em Tempo Real no Banco de Dados para Serviços e Disciplinas
+    def test_service_and_discipline_autocomplete_views(self):
+        import json
+
+        # 1. Busca de Serviços Técnicos por cadeia de caracteres
+        res_serv = self.client_auth.get('/commercial/services/autocomplete/?q=fundaç')
+        self.assertEqual(res_serv.status_code, 200)
+        data_serv = json.loads(res_serv.content.decode('utf-8'))
+        self.assertGreaterEqual(data_serv['total'], 1)
+        self.assertTrue(any('Fundações' in s['name'] for s in data_serv['results']))
+        self.assertIn('discipline_name', data_serv['results'][0])
+        self.assertIn('default_nbr_references', data_serv['results'][0])
+
+        # 2. Busca de Serviços com filtro por disciplina
+        res_filtered = self.client_auth.get('/commercial/services/autocomplete/?discipline=Geotecnia')
+        self.assertEqual(res_filtered.status_code, 200)
+        data_filtered = json.loads(res_filtered.content.decode('utf-8'))
+        for s in data_filtered['results']:
+            self.assertIn('Geotecnia', s['discipline_name'])
+
+        # 3. Busca de Disciplinas Técnicas por cadeia de caracteres
+        res_disc = self.client_auth.get('/commercial/disciplines/autocomplete/?q=estruturas')
+        self.assertEqual(res_disc.status_code, 200)
+        data_disc = json.loads(res_disc.content.decode('utf-8'))
+        self.assertGreaterEqual(data_disc['total'], 1)
+        self.assertTrue(any('Estruturas' in d['name'] for d in data_disc['results']))
+        self.assertIn('services_count', data_disc['results'][0])

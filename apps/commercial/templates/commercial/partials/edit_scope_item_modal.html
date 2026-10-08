@@ -143,18 +143,55 @@
 
     if (editServiceInput && editServiceDropdown) {
         const items = editServiceDropdown.querySelectorAll('.edit-service-type-item');
-        editServiceInput.addEventListener('input', function() {
-            const filter = this.value.toLowerCase().trim();
+        let sDebounce = null;
+
+        function filterEditServices() {
+            const filter = editServiceInput.value.toLowerCase().trim();
+            const discVal = modalContent.querySelector('#id_discipline_name') ? modalContent.querySelector('#id_discipline_name').value.trim() : '';
             items.forEach(it => {
                 const text = it.textContent.toLowerCase();
-                it.closest('li').style.display = text.includes(filter) ? '' : 'none';
+                it.closest('li').style.display = (!filter || text.includes(filter)) ? '' : 'none';
             });
             if (toggleServiceBtn && !editServiceDropdown.classList.contains('show')) {
                 bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).show();
             }
-        });
 
-        items.forEach(it => {
+            clearTimeout(sDebounce);
+            if (filter.length >= 2) {
+                sDebounce = setTimeout(() => {
+                    fetch(`/commercial/services/autocomplete/?q=${encodeURIComponent(filter)}&discipline=${encodeURIComponent(discVal)}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                data.results.forEach(dbItem => {
+                                    let existing = editServiceDropdown.querySelector(`.edit-service-type-item[data-name="${CSS.escape(dbItem.name)}"]`);
+                                    if (!existing) {
+                                        const newLi = document.createElement('li');
+                                        newLi.innerHTML = `
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap edit-service-type-item" href="#"
+                                               data-name="${dbItem.name}"
+                                               data-discipline="${dbItem.discipline_name || ''}"
+                                               data-nbr="${dbItem.default_nbr_references || ''}"
+                                               data-desc="${dbItem.default_description || ''}">
+                                                <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">${dbItem.name}</div>
+                                                <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                                    ${dbItem.discipline_name ? `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">${dbItem.discipline_name}</span>` : ''}
+                                                    ${dbItem.default_nbr_references ? `<span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">${dbItem.default_nbr_references}</span>` : ''}
+                                                </div>
+                                            </a>
+                                        `;
+                                        editServiceDropdown.appendChild(newLi);
+                                        bindEditServiceItem(newLi.querySelector('.edit-service-type-item'));
+                                    }
+                                });
+                            }
+                        })
+                        .catch(e => console.error(e));
+                }, 200);
+            }
+        }
+
+        function bindEditServiceItem(it) {
             it.addEventListener('click', function(e) {
                 e.preventDefault();
                 editServiceInput.value = this.dataset.name;
@@ -166,7 +203,11 @@
                 if (descField && this.dataset.desc) descField.value = this.dataset.desc;
                 if (toggleServiceBtn) bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).hide();
             });
-        });
+        }
+
+        editServiceInput.addEventListener('input', filterEditServices);
+        editServiceInput.addEventListener('focus', filterEditServices);
+        items.forEach(bindEditServiceItem);
     }
 
     const editDiscInput = modalContent.querySelector('#id_discipline_name');
@@ -175,23 +216,55 @@
 
     if (editDiscInput && editDiscDropdown) {
         const items = editDiscDropdown.querySelectorAll('.edit-discipline-item');
-        editDiscInput.addEventListener('input', function() {
-            const filter = this.value.toLowerCase().trim();
+        let dDebounce = null;
+
+        function filterEditDisciplines() {
+            const filter = editDiscInput.value.toLowerCase().trim();
             items.forEach(it => {
-                it.closest('li').style.display = it.textContent.toLowerCase().includes(filter) ? '' : 'none';
+                it.closest('li').style.display = (!filter || it.textContent.toLowerCase().includes(filter)) ? '' : 'none';
             });
             if (toggleDiscBtn && !editDiscDropdown.classList.contains('show')) {
                 bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).show();
             }
-        });
 
-        items.forEach(it => {
+            clearTimeout(dDebounce);
+            if (filter.length >= 2) {
+                dDebounce = setTimeout(() => {
+                    fetch(`/commercial/disciplines/autocomplete/?q=${encodeURIComponent(filter)}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                data.results.forEach(dbItem => {
+                                    let existing = editDiscDropdown.querySelector(`.edit-discipline-item[data-name="${CSS.escape(dbItem.name)}"]`);
+                                    if (!existing) {
+                                        const newLi = document.createElement('li');
+                                        newLi.innerHTML = `
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap edit-discipline-item" href="#" data-name="${dbItem.name}">
+                                                <div class="fw-bold text-dark" style="font-size: 0.88rem;">${dbItem.name}</div>
+                                            </a>
+                                        `;
+                                        editDiscDropdown.appendChild(newLi);
+                                        bindEditDiscItem(newLi.querySelector('.edit-discipline-item'));
+                                    }
+                                });
+                            }
+                        })
+                        .catch(e => console.error(e));
+                }, 200);
+            }
+        }
+
+        function bindEditDiscItem(it) {
             it.addEventListener('click', function(e) {
                 e.preventDefault();
                 editDiscInput.value = this.dataset.name;
                 if (toggleDiscBtn) bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).hide();
             });
-        });
+        }
+
+        editDiscInput.addEventListener('input', filterEditDisciplines);
+        editDiscInput.addEventListener('focus', filterEditDisciplines);
+        items.forEach(bindEditDiscItem);
     }
 })();
 </script>

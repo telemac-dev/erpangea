@@ -522,8 +522,16 @@
                                             </a>
                                         </li>
                                         {% endfor %}
+                                        <li id="liNoServicesMatch" class="px-3 py-2 text-muted small fst-italic" style="display: none;">
+                                            Nenhum serviço técnico encontrado no catálogo para o termo pesquisado.
+                                        </li>
+                                        <li id="liCustomServiceOption" class="border-top mt-1 pt-1" style="display: none;">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100 text-start px-3 py-2 rounded d-flex align-items-center justify-content-between" id="btnUseCustomService">
+                                                <span><i class="bi bi-plus-circle-fill me-1"></i> Usar novo tipo de serviço: "<strong id="textCustomServiceName"></strong>"</span>
+                                                <span class="badge bg-primary">Novo</span>
+                                            </button>
+                                        </li>
                                     </ul>
-                                </div>
                             </div>
                         </div>
 
@@ -550,8 +558,16 @@
                                             </a>
                                         </li>
                                         {% endfor %}
+                                        <li id="liNoDisciplinesMatch" class="px-3 py-2 text-muted small fst-italic" style="display: none;">
+                                            Nenhuma disciplina técnica encontrada.
+                                        </li>
+                                        <li id="liCustomDisciplineOption" class="border-top mt-1 pt-1" style="display: none;">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100 text-start px-3 py-2 rounded d-flex align-items-center justify-content-between" id="btnUseCustomDiscipline">
+                                                <span><i class="bi bi-plus-circle-fill me-1"></i> Usar nova disciplina: "<strong id="textCustomDisciplineName"></strong>"</span>
+                                                <span class="badge bg-primary">Nova</span>
+                                            </button>
+                                        </li>
                                     </ul>
-                                </div>
                             </div>
                         </div>
                         <div class="col-12">
@@ -798,22 +814,31 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Dropdown interativo de Tipos de Servicos Tecnicos
+    // 1. Dropdown interativo de Tipos de Servicos Tecnicos (Busca em Tempo Real no Banco + DOM)
     const serviceInput = document.getElementById('id_service_type_name');
     const serviceDropdownMenu = document.getElementById('dropdown_service_types');
     const toggleServiceBtn = document.getElementById('btnToggleServiceTypes');
+    const liNoServices = document.getElementById('liNoServicesMatch');
+    const liCustomService = document.getElementById('liCustomServiceOption');
+    const textCustomService = document.getElementById('textCustomServiceName');
+    const btnUseCustomServ = document.getElementById('btnUseCustomService');
 
     if (serviceInput && serviceDropdownMenu) {
-        const serviceItems = serviceDropdownMenu.querySelectorAll('.service-type-item');
+        let serviceDebounceTimer = null;
 
-        // Ao digitar no campo: filtra os itens em tempo real e abre o menu se fechado
-        serviceInput.addEventListener('input', function() {
-            const filter = this.value.toLowerCase().trim();
+        function filterServices() {
+            const filter = serviceInput.value.toLowerCase().trim();
+            const discVal = document.getElementById('id_discipline_name') ? document.getElementById('id_discipline_name').value.trim() : '';
+            const serviceItems = serviceDropdownMenu.querySelectorAll('.service-type-item');
             let matches = 0;
+            let exactMatch = false;
 
             serviceItems.forEach(item => {
                 const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
+                const name = (item.dataset.name || '').toLowerCase();
+                if (name === filter) exactMatch = true;
+
+                if (!filter || text.includes(filter)) {
                     item.closest('li').style.display = '';
                     matches++;
                 } else {
@@ -821,83 +846,213 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Garante que o dropdown esteja visível ao digitar
-            if (toggleServiceBtn && !serviceDropdownMenu.classList.contains('show')) {
-                const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn);
-                bsDropdown.show();
+            if (liNoServices) {
+                liNoServices.style.display = (matches === 0 && filter) ? '' : 'none';
             }
-        });
 
-        // Ao clicar em qualquer item do dropdown de serviços
-        serviceItems.forEach(item => {
+            if (liCustomService && textCustomService) {
+                if (!exactMatch && filter.length >= 2) {
+                    textCustomService.textContent = serviceInput.value.trim();
+                    liCustomService.style.display = '';
+                } else {
+                    liCustomService.style.display = 'none';
+                }
+            }
+
+            if (toggleServiceBtn && !serviceDropdownMenu.classList.contains('show')) {
+                bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).show();
+            }
+
+            // Consulta assíncrona ao banco de dados em tempo real (Debounce 200ms)
+            clearTimeout(serviceDebounceTimer);
+            if (filter.length >= 2) {
+                serviceDebounceTimer = setTimeout(() => {
+                    const url = `/commercial/services/autocomplete/?q=${encodeURIComponent(filter)}&discipline=${encodeURIComponent(discVal)}`;
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                data.results.forEach(dbItem => {
+                                    let existing = serviceDropdownMenu.querySelector(`.service-type-item[data-name="${CSS.escape(dbItem.name)}"]`);
+                                    if (!existing) {
+                                        const newLi = document.createElement('li');
+                                        newLi.innerHTML = `
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap service-type-item" href="#"
+                                               data-name="${dbItem.name}"
+                                               data-discipline="${dbItem.discipline_name || ''}"
+                                               data-nbr="${dbItem.default_nbr_references || ''}"
+                                               data-desc="${dbItem.default_description || ''}">
+                                                <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">${dbItem.name}</div>
+                                                <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                                    ${dbItem.discipline_name ? `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">${dbItem.discipline_name}</span>` : ''}
+                                                    ${dbItem.default_nbr_references ? `<span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">${dbItem.default_nbr_references}</span>` : ''}
+                                                </div>
+                                            </a>
+                                        `;
+                                        if (liNoServices) {
+                                            serviceDropdownMenu.insertBefore(newLi, liNoServices);
+                                        } else {
+                                            serviceDropdownMenu.appendChild(newLi);
+                                        }
+                                        bindServiceItemClick(newLi.querySelector('.service-type-item'));
+                                    }
+                                });
+                            }
+                        })
+                        .catch(err => console.error('Erro na consulta de serviços ao banco:', err));
+                }, 200);
+            }
+        }
+
+        function bindServiceItemClick(item) {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
-                const name = this.dataset.name;
-                const discipline = this.dataset.discipline;
-                const nbr = this.dataset.nbr;
-                const desc = this.dataset.desc;
-
-                serviceInput.value = name;
+                serviceInput.value = this.dataset.name;
 
                 const discField = document.getElementById('id_discipline_name');
-                if (discField && discipline) {
-                    discField.value = discipline;
+                if (discField && this.dataset.discipline) {
+                    discField.value = this.dataset.discipline;
                 }
-
                 const nbrField = document.getElementById('id_nbr_references');
-                if (nbrField && nbr) {
-                    nbrField.value = nbr;
+                if (nbrField && this.dataset.nbr) {
+                    nbrField.value = this.dataset.nbr;
                 }
-
                 const descField = document.getElementById('id_description');
-                if (descField && desc) {
-                    descField.value = desc;
+                if (descField && this.dataset.desc) {
+                    descField.value = this.dataset.desc;
                 }
-
-                // Fecha o dropdown
                 if (toggleServiceBtn) {
-                    const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn);
-                    bsDropdown.hide();
+                    bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).hide();
                 }
             });
-        });
+        }
+
+        serviceInput.addEventListener('input', filterServices);
+        serviceInput.addEventListener('focus', filterServices);
+
+        serviceDropdownMenu.querySelectorAll('.service-type-item').forEach(bindServiceItemClick);
+
+        if (btnUseCustomServ) {
+            btnUseCustomServ.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (textCustomService) {
+                    serviceInput.value = textCustomService.textContent;
+                }
+                if (toggleServiceBtn) {
+                    bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).hide();
+                }
+            });
+        }
     }
 
-    // 2. Dropdown interativo de Disciplinas
+    // 2. Dropdown interativo de Disciplinas (Busca em Tempo Real no Banco + DOM)
     const discInput = document.getElementById('id_discipline_name');
     const discDropdownMenu = document.getElementById('dropdown_disciplines');
     const toggleDiscBtn = document.getElementById('btnToggleDisciplines');
+    const liNoDisciplines = document.getElementById('liNoDisciplinesMatch');
+    const liCustomDiscipline = document.getElementById('liCustomDisciplineOption');
+    const textCustomDiscipline = document.getElementById('textCustomDisciplineName');
+    const btnUseCustomDisc = document.getElementById('btnUseCustomDiscipline');
 
     if (discInput && discDropdownMenu) {
-        const discItems = discDropdownMenu.querySelectorAll('.discipline-item');
+        let discDebounceTimer = null;
 
-        discInput.addEventListener('input', function() {
-            const filter = this.value.toLowerCase().trim();
+        function filterDisciplines() {
+            const filter = discInput.value.toLowerCase().trim();
+            const discItems = discDropdownMenu.querySelectorAll('.discipline-item');
+            let matches = 0;
+            let exactMatch = false;
+
             discItems.forEach(item => {
                 const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
+                const name = (item.dataset.name || '').toLowerCase();
+                if (name === filter) exactMatch = true;
+
+                if (!filter || text.includes(filter)) {
                     item.closest('li').style.display = '';
+                    matches++;
                 } else {
                     item.closest('li').style.display = 'none';
                 }
             });
 
-            if (toggleDiscBtn && !discDropdownMenu.classList.contains('show')) {
-                const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn);
-                bsDropdown.show();
+            if (liNoDisciplines) {
+                liNoDisciplines.style.display = (matches === 0 && filter) ? '' : 'none';
             }
-        });
 
-        discItems.forEach(item => {
+            if (liCustomDiscipline && textCustomDiscipline) {
+                if (!exactMatch && filter.length >= 2) {
+                    textCustomDiscipline.textContent = discInput.value.trim();
+                    liCustomDiscipline.style.display = '';
+                } else {
+                    liCustomDiscipline.style.display = 'none';
+                }
+            }
+
+            if (toggleDiscBtn && !discDropdownMenu.classList.contains('show')) {
+                bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).show();
+            }
+
+            // Consulta assíncrona de disciplinas ao banco de dados (Debounce 200ms)
+            clearTimeout(discDebounceTimer);
+            if (filter.length >= 2) {
+                discDebounceTimer = setTimeout(() => {
+                    const url = `/commercial/disciplines/autocomplete/?q=${encodeURIComponent(filter)}`;
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                data.results.forEach(dbItem => {
+                                    let existing = discDropdownMenu.querySelector(`.discipline-item[data-name="${CSS.escape(dbItem.name)}"]`);
+                                    if (!existing) {
+                                        const newLi = document.createElement('li');
+                                        newLi.innerHTML = `
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap discipline-item" href="#" data-name="${dbItem.name}">
+                                                <div class="fw-bold text-dark" style="font-size: 0.88rem;">${dbItem.name}</div>
+                                                ${dbItem.description ? `<small class="text-muted d-block text-truncate" style="max-width: 550px; font-size: 0.75rem;">${dbItem.description}</small>` : ''}
+                                            </a>
+                                        `;
+                                        if (liNoDisciplines) {
+                                            discDropdownMenu.insertBefore(newLi, liNoDisciplines);
+                                        } else {
+                                            discDropdownMenu.appendChild(newLi);
+                                        }
+                                        bindDisciplineItemClick(newLi.querySelector('.discipline-item'));
+                                    }
+                                });
+                            }
+                        })
+                        .catch(err => console.error('Erro na consulta de disciplinas ao banco:', err));
+                }, 200);
+            }
+        }
+
+        function bindDisciplineItemClick(item) {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
                 discInput.value = this.dataset.name;
                 if (toggleDiscBtn) {
-                    const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn);
-                    bsDropdown.hide();
+                    bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).hide();
                 }
             });
-        });
+        }
+
+        discInput.addEventListener('input', filterDisciplines);
+        discInput.addEventListener('focus', filterDisciplines);
+
+        discDropdownMenu.querySelectorAll('.discipline-item').forEach(bindDisciplineItemClick);
+
+        if (btnUseCustomDisc) {
+            btnUseCustomDisc.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (textCustomDiscipline) {
+                    discInput.value = textCustomDiscipline.textContent;
+                }
+                if (toggleDiscBtn) {
+                    bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).hide();
+                }
+            });
+        }
     }
 
     // 3. Dropdown interativo de Insumos da Contratante (Busca Instantânea Search-As-You-Type + Criação com Confirmação)

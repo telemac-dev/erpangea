@@ -16,7 +16,8 @@ urlpatterns = [
     path('contacts/autocomplete/', views.ContactAutocompleteView.as_view(), name='contact_autocomplete'),
     path('inputs/autocomplete/', views.TechnicalInputAutocompleteView.as_view(), name='input_autocomplete'),
     path('inputs/quick-create/', views.TechnicalInputQuickCreateView.as_view(), name='input_quick_create'),
-
+    path('services/autocomplete/', views.TechnicalServiceAutocompleteView.as_view(), name='service_autocomplete'),
+    path('disciplines/autocomplete/', views.TechnicalDisciplineAutocompleteView.as_view(), name='discipline_autocomplete'),
     # Itens de Escopo e Insumos Tecnicos
     path('proposals/<uuid:pk>/scope/add/', views.ProposalAddScopeItemView.as_view(), name='add_scope_item'),
     path('proposals/<uuid:pk>/scope/<uuid:item_id>/edit/', views.ProposalEditScopeItemView.as_view(), name='edit_scope_item'),
