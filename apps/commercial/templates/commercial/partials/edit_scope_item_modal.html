@@ -200,8 +200,8 @@
                 const descField = modalContent.querySelector('#id_description');
                 if (descField && this.dataset.desc) descField.value = this.dataset.desc;
                 editServiceDropdown.classList.remove('show');
+            });
         }
-
         editServiceInput.addEventListener('input', filterEditServices);
         editServiceInput.addEventListener('focus', filterEditServices);
         items.forEach(bindEditServiceItem);
@@ -254,8 +254,8 @@
                 e.preventDefault();
                 editDiscInput.value = this.dataset.name;
                 editDiscDropdown.classList.remove('show');
+            });
         }
-
         editDiscInput.addEventListener('input', filterEditDisciplines);
         editDiscInput.addEventListener('focus', filterEditDisciplines);
         items.forEach(bindEditDiscItem);
