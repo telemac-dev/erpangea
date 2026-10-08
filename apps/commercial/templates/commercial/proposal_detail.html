@@ -907,8 +907,8 @@ document.addEventListener('DOMContentLoaded', function() {
         function bindServiceItemClick(item) {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
+                clearTimeout(serviceDebounceTimer);
                 serviceInput.value = this.dataset.name;
-
                 const discField = document.getElementById('id_discipline_name');
                 if (discField && this.dataset.discipline) {
                     discField.value = this.dataset.discipline;
@@ -1030,6 +1030,7 @@ document.addEventListener('DOMContentLoaded', function() {
         function bindDisciplineItemClick(item) {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
+                clearTimeout(discDebounceTimer);
                 discInput.value = this.dataset.name;
                 if (toggleDiscBtn) {
                     bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).hide();
@@ -1242,5 +1243,6 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
     }
+});
 </script>
 {% endblock %}

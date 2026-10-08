@@ -65,7 +65,6 @@ class ProposalScopeItemForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'list': 'datalist_disciplines',
             'placeholder': 'Selecione ou digite uma nova disciplina...',
             'id': 'id_discipline_name'
         })
@@ -75,7 +74,6 @@ class ProposalScopeItemForm(forms.ModelForm):
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'list': 'datalist_service_types',
             'placeholder': 'Selecione ou digite um novo tipo de serviço...',
             'id': 'id_service_type_name'
         })
