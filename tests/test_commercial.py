@@ -716,3 +716,78 @@ class CommercialModuleTestCase(TestCase):
         self.assertEqual(res_edit.status_code, 302)
         inp.refresh_from_db()
         self.assertEqual(inp.required_item_type, 'Insumo Teste')
+
+    # 15. Autocomplete On-The-Fly e Criação com Confirmação (Quick-Create) de Insumos
+    def test_input_autocomplete_and_quick_create_with_audit(self):
+        import json
+
+        # 1. Teste do Endpoint de Autocomplete por Termo
+        res_auto = self.client_auth.get('/commercial/inputs/autocomplete/?q=sondagem')
+        self.assertEqual(res_auto.status_code, 200)
+        data_auto = json.loads(res_auto.content.decode('utf-8'))
+        self.assertGreaterEqual(data_auto['total'], 1)
+        self.assertTrue(any('SPT' in it['name'] or 'Sondagem' in it['name'] for it in data_auto['results']))
+
+        # 2. Teste do Endpoint de Autocomplete com Filtro de Categoria
+        res_adm = self.client_auth.get('/commercial/inputs/autocomplete/?category=ADMINISTRATIVO')
+        self.assertEqual(res_adm.status_code, 200)
+        data_adm = json.loads(res_adm.content.decode('utf-8'))
+        self.assertGreaterEqual(data_adm['total'], 1)
+        for item in data_adm['results']:
+            self.assertEqual(item['category'], 'ADMINISTRATIVO')
+
+        # 3. Teste de Criação On-the-Fly com Confirmação (Quick-Create)
+        novo_nome = 'Laudo de Dilatômetro Marchetti DMT Geotécnico'
+        res_create = self.client_auth.post(
+            '/commercial/inputs/quick-create/',
+            data=json.dumps({
+                'name': novo_nome,
+                'category': 'TECNICO',
+                'description': 'Ensaio in situ para determinação de módulo oedométrico e razão de sobreadensamento.',
+                'is_mandatory_default': True
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_create.status_code, 201)
+        data_create = json.loads(res_create.content.decode('utf-8'))
+        self.assertTrue(data_create['success'])
+        self.assertTrue(data_create['created'])
+        self.assertEqual(data_create['input']['name'], novo_nome)
+        self.assertEqual(data_create['input']['category'], 'TECNICO')
+
+        # Confirma persistência no banco
+        inp_obj = TechnicalInputType.objects.filter(name=novo_nome).first()
+        self.assertIsNotNone(inp_obj)
+        self.assertTrue(inp_obj.is_mandatory_default)
+
+        # Confirma registro na trilha de auditoria (AuditLog)
+        audit = AuditLog.objects.filter(
+            app_label='commercial',
+            model_name='technicalinputtype',
+            object_id=str(inp_obj.pk),
+            action=AuditActionChoices.CREATE
+        ).last()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.user, self.user)
+
+        # 4. Teste de Prevenção de Duplicidade (idempotência no cadastro)
+        res_dup = self.client_auth.post(
+            '/commercial/inputs/quick-create/',
+            data=json.dumps({
+                'name': novo_nome,
+                'category': 'TECNICO'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_dup.status_code, 200)
+        data_dup = json.loads(res_dup.content.decode('utf-8'))
+        self.assertFalse(data_dup['created'])
+        self.assertEqual(data_dup['input']['id'], str(inp_obj.pk))
+
+        # 5. Teste de Validação: Nome Vazio deve falhar com 400
+        res_empty = self.client_auth.post(
+            '/commercial/inputs/quick-create/',
+            data=json.dumps({'name': '   ', 'category': 'TECNICO'}),
+            content_type='application/json'
+        )
+        self.assertEqual(res_empty.status_code, 400)

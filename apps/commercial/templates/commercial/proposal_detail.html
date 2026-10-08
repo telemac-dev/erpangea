@@ -692,6 +692,48 @@
     </div>
 </div>
 
+<!-- Modal de Confirmação para Criação On-The-Fly de Novo Insumo -->
+<div class="modal fade" id="modalConfirmCreateInput" tabindex="-1" aria-hidden="true" style="z-index: 1070;">
+    <div class="modal-dialog">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary bg-opacity-10 border-bottom border-primary border-opacity-25">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="bi bi-question-circle-fill text-primary me-2"></i>Confirmar Cadastro de Novo Insumo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-3 text-dark small">
+                    O insumo digitado não foi localizado no catálogo padrão. Deseja cadastrá-lo como um novo registro no banco de dados corporativo do ERPangea?
+                </p>
+                <div class="p-3 bg-light rounded border mb-3">
+                    <div class="mb-2">
+                        <span class="text-muted small fw-semibold d-block">Nome do Novo Insumo:</span>
+                        <span class="fw-bold text-dark fs-6" id="confirm_input_name_text"></span>
+                    </div>
+                    <div class="mb-2">
+                        <span class="text-muted small fw-semibold d-block">Categoria do Insumo:</span>
+                        <span id="confirm_input_category_badge"></span>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Condição Suspensiva:</span>
+                        <span id="confirm_input_mandatory_text" class="small fw-semibold"></span>
+                    </div>
+                </div>
+                <div class="alert alert-info py-2 px-3 small mb-0 border-start border-4 border-info">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    <strong>Padrão Corporativo:</strong> Uma vez confirmado, este insumo será persistido no banco de dados e ficará permanentemente disponível para futuras propostas e obras.
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm" id="btnConfirmQuickCreateInput">
+                    <i class="bi bi-check2-circle me-1"></i>Confirmar e Cadastrar Insumo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Modal Container para Edição de Item de Escopo (HTMX) -->
 <div class="modal fade" id="modalEditScope" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
@@ -850,50 +892,221 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. Dropdown interativo de Insumos da Contratante
+    // 3. Dropdown interativo de Insumos da Contratante (Busca On-The-Fly no Banco e Criação com Confirmação)
     const inputTypeInput = document.getElementById('id_input_type_name');
     const inputDropdownMenu = document.getElementById('dropdown_input_types');
     const toggleInputBtn = document.getElementById('btnToggleInputTypes');
+    const categorySelect = document.getElementById('id_input_category');
+    const descInput = document.getElementById('id_input_description');
+    const mandatoryInput = document.getElementById('id_is_mandatory');
+    const confirmModalEl = document.getElementById('modalConfirmCreateInput');
 
     if (inputTypeInput && inputDropdownMenu) {
-        const inputItems = inputDropdownMenu.querySelectorAll('.input-type-item');
+        let debounceTimer = null;
+        let pendingNewName = '';
 
-        inputTypeInput.addEventListener('input', function() {
-            const filter = this.value.toLowerCase().trim();
-            inputItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                item.closest('li').style.display = text.includes(filter) ? '' : 'none';
+        function renderInputItem(inp) {
+            const catBadge = inp.category === 'TECNICO'
+                ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">Técnico</span>'
+                : '<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">Administrativo</span>';
+            const codeBadge = inp.code
+                ? `<span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">${inp.code}</span>`
+                : '';
+            const d0Badge = inp.is_mandatory_default
+                ? '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 ms-1" style="font-size: 0.65rem;">D0 Obrigatório</span>'
+                : '';
+
+            return `
+                <li>
+                    <a class="dropdown-item py-2 px-3 rounded text-wrap dynamic-input-item" href="#"
+                       data-name="${inp.name}"
+                       data-category="${inp.category}"
+                       data-desc="${inp.default_description || ''}"
+                       data-mandatory="${inp.is_mandatory_default}">
+                        <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">${inp.name}</div>
+                        <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                            ${catBadge}
+                            ${codeBadge}
+                            ${d0Badge}
+                        </div>
+                    </a>
+                </li>
+            `;
+        }
+
+        function searchInputsOnTheFly(term) {
+            const cat = categorySelect ? categorySelect.value : '';
+            const url = `/commercial/inputs/autocomplete/?q=${encodeURIComponent(term)}&category=${encodeURIComponent(cat)}`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    let html = `
+                        <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-search me-1"></i>Resultados da Busca no Banco (${data.total})</span>
+                            ${cat ? `<span class="badge bg-secondary" style="font-size: 0.65rem;">${cat}</span>` : ''}
+                        </li>
+                    `;
+
+                    if (data.results && data.results.length > 0) {
+                        html += data.results.map(renderInputItem).join('');
+                    } else {
+                        html += `
+                            <li class="px-3 py-2 text-muted small fst-italic">
+                                Nenhum insumo encontrado no catálogo com o termo "${term}".
+                            </li>
+                        `;
+                    }
+
+                    // Se não houver correspondência exata e o termo tiver pelo menos 2 caracteres, exibe opção para criar on-the-fly
+                    if (!data.exact_match && term.trim().length >= 2) {
+                        html += `
+                            <li class="border-top mt-1 pt-1">
+                                <button type="button" class="btn btn-sm btn-outline-success w-100 text-start px-3 py-2 rounded d-flex align-items-center justify-content-between btn-trigger-quick-create-input">
+                                    <span><i class="bi bi-plus-circle-fill me-1"></i> Cadastrar novo insumo: "<strong>${term.trim()}</strong>"</span>
+                                    <span class="badge bg-success">Novo Registro</span>
+                                </button>
+                            </li>
+                        `;
+                    }
+
+                    inputDropdownMenu.innerHTML = html;
+
+                    if (toggleInputBtn && !inputDropdownMenu.classList.contains('show')) {
+                        bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).show();
+                    }
+
+                    bindInputEvents();
+                })
+                .catch(err => console.error('Erro na busca on-the-fly de insumos:', err));
+        }
+
+        function bindInputEvents() {
+            // Clicar em item existente da busca
+            inputDropdownMenu.querySelectorAll('.dynamic-input-item').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    inputTypeInput.value = this.dataset.name;
+
+                    if (categorySelect && this.dataset.category) {
+                        categorySelect.value = this.dataset.category;
+                    }
+                    if (descInput && this.dataset.desc) {
+                        descInput.value = this.dataset.desc;
+                    }
+                    if (mandatoryInput && this.dataset.mandatory) {
+                        mandatoryInput.checked = (this.dataset.mandatory === 'true');
+                    }
+
+                    if (toggleInputBtn) {
+                        bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).hide();
+                    }
+                });
             });
-            if (toggleInputBtn && !inputDropdownMenu.classList.contains('show')) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).show();
+
+            // Clicar no botão de criar novo insumo com confirmação
+            const createBtn = inputDropdownMenu.querySelector('.btn-trigger-quick-create-input');
+            if (createBtn) {
+                createBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openInputConfirmationModal(inputTypeInput.value.trim());
+                });
             }
+        }
+
+        function openInputConfirmationModal(name) {
+            pendingNewName = name;
+            if (!pendingNewName) return;
+
+            const cat = categorySelect ? categorySelect.value : 'TECNICO';
+            const isMand = mandatoryInput ? mandatoryInput.checked : true;
+
+            const nameText = document.getElementById('confirm_input_name_text');
+            if (nameText) nameText.textContent = pendingNewName;
+
+            const catBadge = document.getElementById('confirm_input_category_badge');
+            if (catBadge) {
+                catBadge.innerHTML = cat === 'TECNICO'
+                    ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">Técnico</span>'
+                    : '<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1">Administrativo</span>';
+            }
+
+            const mandText = document.getElementById('confirm_input_mandatory_text');
+            if (mandText) {
+                mandText.innerHTML = isMand
+                    ? '<span class="text-danger fw-semibold"><i class="bi bi-lock-fill me-1"></i>Bloqueia o início das obras (D0 Obrigatório)</span>'
+                    : '<span class="text-muted fw-semibold"><i class="bi bi-unlock me-1"></i>Opcional (Não bloqueia D0)</span>';
+            }
+
+            if (toggleInputBtn) {
+                bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).hide();
+            }
+
+            if (confirmModalEl) {
+                bootstrap.Modal.getOrCreateInstance(confirmModalEl).show();
+            }
+        }
+
+        // Event listener de digitação com debounce
+        inputTypeInput.addEventListener('input', function() {
+            const val = this.value.trim();
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchInputsOnTheFly(val);
+            }, 250);
         });
 
-        inputItems.forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                inputTypeInput.value = this.dataset.name;
-
-                const catField = document.getElementById('id_input_category');
-                if (catField && this.dataset.category) {
-                    catField.value = this.dataset.category;
-                }
-
-                const descField = document.getElementById('id_input_description');
-                if (descField && this.dataset.desc) {
-                    descField.value = this.dataset.desc;
-                }
-
-                const mandField = document.getElementById('id_is_mandatory');
-                if (mandField && this.dataset.mandatory) {
-                    mandField.checked = (this.dataset.mandatory === 'true');
-                }
-
-                if (toggleInputBtn) {
-                    bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).hide();
-                }
+        if (categorySelect) {
+            categorySelect.addEventListener('change', function() {
+                searchInputsOnTheFly(inputTypeInput.value.trim());
             });
-        });
+        }
+
+        // Confirmação e criação via endpoint JSON
+        const confirmQuickCreateBtn = document.getElementById('btnConfirmQuickCreateInput');
+        if (confirmQuickCreateBtn) {
+            confirmQuickCreateBtn.onclick = function() {
+                if (!pendingNewName) return;
+                const cat = categorySelect ? categorySelect.value : 'TECNICO';
+                const desc = descInput ? descInput.value : '';
+                const isMand = mandatoryInput ? mandatoryInput.checked : true;
+                const csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+                const csrfToken = csrfEl ? csrfEl.value : '';
+
+                fetch('/commercial/inputs/quick-create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        name: pendingNewName,
+                        category: cat,
+                        description: desc,
+                        is_mandatory_default: isMand
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.input) {
+                        inputTypeInput.value = data.input.name;
+                        if (categorySelect) categorySelect.value = data.input.category;
+                        if (descInput && data.input.default_description) descInput.value = data.input.default_description;
+                        if (mandatoryInput) mandatoryInput.checked = data.input.is_mandatory_default;
+
+                        if (confirmModalEl) {
+                            bootstrap.Modal.getOrCreateInstance(confirmModalEl).hide();
+                        }
+                    } else {
+                        alert(data.error || 'Erro ao cadastrar insumo.');
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro na criação on-the-fly de insumo:', err);
+                    alert('Erro de comunicação ao criar insumo.');
+                });
+            };
+        }
     }
 </script>
 {% endblock %}

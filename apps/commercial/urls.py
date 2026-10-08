@@ -12,8 +12,10 @@ urlpatterns = [
     path('proposals/<uuid:pk>/send/', views.ProposalSendView.as_view(), name='proposal_send'),
     path('proposals/<uuid:pk>/unlock/', views.ProposalUnlockView.as_view(), name='proposal_unlock'),
     path('proposals/<uuid:pk>/print/', views.ProposalPrintView.as_view(), name='proposal_print'),
-    # Autocomplete preditivo de clientes
+    # Autocomplete preditivo de clientes e insumos
     path('contacts/autocomplete/', views.ContactAutocompleteView.as_view(), name='contact_autocomplete'),
+    path('inputs/autocomplete/', views.TechnicalInputAutocompleteView.as_view(), name='input_autocomplete'),
+    path('inputs/quick-create/', views.TechnicalInputQuickCreateView.as_view(), name='input_quick_create'),
 
     # Itens de Escopo e Insumos Tecnicos
     path('proposals/<uuid:pk>/scope/add/', views.ProposalAddScopeItemView.as_view(), name='add_scope_item'),

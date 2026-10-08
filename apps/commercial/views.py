@@ -24,6 +24,7 @@ from .models import (
     ContractStatusChoices,
     InputStatusChoices,
     InputItemTypeChoices,
+    InputCategoryChoices,
     ServiceTypeChoices,
     ContractTypeChoices,
     TechnicalDiscipline,
@@ -661,3 +662,136 @@ class ContactAutocompleteView(LoginRequiredMixin, View):
             })
 
         return JsonResponse({'results': results, 'total': len(results)})
+
+
+class TechnicalInputAutocompleteView(LoginRequiredMixin, View):
+    """
+    Endpoint JSON de alta performance para busca preditiva on-the-fly de Insumos da Contratante.
+    Permite filtrar por categoria (Técnico / Administrativo) e busca textual por termo.
+    """
+    def get(self, request):
+        q = request.GET.get('q', '').strip()
+        category = request.GET.get('category', '').strip().upper()
+
+        qs = TechnicalInputType.objects.filter(is_active=True)
+
+        if category and category in [c[0] for c in InputCategoryChoices.choices]:
+            qs = qs.filter(category=category)
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q) |
+                Q(code__icontains=q) |
+                Q(default_description__icontains=q)
+            )
+
+        # Performance: limita aos primeiros 15 resultados
+        results = []
+        for inp in qs.order_by('category', 'name')[:15]:
+            results.append({
+                'id': str(inp.pk),
+                'name': inp.name,
+                'code': inp.code or '',
+                'category': inp.category,
+                'category_display': inp.get_category_display(),
+                'default_description': inp.default_description or '',
+                'is_mandatory_default': inp.is_mandatory_default,
+            })
+
+        exact_match = qs.filter(name__iexact=q).exists() if q else True
+
+        return JsonResponse({
+            'results': results,
+            'total': len(results),
+            'query': q,
+            'exact_match': exact_match,
+        })
+
+
+class TechnicalInputQuickCreateView(LoginRequiredMixin, View):
+    """
+    Endpoint JSON para criação on-the-fly de novo insumo no catálogo após confirmação do usuário.
+    Garante integridade, evita duplicatas e registra trilha de auditoria.
+    """
+    def post(self, request):
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body.decode('utf-8'))
+            except Exception:
+                data = {}
+        else:
+            data = request.POST
+
+        name = data.get('name', '').strip()
+        category = data.get('category', '').strip().upper()
+        description = data.get('description', '').strip()
+        is_mandatory_default = str(data.get('is_mandatory_default', 'true')).lower() in ['true', '1', 'on']
+
+        if not name:
+            return JsonResponse({'success': False, 'error': _('O nome do insumo não pode estar vazio.')}, status=400)
+
+        if category not in [c[0] for c in InputCategoryChoices.choices]:
+            category = InputCategoryChoices.TECNICO
+
+        # Verifica se já existe com o mesmo nome (case-insensitive)
+        existing = TechnicalInputType.objects.filter(name__iexact=name).first()
+        if existing:
+            return JsonResponse({
+                'success': True,
+                'created': False,
+                'message': _('Insumo já cadastrado no catálogo corporativo.'),
+                'input': {
+                    'id': str(existing.pk),
+                    'name': existing.name,
+                    'code': existing.code or '',
+                    'category': existing.category,
+                    'category_display': existing.get_category_display(),
+                    'default_description': existing.default_description or '',
+                    'is_mandatory_default': existing.is_mandatory_default,
+                }
+            })
+
+        # Cria novo código referencial se não fornecido
+        prefix = 'TEC' if category == InputCategoryChoices.TECNICO else 'ADM'
+        count = TechnicalInputType.objects.filter(category=category).count() + 1
+        generated_code = f"{prefix}-AUTO-{count:02d}"
+
+        new_input = TechnicalInputType.objects.create(
+            name=name,
+            code=generated_code,
+            category=category,
+            default_description=description or _('Fornecimento obrigatório pela contratante conforme normas técnicas.'),
+            is_mandatory_default=is_mandatory_default,
+            is_active=True
+        )
+
+        from apps.audit_log.models import AuditLog, AuditActionChoices
+        AuditLog.objects.create(
+            user=request.user,
+            action=AuditActionChoices.CREATE,
+            app_label='commercial',
+            model_name='technicalinputtype',
+            object_id=str(new_input.pk),
+            object_repr=f"Criação On-The-Fly de Insumo: {new_input.name} ({new_input.category})",
+            changes={
+                'name': new_input.name,
+                'category': new_input.category,
+                'code': new_input.code,
+                'created_by': getattr(request.user, 'email', str(request.user))
+            }
+        )
+
+        return JsonResponse({
+            'success': True,
+            'created': True,
+            'message': _('Novo insumo cadastrado com sucesso no catálogo corporativo.'),
+            'input': {
+                'id': str(new_input.pk),
+                'name': new_input.name,
+                'code': new_input.code,
+                'category': new_input.category,
+                'category_display': new_input.get_category_display(),
+                'default_description': new_input.default_description,
+                'is_mandatory_default': new_input.is_mandatory_default,
+            }
+        }, status=201)
