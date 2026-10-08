@@ -1086,12 +1086,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnTriggerQuickCreate = document.getElementById('btnTriggerQuickCreateInput');
 
     if (inputTypeInput && inputDropdownMenu) {
-        const inputItems = inputDropdownMenu.querySelectorAll('.input-type-item');
+        let inputDebounceTimer = null;
         let pendingNewName = '';
 
         function filterInputs() {
             const filter = inputTypeInput.value.toLowerCase().trim();
             const selectedCat = categorySelect ? categorySelect.value.trim().toUpperCase() : '';
+            const inputItems = inputDropdownMenu.querySelectorAll('.input-type-item');
             let matches = 0;
             let exactMatch = false;
 
@@ -1132,25 +1133,63 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             showMenu(inputDropdownMenu);
+
+            // Consulta assíncrona ao banco de dados em tempo real (Debounce 200ms)
+            clearTimeout(inputDebounceTimer);
+            if (filter.length >= 2) {
+                inputDebounceTimer = setTimeout(() => {
+                    const url = `/commercial/inputs/autocomplete/?q=${encodeURIComponent(filter)}&category=${encodeURIComponent(selectedCat)}`;
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                data.results.forEach(dbItem => {
+                                    let existing = inputDropdownMenu.querySelector(`.input-type-item[data-name="${CSS.escape(dbItem.name)}"]`);
+                                    if (!existing) {
+                                        const newLi = document.createElement('li');
+                                        const catBadge = dbItem.category === 'TECNICO'
+                                            ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">Técnico</span>'
+                                            : '<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">Administrativo</span>';
+                                        const codeBadge = dbItem.code
+                                            ? `<span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">${dbItem.code}</span>`
+                                            : '';
+                                        const d0Badge = dbItem.is_mandatory_default
+                                            ? '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 ms-1" style="font-size: 0.65rem;">D0 Obrigatório</span>'
+                                            : '';
+
+                                        newLi.innerHTML = `
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap input-type-item" href="#"
+                                               data-name="${dbItem.name}"
+                                               data-category="${dbItem.category}"
+                                               data-desc="${dbItem.default_description || ''}"
+                                               data-mandatory="${dbItem.is_mandatory_default}">
+                                                <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">${dbItem.name}</div>
+                                                <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                                    ${catBadge}
+                                                    ${codeBadge}
+                                                    ${d0Badge}
+                                                </div>
+                                            </a>
+                                        `;
+                                        if (liNoMatch) {
+                                            inputDropdownMenu.insertBefore(newLi, liNoMatch);
+                                        } else {
+                                            inputDropdownMenu.appendChild(newLi);
+                                        }
+                                        bindInputItemClick(newLi.querySelector('.input-type-item'));
+                                    }
+                                });
+                            }
+                        })
+                        .catch(err => console.error('Erro na consulta de insumos ao banco:', err));
+                }, 200);
+            }
         }
 
-        // 1. Filtragem instantânea ao digitar (Search-as-you-Type)
-        inputTypeInput.addEventListener('input', filterInputs);
-
-        // 2. Filtragem ao alterar a categoria
-        if (categorySelect) {
-            categorySelect.addEventListener('change', filterInputs);
-        }
-
-        // 3. Abrir dropdown ao clicar ou focar no campo
-        inputTypeInput.addEventListener('focus', function() {
-            filterInputs();
-        });
-
-        // 4. Clique em qualquer item existente do catálogo
-        inputItems.forEach(item => {
+        function bindInputItemClick(item) {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
+                clearTimeout(inputDebounceTimer);
                 inputTypeInput.value = this.dataset.name;
 
                 if (categorySelect && this.dataset.category) {
@@ -1165,9 +1204,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 hideMenu(inputDropdownMenu);
             });
-        });
+        }
 
-        // 5. Clique no botão de cadastrar novo insumo
+        // 1. Filtragem instantânea ao digitar (Search-as-you-Type)
+        inputTypeInput.addEventListener('input', filterInputs);
+
+        // 2. Filtragem ao alterar a categoria
+        if (categorySelect) {
+            categorySelect.addEventListener('change', filterInputs);
+        }
+
+        // 3. Abrir dropdown ao clicar ou focar no campo
+        inputTypeInput.addEventListener('focus', filterInputs);
+
+        // 4. Botão chevron toggle
+        if (toggleInputBtn) {
+            toggleInputBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleMenu(inputDropdownMenu, inputTypeInput);
+            });
+        }
+
+        // 5. Clique em qualquer item existente do catálogo
+        inputDropdownMenu.querySelectorAll('.input-type-item').forEach(bindInputItemClick);
+
+        // 6. Clique no botão de cadastrar novo insumo
         if (btnTriggerQuickCreate) {
             btnTriggerQuickCreate.addEventListener('click', function(e) {
                 e.preventDefault();

@@ -125,39 +125,106 @@
 
     if (inputNameField && dropdownMenu) {
         const items = dropdownMenu.querySelectorAll('.edit-input-type-item');
+        const catField = modalContent.querySelector('#id_input_category');
+        const descField = modalContent.querySelector('#id_input_description');
+        const mandField = modalContent.querySelector('#id_is_mandatory');
+        let inpDebounce = null;
 
-        inputNameField.addEventListener('input', function() {
-            const filter = this.value.toLowerCase().trim();
+        function filterEditInputs() {
+            const filter = inputNameField.value.toLowerCase().trim();
+            const selectedCat = catField ? catField.value.trim().toUpperCase() : '';
+
             items.forEach(it => {
                 const text = it.textContent.toLowerCase();
-                it.closest('li').style.display = text.includes(filter) ? '' : 'none';
+                const itemCat = (it.dataset.category || '').toUpperCase();
+                const catMatch = !selectedCat || itemCat === selectedCat;
+                const textMatch = !filter || text.includes(filter);
+                it.closest('li').style.display = (catMatch && textMatch) ? '' : 'none';
             });
-            dropdownMenu.classList.add('show');
-        });
 
-        items.forEach(it => {
+            dropdownMenu.classList.add('show');
+
+            clearTimeout(inpDebounce);
+            if (filter.length >= 2) {
+                inpDebounce = setTimeout(() => {
+                    fetch(`/commercial/inputs/autocomplete/?q=${encodeURIComponent(filter)}&category=${encodeURIComponent(selectedCat)}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                data.results.forEach(dbItem => {
+                                    let existing = dropdownMenu.querySelector(`.edit-input-type-item[data-name="${CSS.escape(dbItem.name)}"]`);
+                                    if (!existing) {
+                                        const newLi = document.createElement('li');
+                                        const catBadge = dbItem.category === 'TECNICO'
+                                            ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">Técnico</span>'
+                                            : '<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">Administrativo</span>';
+                                        const codeBadge = dbItem.code
+                                            ? `<span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">${dbItem.code}</span>`
+                                            : '';
+                                        newLi.innerHTML = `
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap edit-input-type-item" href="#"
+                                               data-name="${dbItem.name}"
+                                               data-category="${dbItem.category}"
+                                               data-desc="${dbItem.default_description || ''}"
+                                               data-mandatory="${dbItem.is_mandatory_default}">
+                                                <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">${dbItem.name}</div>
+                                                <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                                    ${catBadge}
+                                                    ${codeBadge}
+                                                </div>
+                                            </a>
+                                        `;
+                                        dropdownMenu.appendChild(newLi);
+                                        bindEditInputItem(newLi.querySelector('.edit-input-type-item'));
+                                    }
+                                });
+                            }
+                        })
+                        .catch(e => console.error(e));
+                }, 200);
+            }
+        }
+
+        function bindEditInputItem(it) {
             it.addEventListener('click', function(e) {
                 e.preventDefault();
+                clearTimeout(inpDebounce);
                 inputNameField.value = this.dataset.name;
 
-                const catField = modalContent.querySelector('#id_input_category');
                 if (catField && this.dataset.category) {
                     catField.value = this.dataset.category;
                 }
-
-                const descField = modalContent.querySelector('#id_input_description');
                 if (descField && this.dataset.desc) {
                     descField.value = this.dataset.desc;
                 }
-
-                const mandField = modalContent.querySelector('#id_is_mandatory');
                 if (mandField && this.dataset.mandatory) {
                     mandField.checked = (this.dataset.mandatory === 'true');
                 }
 
                 dropdownMenu.classList.remove('show');
             });
-        });
+        }
+
+        inputNameField.addEventListener('input', filterEditInputs);
+        inputNameField.addEventListener('focus', filterEditInputs);
+
+        if (catField) {
+            catField.addEventListener('change', filterEditInputs);
+        }
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (dropdownMenu.classList.contains('show')) {
+                    dropdownMenu.classList.remove('show');
+                } else {
+                    dropdownMenu.classList.add('show');
+                    inputNameField.focus();
+                }
+            });
+        }
+
+        items.forEach(bindEditInputItem);
     }
 })();
 </script>
