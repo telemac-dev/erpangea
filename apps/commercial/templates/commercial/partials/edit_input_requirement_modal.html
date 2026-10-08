@@ -40,7 +40,7 @@
                 <div class="dropdown position-relative">
                     <div class="input-group">
                         {{ form.input_type_name }}
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleEditInputTypes" title="Ver catálogo de insumos">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="btnToggleEditInputTypes" title="Ver catálogo de insumos">
                         </button>
                         <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_edit_input_types" style="min-width: 100%; max-height: 360px; overflow-y: auto; z-index: 1060;">
                             <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
@@ -132,9 +132,7 @@
                 const text = it.textContent.toLowerCase();
                 it.closest('li').style.display = text.includes(filter) ? '' : 'none';
             });
-            if (toggleBtn && !dropdownMenu.classList.contains('show')) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleBtn).show();
-            }
+            dropdownMenu.classList.add('show');
         });
 
         items.forEach(it => {
@@ -157,9 +155,7 @@
                     mandField.checked = (this.dataset.mandatory === 'true');
                 }
 
-                if (toggleBtn) {
-                    bootstrap.Dropdown.getOrCreateInstance(toggleBtn).hide();
-                }
+                dropdownMenu.classList.remove('show');
             });
         });
     }

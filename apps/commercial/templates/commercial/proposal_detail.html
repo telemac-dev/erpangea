@@ -493,7 +493,7 @@
                             <div class="dropdown position-relative">
                                 <div class="input-group">
                                     {{ scope_form.service_type_name }}
-                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleServiceTypes" title="Ver catálogo de serviços técnicos">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="btnToggleServiceTypes" title="Ver catálogo de serviços técnicos">
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_service_types" style="min-width: 100%; max-height: 360px; overflow-y: auto; z-index: 1060;">
                                         <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
@@ -542,7 +542,7 @@
                             <div class="dropdown position-relative">
                                 <div class="input-group">
                                     {{ scope_form.discipline_name }}
-                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleDisciplines" title="Ver catálogo de disciplinas">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="btnToggleDisciplines" title="Ver catálogo de disciplinas">
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_disciplines" style="min-width: 100%; max-height: 280px; overflow-y: auto; z-index: 1060;">
                                         <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
@@ -630,7 +630,7 @@
                             <div class="dropdown position-relative">
                                 <div class="input-group">
                                     {{ input_form.input_type_name }}
-                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleInputTypes" title="Ver catálogo de insumos">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="btnToggleInputTypes" title="Ver catálogo de insumos">
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_input_types" style="min-width: 100%; max-height: 360px; overflow-y: auto; z-index: 1060;">
                                         <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
@@ -813,8 +813,20 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 1. Dropdown interativo de Tipos de Servicos Tecnicos (Busca em Tempo Real no Banco + DOM)
+    // Funções utilitárias seguras de foco para dropdowns customizados
+    function showMenu(menu) { if (menu) menu.classList.add('show'); }
+    function hideMenu(menu) { if (menu) menu.classList.remove('show'); }
+    function toggleMenu(menu, input) {
+        if (!menu) return;
+        if (menu.classList.contains('show')) {
+            hideMenu(menu);
+        } else {
+            showMenu(menu);
+            if (input) input.focus();
+        }
+    }
+
+    // 1. Dropdown interativo de Tipos de Servicos Tecnicos (Busca em Tempo Real no Banco + DOM, Foco Seguro)
     const serviceInput = document.getElementById('id_service_type_name');
     const serviceDropdownMenu = document.getElementById('dropdown_service_types');
     const toggleServiceBtn = document.getElementById('btnToggleServiceTypes');
@@ -859,9 +871,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            if (toggleServiceBtn && !serviceDropdownMenu.classList.contains('show')) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).show();
-            }
+            showMenu(serviceDropdownMenu);
 
             // Consulta assíncrona ao banco de dados em tempo real (Debounce 200ms)
             clearTimeout(serviceDebounceTimer);
@@ -909,6 +919,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 clearTimeout(serviceDebounceTimer);
                 serviceInput.value = this.dataset.name;
+
                 const discField = document.getElementById('id_discipline_name');
                 if (discField && this.dataset.discipline) {
                     discField.value = this.dataset.discipline;
@@ -921,14 +932,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (descField && this.dataset.desc) {
                     descField.value = this.dataset.desc;
                 }
-                if (toggleServiceBtn) {
-                    bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).hide();
-                }
+                hideMenu(serviceDropdownMenu);
             });
         }
 
         serviceInput.addEventListener('input', filterServices);
         serviceInput.addEventListener('focus', filterServices);
+
+        if (toggleServiceBtn) {
+            toggleServiceBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleMenu(serviceDropdownMenu, serviceInput);
+            });
+        }
 
         serviceDropdownMenu.querySelectorAll('.service-type-item').forEach(bindServiceItemClick);
 
@@ -938,14 +954,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (textCustomService) {
                     serviceInput.value = textCustomService.textContent;
                 }
-                if (toggleServiceBtn) {
-                    bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).hide();
-                }
+                hideMenu(serviceDropdownMenu);
             });
         }
     }
 
-    // 2. Dropdown interativo de Disciplinas (Busca em Tempo Real no Banco + DOM)
+    // 2. Dropdown interativo de Disciplinas (Busca em Tempo Real no Banco + DOM, Foco Seguro)
     const discInput = document.getElementById('id_discipline_name');
     const discDropdownMenu = document.getElementById('dropdown_disciplines');
     const toggleDiscBtn = document.getElementById('btnToggleDisciplines');
@@ -989,9 +1003,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            if (toggleDiscBtn && !discDropdownMenu.classList.contains('show')) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).show();
-            }
+            showMenu(discDropdownMenu);
 
             // Consulta assíncrona de disciplinas ao banco de dados (Debounce 200ms)
             clearTimeout(discDebounceTimer);
@@ -1032,14 +1044,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 clearTimeout(discDebounceTimer);
                 discInput.value = this.dataset.name;
-                if (toggleDiscBtn) {
-                    bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).hide();
-                }
+                hideMenu(discDropdownMenu);
             });
         }
 
         discInput.addEventListener('input', filterDisciplines);
         discInput.addEventListener('focus', filterDisciplines);
+
+        if (toggleDiscBtn) {
+            toggleDiscBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleMenu(discDropdownMenu, discInput);
+            });
+        }
 
         discDropdownMenu.querySelectorAll('.discipline-item').forEach(bindDisciplineItemClick);
 
@@ -1049,9 +1066,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (textCustomDiscipline) {
                     discInput.value = textCustomDiscipline.textContent;
                 }
-                if (toggleDiscBtn) {
-                    bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).hide();
-                }
+                hideMenu(discDropdownMenu);
             });
         }
     }
@@ -1115,10 +1130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Abre o dropdown se fechado
-            if (toggleInputBtn && !inputDropdownMenu.classList.contains('show')) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).show();
-            }
+            showMenu(inputDropdownMenu);
         }
 
         // 1. Filtragem instantânea ao digitar (Search-as-you-Type)
@@ -1150,9 +1162,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     mandatoryInput.checked = (this.dataset.mandatory === 'true');
                 }
 
-                if (toggleInputBtn) {
-                    bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).hide();
-                }
+                hideMenu(inputDropdownMenu);
             });
         });
 
@@ -1188,9 +1198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     : '<span class="text-muted fw-semibold"><i class="bi bi-unlock me-1"></i>Opcional (Não bloqueia D0)</span>';
             }
 
-            if (toggleInputBtn) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).hide();
-            }
+            hideMenu(inputDropdownMenu);
 
             if (confirmModalEl) {
                 bootstrap.Modal.getOrCreateInstance(confirmModalEl).show();
@@ -1243,6 +1251,27 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
     }
+
+    // Fechar dropdowns customizados ao clicar fora ou pressionar Escape
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#dropdown_service_types') && !e.target.closest('#id_service_type_name') && !e.target.closest('#btnToggleServiceTypes')) {
+            hideMenu(document.getElementById('dropdown_service_types'));
+        }
+        if (!e.target.closest('#dropdown_disciplines') && !e.target.closest('#id_discipline_name') && !e.target.closest('#btnToggleDisciplines')) {
+            hideMenu(document.getElementById('dropdown_disciplines'));
+        }
+        if (!e.target.closest('#dropdown_input_types') && !e.target.closest('#id_input_type_name') && !e.target.closest('#btnToggleInputTypes')) {
+            hideMenu(document.getElementById('dropdown_input_types'));
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideMenu(document.getElementById('dropdown_service_types'));
+            hideMenu(document.getElementById('dropdown_disciplines'));
+            hideMenu(document.getElementById('dropdown_input_types'));
+        }
+    });
 });
 </script>
 {% endblock %}

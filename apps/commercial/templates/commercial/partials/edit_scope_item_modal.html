@@ -27,7 +27,7 @@
                 <div class="dropdown position-relative">
                     <div class="input-group">
                         {{ form.service_type_name }}
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleEditServiceTypes" title="Ver catálogo de serviços técnicos">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="btnToggleEditServiceTypes" title="Ver catálogo de serviços técnicos">
                         </button>
                         <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_edit_service_types" style="min-width: 100%; max-height: 360px; overflow-y: auto; z-index: 1060;">
                             <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
@@ -71,7 +71,7 @@
                 <div class="dropdown position-relative">
                     <div class="input-group">
                         {{ form.discipline_name }}
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleEditDisciplines" title="Ver catálogo de disciplinas">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="btnToggleEditDisciplines" title="Ver catálogo de disciplinas">
                         </button>
                         <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_edit_disciplines" style="min-width: 100%; max-height: 280px; overflow-y: auto; z-index: 1060;">
                             <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
@@ -152,9 +152,7 @@
                 const text = it.textContent.toLowerCase();
                 it.closest('li').style.display = (!filter || text.includes(filter)) ? '' : 'none';
             });
-            if (toggleServiceBtn && !editServiceDropdown.classList.contains('show')) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).show();
-            }
+            editServiceDropdown.classList.add('show');
 
             clearTimeout(sDebounce);
             if (filter.length >= 2) {
@@ -201,8 +199,7 @@
                 if (nbrField && this.dataset.nbr) nbrField.value = this.dataset.nbr;
                 const descField = modalContent.querySelector('#id_description');
                 if (descField && this.dataset.desc) descField.value = this.dataset.desc;
-                if (toggleServiceBtn) bootstrap.Dropdown.getOrCreateInstance(toggleServiceBtn).hide();
-            });
+                editServiceDropdown.classList.remove('show');
         }
 
         editServiceInput.addEventListener('input', filterEditServices);
@@ -223,9 +220,7 @@
             items.forEach(it => {
                 it.closest('li').style.display = (!filter || it.textContent.toLowerCase().includes(filter)) ? '' : 'none';
             });
-            if (toggleDiscBtn && !editDiscDropdown.classList.contains('show')) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).show();
-            }
+            editDiscDropdown.classList.add('show');
 
             clearTimeout(dDebounce);
             if (filter.length >= 2) {
@@ -258,8 +253,7 @@
             it.addEventListener('click', function(e) {
                 e.preventDefault();
                 editDiscInput.value = this.dataset.name;
-                if (toggleDiscBtn) bootstrap.Dropdown.getOrCreateInstance(toggleDiscBtn).hide();
-            });
+                editDiscDropdown.classList.remove('show');
         }
 
         editDiscInput.addEventListener('input', filterEditDisciplines);
