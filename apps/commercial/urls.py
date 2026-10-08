@@ -20,8 +20,9 @@ urlpatterns = [
     path('proposals/<uuid:pk>/scope/<uuid:item_id>/edit/', views.ProposalEditScopeItemView.as_view(), name='edit_scope_item'),
     path('proposals/<uuid:pk>/scope/<uuid:item_id>/delete/', views.ProposalDeleteScopeItemView.as_view(), name='delete_scope_item'),
     path('proposals/<uuid:pk>/inputs/add/', views.ProposalAddInputRequirementView.as_view(), name='add_input_requirement'),
+    path('proposals/<uuid:pk>/inputs/<uuid:req_id>/edit/', views.ProposalEditInputRequirementView.as_view(), name='edit_input_requirement'),
+    path('proposals/<uuid:pk>/inputs/<uuid:req_id>/delete/', views.ProposalDeleteInputRequirementView.as_view(), name='delete_input_requirement'),
     path('proposals/<uuid:pk>/inputs/<uuid:req_id>/validate/', views.ProposalValidateInputView.as_view(), name='validate_input'),
-
     # Portal Publico de Aceite Eletronico (Cliente)
     path('public/proposal/<uuid:token>/', views.ProposalPublicPortalView.as_view(), name='public_portal'),
     path('public/proposal/<uuid:token>/action/', views.ProposalPublicActionView.as_view(), name='public_action'),

@@ -18,6 +18,7 @@ from apps.commercial.models import (
     ContractStatusChoices,
     InputStatusChoices,
     InputItemTypeChoices,
+    InputCategoryChoices,
     ServiceTypeChoices,
     ContractTypeChoices,
     generate_proposal_code,
@@ -621,4 +622,97 @@ class CommercialModuleTestCase(TestCase):
         )
         # GET em /proposals/<pk>/edit/ deve redirecionar com aviso
         res = self.client_auth.get(f'/commercial/proposals/{proposal.pk}/edit/')
-        self.assertEqual(res.status_code, 302)
+
+    # 14. Modificação, Remoção e Categorização (Técnico / Administrativo) de Insumos da Contratante
+    def test_add_and_edit_input_requirement_with_category(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Condomínio Residencial Tarumã',
+            salesperson=self.user,
+            validity_days=30
+        )
+
+        # Adiciona insumo administrativo
+        url_add = f'/commercial/proposals/{proposal.pk}/inputs/add/'
+        res_add = self.client_auth.post(url_add, {
+            'category': InputCategoryChoices.ADMINISTRATIVO,
+            'input_type_name': 'Certidão de Registro de Imóveis Atualizada',
+            'description': 'Certidão vintenária expedida com no máximo 30 dias',
+            'is_mandatory': True
+        })
+        self.assertEqual(res_add.status_code, 302)
+
+        inp = proposal.input_requirements.first()
+        self.assertIsNotNone(inp)
+        self.assertEqual(inp.category, InputCategoryChoices.ADMINISTRATIVO)
+        self.assertEqual(inp.get_required_item_type_display(), 'Certidão de Registro de Imóveis Atualizada')
+        self.assertTrue(inp.is_mandatory)
+
+        # Modifica insumo via GET e POST
+        url_edit = f'/commercial/proposals/{proposal.pk}/inputs/{inp.pk}/edit/'
+        res_get = self.client_auth.get(url_edit)
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, 'Modificar Insumo da Contratante')
+
+        res_post = self.client_auth.post(url_edit, {
+            'category': InputCategoryChoices.TECNICO,
+            'input_type_name': 'Certidão de Registro com Levantamento Topográfico Anexo',
+            'description': 'Especificação técnica atualizada',
+            'is_mandatory': False
+        })
+        self.assertEqual(res_post.status_code, 302)
+
+        inp.refresh_from_db()
+        self.assertEqual(inp.category, InputCategoryChoices.TECNICO)
+        self.assertEqual(inp.get_required_item_type_display(), 'Certidão de Registro com Levantamento Topográfico Anexo')
+        self.assertEqual(inp.description, 'Especificação técnica atualizada')
+        self.assertFalse(inp.is_mandatory)
+
+    def test_delete_input_requirement(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Pátio de Estocagem',
+            salesperson=self.user,
+            validity_days=30
+        )
+        inp = ProposalInputRequirement.objects.create(
+            proposal=proposal,
+            category=InputCategoryChoices.TECNICO,
+            required_item_type='Planta de Cargas',
+            is_mandatory=True
+        )
+        self.assertEqual(proposal.input_requirements.count(), 1)
+
+        url_del = f'/commercial/proposals/{proposal.pk}/inputs/{inp.pk}/delete/'
+        res_del = self.client_auth.post(url_del)
+        self.assertEqual(res_del.status_code, 302)
+        self.assertEqual(proposal.input_requirements.count(), 0)
+
+    def test_cannot_add_or_delete_input_on_accepted_proposal(self):
+        proposal = CommercialProposal.objects.create(
+            client=self.contact,
+            project_name='Obra Bloqueada',
+            salesperson=self.user,
+            status=ProposalStatusChoices.ACEITA,
+            validity_days=30
+        )
+        inp = ProposalInputRequirement.objects.create(
+            proposal=proposal,
+            required_item_type='Insumo Teste',
+            is_mandatory=True
+        )
+
+        # Tentativa de exclusão em proposta aceita
+        url_del = f'/commercial/proposals/{proposal.pk}/inputs/{inp.pk}/delete/'
+        res_del = self.client_auth.post(url_del)
+        self.assertEqual(res_del.status_code, 302)
+        self.assertTrue(proposal.input_requirements.filter(pk=inp.pk).exists())
+
+        # Tentativa de edição em proposta aceita
+        url_edit = f'/commercial/proposals/{proposal.pk}/inputs/{inp.pk}/edit/'
+        res_edit = self.client_auth.post(url_edit, {
+            'input_type_name': 'Alteração Indevida'
+        })
+        self.assertEqual(res_edit.status_code, 302)
+        inp.refresh_from_db()
+        self.assertEqual(inp.required_item_type, 'Insumo Teste')

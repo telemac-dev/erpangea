@@ -9,6 +9,7 @@ from .models import (
     ServiceTypeChoices,
     InputItemTypeChoices,
     InputStatusChoices,
+    InputCategoryChoices,
     ContractTypeChoices,
     TechnicalDiscipline,
     TechnicalServiceType,
@@ -175,43 +176,69 @@ class ProposalScopeItemForm(forms.ModelForm):
 
 
 class ProposalInputRequirementForm(forms.ModelForm):
+    category = forms.ChoiceField(
+        label=_('Tipo de Insumo'),
+        choices=InputCategoryChoices.choices,
+        initial=InputCategoryChoices.TECNICO,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'id_input_category'
+        })
+    )
     input_type_name = forms.CharField(
-        label=_('Tipo do Insumo Obrigatório'),
+        label=_('Insumo'),
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'list': 'datalist_input_types',
-            'placeholder': 'Selecione ou digite um novo tipo de insumo...',
+            'placeholder': 'Selecione da lista abaixo ou digite um novo insumo...',
             'id': 'id_input_type_name'
+        })
+    )
+    description = forms.CharField(
+        label=_('Especificação Técnica Exigida'),
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Especificação técnica mínima necessária (texto livre)...',
+            'id': 'id_input_description'
+        })
+    )
+    is_mandatory = forms.BooleanField(
+        label=_('Bloqueia contagem do cronograma (D0) até a aprovação técnica'),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+            'id': 'id_is_mandatory'
         })
     )
 
     class Meta:
         model = ProposalInputRequirement
-        fields = ['description', 'is_mandatory']
-        widgets = {
-            'description': forms.TextInput(attrs={
-                'class': 'form-control',
-                'id': 'id_input_description',
-                'placeholder': 'Especificação técnica mínima necessária'
-            }),
-            'is_mandatory': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-                'id': 'id_is_mandatory'
-            }),
-        }
+        fields = ['category', 'description', 'is_mandatory']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and not self.instance._state.adding:
+            self.fields['category'].initial = self.instance.category
             self.fields['input_type_name'].initial = self.instance.get_required_item_type_display()
+            self.fields['description'].initial = self.instance.description
+            self.fields['is_mandatory'].initial = self.instance.is_mandatory
         else:
             self.initial['input_type_name'] = ''
             self.initial['description'] = ''
             self.fields['input_type_name'].initial = ''
             self.fields['description'].initial = ''
+            self.fields['category'].initial = InputCategoryChoices.TECNICO
+            self.fields['is_mandatory'].initial = True
+
     def save(self, commit=True):
         req_item = super().save(commit=False)
+        cat = self.cleaned_data.get('category', InputCategoryChoices.TECNICO)
+        req_item.category = cat
+
         input_name = self.cleaned_data.get('input_type_name', '').strip()
         if not input_name and self.data.get('required_item_type'):
             legacy_choice = self.data.get('required_item_type')
@@ -221,11 +248,16 @@ class ProposalInputRequirementForm(forms.ModelForm):
             inp_obj, _ = TechnicalInputType.objects.get_or_create(
                 name=input_name,
                 defaults={
+                    'category': cat,
                     'default_description': self.cleaned_data.get('description', ''),
                     'is_mandatory_default': self.cleaned_data.get('is_mandatory', True),
                     'is_active': True
                 }
             )
+            if cat and inp_obj.category != cat:
+                inp_obj.category = cat
+                inp_obj.save(update_fields=['category'])
+
             req_item.input_type_ref = inp_obj
             req_item.required_item_type = inp_obj.name
 

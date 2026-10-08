@@ -256,20 +256,27 @@
             <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="table-light text-secondary" style="font-size: 0.78rem;">
                     <tr>
-                        <th class="ps-3">Insumo Técnico Obrigatório</th>
+                        <th class="ps-3" style="width: 250px;">Insumo da Contratante</th>
                         <th>Especificação Mínima</th>
                         <th>Bloqueia D0?</th>
                         <th>Arquivo Recebido</th>
                         <th>Situação</th>
-                        <th class="text-end pe-3">Homologação</th>
+                        <th>Homologação</th>
+                        <th class="text-end pe-3" style="width: 100px;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for inp in input_requirements %}
                     <tr>
-                        <td class="ps-3 fw-bold text-dark">
-                            <i class="bi bi-file-earmark-text text-secondary me-1"></i>
-                            {{ inp.get_required_item_type_display }}
+                        <td class="ps-3">
+                            <div class="mb-1">
+                                {% if inp.category == 'TECNICO' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">Técnico</span>
+                                {% else %}
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">Administrativo</span>
+                                {% endif %}
+                            </div>
+                            <span class="fw-bold text-dark">{{ inp.get_required_item_type_display }}</span>
                         </td>
                         <td class="text-muted small" style="max-width: 320px;">{{ inp.description }}</td>
                         <td>
@@ -305,7 +312,7 @@
                                 <span class="badge bg-light text-muted border px-2 py-1">Pendente</span>
                             {% endif %}
                         </td>
-                        <td class="text-end pe-3">
+                        <td>
                             <button class="btn btn-outline-primary btn-sm py-0 px-2"
                                     hx-get="{% url 'commercial:validate_input' proposal.pk inp.pk %}"
                                     hx-target="#modalValidateContent"
@@ -314,10 +321,77 @@
                                 <i class="bi bi-check2-square me-1"></i> Validar / Parecer
                             </button>
                         </td>
+                        <td class="text-end pe-3">
+                            {% if proposal.status != 'ACEITA' %}
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary py-0 px-2"
+                                        title="Modificar insumo"
+                                        hx-get="{% url 'commercial:edit_input_requirement' proposal.pk inp.pk %}"
+                                        hx-target="#modalEditInputContent"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalEditInput">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger py-0 px-2"
+                                        title="Remover insumo"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalDeleteInput{{ inp.pk }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+
+                            <!-- Modal de Confirmação com Alerta para Remoção de Insumo -->
+                            <div class="modal fade text-start" id="modalDeleteInput{{ inp.pk }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-danger bg-opacity-10 border-bottom border-danger border-opacity-25">
+                                            <h5 class="modal-title fw-bold text-danger">
+                                                <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Remoção de Insumo
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'commercial:delete_input_requirement' proposal.pk inp.pk %}">
+                                            {% csrf_token %}
+                                            <div class="modal-body p-4">
+                                                <p class="mb-2 text-dark">Tem certeza de que deseja remover o seguinte insumo do checklist da contratante?</p>
+                                                <div class="p-3 bg-light rounded border mb-3">
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        {% if inp.category == 'TECNICO' %}
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">Técnico</span>
+                                                        {% else %}
+                                                        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">Administrativo</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="fw-bold text-dark">{{ inp.get_required_item_type_display }}</div>
+                                                    <small class="text-muted d-block mt-1">{{ inp.description }}</small>
+                                                </div>
+                                                {% if inp.is_mandatory %}
+                                                <div class="alert alert-warning py-2 px-3 small mb-0 border-start border-4 border-warning">
+                                                    <i class="bi bi-info-circle-fill me-1"></i> <strong>Atenção à Condição Suspensiva:</strong><br>
+                                                    Este insumo está configurado como <strong>Obrigatório ($D_0$)</strong>. Sua remoção desobriga o cliente de fornecê-lo e liberará o início dos prazos contratuais sem esta validação técnica.
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer bg-light">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-danger btn-sm px-3 fw-bold">
+                                                    <i class="bi bi-trash me-1"></i>Confirmar Remoção
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted small" title="Proposta aceita travada"><i class="bi bi-lock-fill"></i></span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted small">Nenhum insumo técnico cadastrado.</td>
+                        <td colspan="7" class="text-center py-4 text-muted small">Nenhum insumo técnico ou administrativo cadastrado.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -509,40 +583,95 @@
     </div>
 </div>
 
-<!-- Modal: Adicionar Insumo Tecnico Obrigatório -->
+<!-- Modal: Adicionar Insumo da Contratante (Condição Suspensiva D0) -->
 <div class="modal fade" id="modalAddInput" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-light">
                 <h5 class="modal-title fw-bold text-dark">
-                    <i class="bi bi-file-earmark-plus text-primary me-2"></i>Adicionar Insumo Técnico Obrigatório
+                    <i class="bi bi-file-earmark-plus text-primary me-2"></i>Adicionar Insumo Obrigatório (Condição Suspensiva D0)
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="post" action="{% url 'commercial:add_input_requirement' proposal.pk %}">
                 {% csrf_token %}
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-dark">
-                            Tipo do Insumo <span class="text-danger">*</span>
-                            <span class="text-muted fw-normal">(selecione ou digite novo)</span>
-                        </label>
-                        {{ input_form.input_type_name }}
-                        <datalist id="datalist_input_types">
-                            {% for inp in input_types %}
-                            <option value="{{ inp.name }}" data-desc="{{ inp.default_description }}"></option>
-                            {% endfor %}
-                        </datalist>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-dark">Especificação Técnica Exigida</label>
-                        {{ input_form.description }}
-                    </div>
-                    <div class="form-check">
-                        {{ input_form.is_mandatory }}
-                        <label class="form-check-label small" for="{{ input_form.is_mandatory.id_for_label }}">
-                            Bloqueia contagem do cronograma ($D_0$) até a aprovação técnica
-                        </label>
+                    <div class="row g-3">
+                        <!-- 1. Tipo de Insumos (Técnico ou Administrativo) -->
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-dark">
+                                Tipo de Insumos <span class="text-danger">*</span>
+                            </label>
+                            {{ input_form.category }}
+                        </div>
+
+                        <!-- 2. Insumo (Combobox com largura total e busca) -->
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-dark">
+                                Insumo <span class="text-danger">*</span>
+                                <span class="text-muted fw-normal">(selecione da lista abaixo ou digite um novo)</span>
+                            </label>
+                            <div class="dropdown position-relative">
+                                <div class="input-group">
+                                    {{ input_form.input_type_name }}
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnToggleInputTypes" title="Ver catálogo de insumos">
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-start shadow p-2 w-100" id="dropdown_input_types" style="min-width: 100%; max-height: 360px; overflow-y: auto; z-index: 1060;">
+                                        <li class="px-2 py-1 text-muted small border-bottom mb-1 fw-bold">
+                                            <i class="bi bi-search me-1"></i>Catálogo de Insumos Técnicos e Administrativos ({{ input_types|length }} disponíveis)
+                                        </li>
+                                        {% for inp in input_types %}
+                                        <li>
+                                            <a class="dropdown-item py-2 px-3 rounded text-wrap input-type-item" href="#" 
+                                               data-name="{{ inp.name }}" 
+                                               data-category="{{ inp.category }}" 
+                                               data-desc="{{ inp.default_description }}" 
+                                               data-mandatory="{{ inp.is_mandatory_default|yesno:'true,false' }}">
+                                                <div class="fw-bold text-dark text-break" style="font-size: 0.88rem; line-height: 1.35;">{{ inp.name }}</div>
+                                                <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                                    {% if inp.category == 'TECNICO' %}
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">
+                                                        Técnico
+                                                    </span>
+                                                    {% else %}
+                                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">
+                                                        Administrativo
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if inp.code %}
+                                                    <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.68rem;">
+                                                        {{ inp.code }}
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Especificação Técnica Exigida (Texto livre) -->
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-dark">
+                                Especificação Técnica Exigida <span class="text-muted fw-normal">(texto livre)</span>
+                            </label>
+                            {{ input_form.description }}
+                        </div>
+
+                        <!-- 4. Bloqueio da contagem do cronograma (D0) -->
+                        <div class="col-12">
+                            <div class="form-check p-3 bg-light rounded border">
+                                {{ input_form.is_mandatory }}
+                                <label class="form-check-label small fw-semibold text-dark ms-1" for="{{ input_form.is_mandatory.id_for_label }}">
+                                    Bloqueia a contagem do cronograma contratual ($D_0$) até a aprovação técnica
+                                </label>
+                                <div class="form-text small text-muted ms-4">
+                                    Se marcado, o projeto executivo só iniciará sua vigência após a entrega e homologação deste documento.
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
@@ -553,6 +682,13 @@
                 </div>
             </form>
         </div>
+    </div>
+</div>
+
+<!-- Modal Container para Edição de Insumo (HTMX) -->
+<div class="modal fade" id="modalEditInput" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content" id="modalEditInputContent"></div>
     </div>
 </div>
 
@@ -714,23 +850,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. Auto-preenchimento ao selecionar tipo de insumo no modal de insumo
+    // 3. Dropdown interativo de Insumos da Contratante
     const inputTypeInput = document.getElementById('id_input_type_name');
-    if (inputTypeInput) {
+    const inputDropdownMenu = document.getElementById('dropdown_input_types');
+    const toggleInputBtn = document.getElementById('btnToggleInputTypes');
+
+    if (inputTypeInput && inputDropdownMenu) {
+        const inputItems = inputDropdownMenu.querySelectorAll('.input-type-item');
+
         inputTypeInput.addEventListener('input', function() {
-            const val = this.value;
-            const datalist = document.getElementById('datalist_input_types');
-            if (datalist) {
-                const opt = Array.from(datalist.options).find(o => o.value === val);
-                if (opt) {
-                    const descField = document.getElementById('id_input_description');
-                    if (descField && (!descField.value || descField.value.includes('Fornecimento obrigatório')) && opt.dataset.desc) {
-                        descField.value = opt.dataset.desc;
-                    }
-                }
+            const filter = this.value.toLowerCase().trim();
+            inputItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.closest('li').style.display = text.includes(filter) ? '' : 'none';
+            });
+            if (toggleInputBtn && !inputDropdownMenu.classList.contains('show')) {
+                bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).show();
             }
         });
+
+        inputItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                inputTypeInput.value = this.dataset.name;
+
+                const catField = document.getElementById('id_input_category');
+                if (catField && this.dataset.category) {
+                    catField.value = this.dataset.category;
+                }
+
+                const descField = document.getElementById('id_input_description');
+                if (descField && this.dataset.desc) {
+                    descField.value = this.dataset.desc;
+                }
+
+                const mandField = document.getElementById('id_is_mandatory');
+                if (mandField && this.dataset.mandatory) {
+                    mandField.checked = (this.dataset.mandatory === 'true');
+                }
+
+                if (toggleInputBtn) {
+                    bootstrap.Dropdown.getOrCreateInstance(toggleInputBtn).hide();
+                }
+            });
+        });
     }
-});
 </script>
 {% endblock %}

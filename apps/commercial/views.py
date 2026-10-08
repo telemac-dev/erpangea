@@ -215,7 +215,7 @@ class ProposalDetailView(LoginRequiredMixin, DetailView):
         context['input_form'] = ProposalInputRequirementForm()
         context['disciplines'] = TechnicalDiscipline.objects.filter(is_active=True).order_by('name')
         context['service_types'] = TechnicalServiceType.objects.filter(is_active=True).order_by('name')
-        context['input_types'] = TechnicalInputType.objects.filter(is_active=True).order_by('name')
+        context['input_types'] = TechnicalInputType.objects.filter(is_active=True).order_by('category', 'name')
         context['can_unlock'] = can_unlock_proposal(self.request.user)
         return context
 
@@ -338,15 +338,82 @@ class ProposalDeleteScopeItemView(LoginRequiredMixin, View):
 class ProposalAddInputRequirementView(LoginRequiredMixin, View):
     def post(self, request, pk):
         proposal = get_object_or_404(CommercialProposal, pk=pk)
+        if proposal.status == ProposalStatusChoices.ACEITA:
+            messages.error(request, _("Proposta já aceita. O checklist de insumos está travado. É necessário desbloqueá-la por alçada superior para realizar alterações."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
         form = ProposalInputRequirementForm(request.POST)
         if form.is_valid():
             req_item = form.save(commit=False)
             req_item.proposal = proposal
             req_item.save()
-            messages.success(request, _(f"Insumo técnico '{req_item.get_required_item_type_display()}' adicionado ao checklist."))
+            messages.success(request, _(f"Insumo '{req_item.get_required_item_type_display()}' adicionado ao checklist com sucesso."))
         else:
             err_msg = "; ".join([f"{f}: {e[0]}" for f, e in form.errors.items()])
-            messages.error(request, _(f"Erro ao adicionar insumo técnico: {err_msg}"))
+            messages.error(request, _(f"Erro ao adicionar insumo: {err_msg}"))
+        return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+
+class ProposalEditInputRequirementView(LoginRequiredMixin, View):
+    """
+    Permite modificar um insumo obrigatório do checklist da contratante (D0).
+    """
+    def get(self, request, pk, req_id):
+        proposal = get_object_or_404(CommercialProposal, pk=pk)
+        if proposal.status == ProposalStatusChoices.ACEITA:
+            messages.error(request, _("Proposta já aceita. É necessário desbloqueá-la por alçada superior para alterar insumos."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        req_item = get_object_or_404(ProposalInputRequirement, pk=req_id, proposal=proposal)
+        form = ProposalInputRequirementForm(instance=req_item)
+        input_types = TechnicalInputType.objects.filter(is_active=True).order_by('category', 'name')
+        return render(request, 'commercial/partials/edit_input_requirement_modal.html', {
+            'proposal': proposal,
+            'req_item': req_item,
+            'form': form,
+            'input_types': input_types,
+        })
+
+    def post(self, request, pk, req_id):
+        proposal = get_object_or_404(CommercialProposal, pk=pk)
+        if proposal.status == ProposalStatusChoices.ACEITA:
+            messages.error(request, _("Proposta já aceita. É necessário desbloqueá-la por alçada superior para alterar insumos."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        req_item = get_object_or_404(ProposalInputRequirement, pk=req_id, proposal=proposal)
+        form = ProposalInputRequirementForm(request.POST, instance=req_item)
+        if form.is_valid():
+            item = form.save(commit=True)
+            messages.success(request, _(f"Insumo '{item.get_required_item_type_display()}' modificado com sucesso."))
+            if request.headers.get('HX-Request'):
+                response = HttpResponse("")
+                response['HX-Refresh'] = 'true'
+                return response
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        input_types = TechnicalInputType.objects.filter(is_active=True).order_by('category', 'name')
+        return render(request, 'commercial/partials/edit_input_requirement_modal.html', {
+            'proposal': proposal,
+            'req_item': req_item,
+            'form': form,
+            'input_types': input_types,
+        }, status=422)
+
+
+class ProposalDeleteInputRequirementView(LoginRequiredMixin, View):
+    """
+    Permite remover um insumo obrigatório do checklist da contratante (D0).
+    """
+    def post(self, request, pk, req_id):
+        proposal = get_object_or_404(CommercialProposal, pk=pk)
+        if proposal.status == ProposalStatusChoices.ACEITA:
+            messages.error(request, _("Não é possível remover insumos de uma proposta já aceita sem prévio desbloqueio."))
+            return redirect('commercial:proposal_detail', pk=proposal.pk)
+
+        req_item = get_object_or_404(ProposalInputRequirement, pk=req_id, proposal=proposal)
+        item_name = req_item.get_required_item_type_display()
+        req_item.delete()
+        messages.warning(request, _(f"Insumo '{item_name}' removido do checklist de responsabilidade do cliente."))
         return redirect('commercial:proposal_detail', pk=proposal.pk)
 
 class ProposalValidateInputView(LoginRequiredMixin, View):

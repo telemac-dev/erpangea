@@ -31,13 +31,15 @@ class InputItemTypeChoices(models.TextChoices):
     LEVANTAMENTO_TOPOGRAFICO = 'LEVANTAMENTO_TOPOGRAFICO', _('Levantamento Planialtimétrico Cadastral (DWG)')
     PROJETO_ESTRUTURAL_DWG = 'PROJETO_ESTRUTURAL_DWG', _('Projeto Estrutural de Concreto ou Estrutura Metálica (DWG)')
     OUTRO = 'OUTRO', _('Outro Documento / Insumo Técnico')
+class InputCategoryChoices(models.TextChoices):
+    TECNICO = 'TECNICO', _('Técnico')
+    ADMINISTRATIVO = 'ADMINISTRATIVO', _('Administrativo')
 
 class InputStatusChoices(models.TextChoices):
     PENDENTE = 'PENDENTE', _('Pendente de Entrega pelo Cliente')
     EM_ANALISE = 'EM_ANALISE', _('Em Análise Técnica pelo Geotécnico')
     APROVADO = 'APROVADO', _('Aprovado pelo Responsável Técnico')
     REJEITADO = 'REJEITADO', _('Inconforme / Rejeitado (Exige Nova Emissão)')
-
 class ContractTypeChoices(models.TextChoices):
     PADRAO_ERP = 'PADRAO_ERP', _('Minuta Padrão ERPangea')
     MINUTA_CLIENTE = 'MINUTA_CLIENTE', _('Contrato Externo (Minuta do Cliente)')
@@ -377,7 +379,13 @@ class TechnicalInputType(models.Model):
     Permite criação dinâmica no banco e inline na proposta.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(_('Tipo de Insumo'), max_length=180, unique=True)
+    category = models.CharField(
+        _('Tipo de Insumo'),
+        max_length=20,
+        choices=InputCategoryChoices.choices,
+        default=InputCategoryChoices.TECNICO
+    )
+    name = models.CharField(_('Insumo'), max_length=180, unique=True)
     code = models.CharField(_('Código de Referência'), max_length=50, blank=True)
     default_description = models.CharField(
         _('Especificação Técnica Mínima'),
@@ -466,6 +474,12 @@ class ProposalInputRequirement(models.Model):
         related_name='requirements',
         verbose_name=_('Tipo do Insumo')
     )
+    category = models.CharField(
+        _('Tipo de Insumo'),
+        max_length=20,
+        choices=InputCategoryChoices.choices,
+        default=InputCategoryChoices.TECNICO
+    )
     required_item_type = models.CharField(_('Insumo Obrigatório'), max_length=180, blank=True)
     description = models.CharField(
         _('Especificação Técnica Mínima'),
@@ -474,7 +488,6 @@ class ProposalInputRequirement(models.Model):
     )
     is_mandatory = models.BooleanField(_('Bloqueia Início das Obras (D0)'), default=True)
     status = models.CharField(_('Situação'), max_length=20, choices=InputStatusChoices.choices, default=InputStatusChoices.PENDENTE)
-    
     # Arquivo recebido do cliente
     uploaded_file = models.FileField(_('Arquivo Recebido'), upload_to='commercial/inputs/', null=True, blank=True)
     technical_notes = models.TextField(_('Parecer do Engenheiro Geotécnico'), blank=True)
